@@ -1,0 +1,76 @@
+"""Notification workflow node."""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+
+from pydantic_graph import BaseNode, End, GraphRunContext
+
+from remander.models.command import Command
+from remander.models.enums import ActivityStatus, CommandStatus
+from remander.services.activity import log_activity
+from remander.services.notification_templates import (
+    render_command_failed_notification,
+    render_command_succeeded_notification,
+    render_completed_with_errors_notification,
+    render_validation_warnings_notification,
+)
+from remander.workflows.state import WorkflowDeps, WorkflowState
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
+    """Send a notification with the command result."""
+
+    async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> End[str]:
+        try:
+            cmd = await Command.get(id=ctx.state.command_id)
+            subject, body = self._render_notification(cmd, ctx.state)
+
+            await ctx.deps.notification_sender.send(subject, body)
+
+            await log_activity(
+                command_id=ctx.state.command_id,
+                step_name="notify",
+                status=ActivityStatus.SUCCEEDED,
+            )
+        except Exception as e:
+            logger.warning("Notification failed: %s", e)
+            await log_activity(
+                command_id=ctx.state.command_id,
+                step_name="notify",
+                status=ActivityStatus.FAILED,
+                detail=str(e),
+            )
+
+        return End("done")
+
+    def _render_notification(self, cmd: Command, state: WorkflowState) -> tuple[str, str]:
+        """Choose the right template based on command status."""
+        device_count = len(state.device_ids)
+
+        if state.validation_discrepancies:
+            return render_validation_warnings_notification(cmd, state.validation_discrepancies)
+
+        if cmd.status == CommandStatus.FAILED:
+            return render_command_failed_notification(
+                cmd, error=cmd.error_summary or "Unknown error", failed_step="unknown"
+            )
+
+        if cmd.status == CommandStatus.COMPLETED_WITH_ERRORS:
+            successes = [
+                {"device": str(did), "detail": "OK"}
+                for did, result in state.device_results.items()
+                if result == "succeeded"
+            ]
+            failures = [
+                {"device": str(did), "detail": result}
+                for did, result in state.device_results.items()
+                if result != "succeeded"
+            ]
+            return render_completed_with_errors_notification(cmd, successes, failures)
+
+        return render_command_succeeded_notification(cmd, device_count, duration_s=0.0)

@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -11,6 +12,7 @@ from tortoise import Tortoise
 from remander.config import get_settings
 from remander.db import get_tortoise_config
 from remander.logging import setup_logging
+from remander.worker import create_queue, create_worker, set_queue
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +32,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await Tortoise.generate_schemas()
     logger.info("Database initialized")
 
+    # Initialize SAQ worker
+    queue = create_queue(settings.redis_url)
+    set_queue(queue)
+    await queue.connect()
+    worker = create_worker(queue)
+    worker_task = asyncio.create_task(worker.start())
+    logger.info("SAQ worker started")
+
     yield
 
-    # Shutdown
+    # Shutdown SAQ worker
+    worker.stop()
+    await worker_task
+    await queue.disconnect()
+    logger.info("SAQ worker stopped")
+
+    # Shutdown database
     await Tortoise.close_connections()
     logger.info("Remander stopped")
 
