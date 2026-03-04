@@ -1,0 +1,16 @@
+.git
+.gitignore
+.claude
+.venv
+.env
+__pycache__
+*.pyc
+.ruff_cache
+.pytest_cache
+_ignore
+claude-exports
+tests
+logs
+data
+*.md
+Makefile

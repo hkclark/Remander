@@ -1,0 +1,67 @@
+[project]
+name = "remander"
+version = "0.1.0"
+description = "Home automation app for configuring Reolink security cameras"
+authors = [
+    { name = "kclark", email = "kclark@autoverify.net" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    # Web framework
+    "fastapi",
+    "uvicorn[standard]",
+    "jinja2",
+    "python-multipart",
+    # ORM & database
+    "tortoise-orm",
+    "aerich",
+    # Validation & config
+    "pydantic",
+    "pydantic-settings",
+    # Workflow engine
+    "pydantic-ai",
+    "pydantic-graph",
+    # Job queue
+    "saq",
+    "redis",
+    # Hardware integration
+    "reolink-aio",
+    "python-kasa",
+    "httpx",
+    # Utilities
+    "astral",
+    "aiosmtplib",
+    "attrs",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.aerich]
+tortoise_orm = "remander.db.TORTOISE_ORM"
+location = "./migrations"
+src_folder = "./src"

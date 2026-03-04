@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import sys
-import textwrap
 from datetime import datetime
 from pathlib import Path
 
@@ -22,7 +21,7 @@ def parse_timestamp(ts: str) -> str:
     try:
         dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return ts or ""
 
 
@@ -203,7 +202,9 @@ def format_message(record: dict) -> str | None:
                     preview = thinking[:200]
                     if len(thinking) > 200:
                         preview += "..."
-                    parts.append(f"<details>\n<summary>Thinking...</summary>\n\n{preview}\n\n</details>")
+                    parts.append(
+                        f"<details>\n<summary>Thinking...</summary>\n\n{preview}\n\n</details>"
+                    )
 
         text = "\n\n".join(parts).strip()
         if not text:
