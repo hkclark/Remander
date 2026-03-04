@@ -37,6 +37,16 @@ tests/                 # pytest test suite
 - Assume we are using the latest version of all frameworks, libraries and tools unless otherwise specifically stated
 - Use fully async Python code as much as possible
 
+### Testing Methodology
+
+- Follow **red/green TDD** (Test-Driven Development):
+  1. **RED**: Write a failing test for the next piece of functionality
+  2. **GREEN**: Write the minimum code to make the test pass
+  3. **REFACTOR**: Clean up the code while keeping tests green
+- When starting a new service or component, create the test file first
+- Keep the red/green cycle small — one function or one behavior at a time
+- Verify tests actually fail before writing implementation (the RED step matters)
+
 ## Class System
 
 - **attrs**: Domain objects, value objects, utility classes (default choice)
