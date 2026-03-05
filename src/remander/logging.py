@@ -5,7 +5,7 @@ import sys
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
-DEFAULT_NVR_LOG_MAX_LENGTH = 500
+DEFAULT_NVR_LOG_MAX_LENGTH = 0
 
 
 class TruncateFilter(logging.Filter):
@@ -88,15 +88,17 @@ def setup_logging(
     # through parent logger filters.
     nvr_debug_level = nvr_debug.lower()
     if nvr_debug_level == "full":
-        truncate = TruncateFilter(name="reolink_aio", max_length=nvr_debug_max_length)
         logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
-        stdout_handler.addFilter(truncate)
-        file_handler.addFilter(truncate)
+        if nvr_debug_max_length > 0:
+            truncate = TruncateFilter(name="reolink_aio", max_length=nvr_debug_max_length)
+            stdout_handler.addFilter(truncate)
+            file_handler.addFilter(truncate)
     elif nvr_debug_level == "true":
-        truncate = TruncateFilter(name="reolink_aio.api", max_length=nvr_debug_max_length)
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
         logging.getLogger("reolink_aio.api").setLevel(logging.DEBUG)
-        stdout_handler.addFilter(truncate)
-        file_handler.addFilter(truncate)
+        if nvr_debug_max_length > 0:
+            truncate = TruncateFilter(name="reolink_aio.api", max_length=nvr_debug_max_length)
+            stdout_handler.addFilter(truncate)
+            file_handler.addFilter(truncate)
     else:
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)

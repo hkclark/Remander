@@ -125,35 +125,30 @@ class TestTruncateFilterIntegration:
         setup_logging(log_dir=str(tmp_path), nvr_debug="false")
         assert not self._has_truncate_filter_on_handlers()
 
-    def test_nvr_debug_true_has_filter_on_handlers(self, tmp_path: str):
+    def test_nvr_debug_true_no_filter_by_default(self, tmp_path: str):
+        """No truncation when NVR_DEBUG_MAX_LENGTH is not set (default 0)."""
         setup_logging(log_dir=str(tmp_path), nvr_debug="true")
+        assert not self._has_truncate_filter_on_handlers()
+
+    def test_nvr_debug_full_no_filter_by_default(self, tmp_path: str):
+        setup_logging(log_dir=str(tmp_path), nvr_debug="full")
+        assert not self._has_truncate_filter_on_handlers()
+
+    def test_nvr_debug_true_has_filter_when_max_length_set(self, tmp_path: str):
+        setup_logging(log_dir=str(tmp_path), nvr_debug="true", nvr_debug_max_length=200)
         for h in self._get_root_handlers():
             f = self._get_handler_truncate_filter(h)
             assert f is not None
             assert f.name == "reolink_aio.api"
+            assert f.max_length == 200
 
-    def test_nvr_debug_full_has_filter_on_handlers(self, tmp_path: str):
-        setup_logging(log_dir=str(tmp_path), nvr_debug="full")
+    def test_nvr_debug_full_has_filter_when_max_length_set(self, tmp_path: str):
+        setup_logging(log_dir=str(tmp_path), nvr_debug="full", nvr_debug_max_length=1000)
         for h in self._get_root_handlers():
             f = self._get_handler_truncate_filter(h)
             assert f is not None
             assert f.name == "reolink_aio"
-
-    def test_custom_max_length(self, tmp_path: str):
-        setup_logging(log_dir=str(tmp_path), nvr_debug="true", nvr_debug_max_length=200)
-        handler = self._get_root_handlers()[0]
-        f = self._get_handler_truncate_filter(handler)
-        assert f is not None
-        assert f.max_length == 200
-
-    def test_default_max_length(self, tmp_path: str):
-        from remander.logging import DEFAULT_NVR_LOG_MAX_LENGTH
-
-        setup_logging(log_dir=str(tmp_path), nvr_debug="true")
-        handler = self._get_root_handlers()[0]
-        f = self._get_handler_truncate_filter(handler)
-        assert f is not None
-        assert f.max_length == DEFAULT_NVR_LOG_MAX_LENGTH
+            assert f.max_length == 1000
 
     def test_child_logger_records_are_truncated(self, tmp_path: str):
         """Records from reolink_aio.api.data are truncated via handler filter."""
