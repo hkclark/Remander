@@ -1,8 +1,14 @@
-.PHONY: run run-dev redis-up redis-down test lint format migrate migrate-init transcripts transcripts-all
+.PHONY: help run run-dev redis-up redis-down test lint format migrate migrate-init transcripts transcripts-all
+
+.DEFAULT_GOAL := help
 
 -include .env
 -include .env.dev
 export
+
+## Show this help message
+help:
+	@awk '/^## /{desc=substr($$0,4)} /^[a-zA-Z_-]+:/{if(desc){sub(/:.*/, "", $$1); printf "  \033[36m%-20s\033[0m %s\n", $$1, desc; desc=""}}' $(MAKEFILE_LIST)
 
 ## Start Redis (if needed) + run app locally
 run: redis-up
