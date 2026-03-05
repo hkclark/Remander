@@ -6,12 +6,15 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 
-def setup_logging(log_dir: str = "./logs", log_level: str = "INFO") -> None:
+def setup_logging(
+    log_dir: str = "./logs", log_level: str = "INFO", *, nvr_debug: bool = False
+) -> None:
     """Configure application logging with stdout and file handlers.
 
     Args:
         log_dir: Directory for log files.
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+        nvr_debug: Enable DEBUG-level logging for reolink-aio library.
     """
     log_path = Path(log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
@@ -43,3 +46,11 @@ def setup_logging(log_dir: str = "./logs", log_level: str = "INFO") -> None:
 
     # Quiet down noisy third-party loggers
     logging.getLogger("tortoise").setLevel(logging.WARNING)
+
+    # NVR debug logging — reolink-aio has 200+ DEBUG statements covering
+    # HTTP requests/responses, connection state, and command flow.
+    # Passwords are automatically masked by the library.
+    if nvr_debug:
+        logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
+    else:
+        logging.getLogger("reolink_aio").setLevel(logging.WARNING)

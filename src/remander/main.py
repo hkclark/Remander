@@ -23,7 +23,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
     # Configure logging
-    setup_logging(log_dir=settings.log_dir, log_level=settings.log_level)
+    setup_logging(
+        log_dir=settings.log_dir, log_level=settings.log_level, nvr_debug=settings.nvr_debug
+    )
     logger.info("Starting Remander")
 
     # Initialize Tortoise ORM
