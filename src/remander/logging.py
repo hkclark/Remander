@@ -42,5 +42,4 @@ def setup_logging(log_dir: str = "./logs", log_level: str = "INFO") -> None:
     root_logger.addHandler(file_handler)
 
     # Quiet down noisy third-party loggers
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("tortoise").setLevel(logging.WARNING)

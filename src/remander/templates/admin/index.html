@@ -10,12 +10,19 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-2">Query NVR</h2>
             <p class="text-sm text-gray-600 mb-4">Fetch camera metadata from the NVR.</p>
-            <form action="/admin/query-nvr" method="post">
-                <button type="submit"
-                        class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
-                    Query NVR
-                </button>
-            </form>
+            <button hx-post="/admin/query-nvr"
+                    hx-target="#nvr-results"
+                    hx-indicator="#nvr-spinner"
+                    class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                Query NVR
+            </button>
+            <div id="nvr-spinner" class="htmx-indicator mt-3 flex items-center justify-center text-sm text-gray-500">
+                <svg class="animate-spin h-4 w-4 mr-2 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Querying NVR...
+            </div>
         </div>
 
         <a href="/admin/pending-jobs" class="bg-white rounded-lg shadow p-6 hover:bg-gray-50">
@@ -28,5 +35,7 @@
             <p class="text-sm text-gray-600">Browse full command history with audit info.</p>
         </a>
     </div>
+
+    <div id="nvr-results"></div>
 </div>
 {% endblock %}

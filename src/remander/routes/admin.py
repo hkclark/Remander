@@ -1,10 +1,15 @@
 """Admin route handlers — NVR query, pending jobs, audit trail."""
 
+import asyncio
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from remander.clients.reolink import ReolinkNVRClient
 from remander.services.command import list_commands
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin")
 
@@ -22,29 +27,46 @@ async def query_nvr(request: Request) -> HTMLResponse:
     from remander.main import templates
 
     settings = get_settings()
+    logger.info("Querying NVR at %s:%s", settings.nvr_host, settings.nvr_port)
     client = ReolinkNVRClient(
         host=settings.nvr_host,
         port=settings.nvr_port,
         username=settings.nvr_username,
         password=settings.nvr_password.get_secret_value(),
+        timeout=settings.nvr_timeout,
     )
 
-    try:
+    async def _query() -> list[dict]:
         await client.login()
-        cameras = await client.list_channels()
+        channels = await client.list_channels()
         await client.logout()
+        return channels
+
+    try:
+        cameras = await asyncio.wait_for(_query(), timeout=settings.nvr_timeout)
+    except TimeoutError:
+        logger.warning("NVR query timed out after %ds", settings.nvr_timeout)
+        cameras = []
+        error = f"NVR query timed out after {settings.nvr_timeout}s"
+        return templates.TemplateResponse(
+            request,
+            "admin/_nvr_results.html",
+            {"cameras": cameras, "error": error},
+        )
     except Exception as e:
+        logger.warning("NVR query failed: %s", e)
         cameras = []
         error = str(e)
         return templates.TemplateResponse(
             request,
-            "admin/nvr_cameras.html",
+            "admin/_nvr_results.html",
             {"cameras": cameras, "error": error},
         )
 
+    logger.info("NVR query returned %d cameras", len(cameras))
     return templates.TemplateResponse(
         request,
-        "admin/nvr_cameras.html",
+        "admin/_nvr_results.html",
         {"cameras": cameras, "error": None},
     )
 
