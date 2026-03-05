@@ -137,6 +137,48 @@ class ReolinkNVRClient:
         elapsed = time.monotonic() - t0
         logger.info("NVR PTZ move completed in %.1fs", elapsed)
 
+    async def get_push_schedules(self) -> list[dict]:
+        """Fetch push notification schedule tables for all channels.
+
+        Returns a list of dicts, one per channel:
+            {"channel": int, "name": str, "table": {"MD": "...", "AI_PEOPLE": "...", ...}}
+
+        Uses the GetPushV20 API (falls back to GetPush for legacy firmware).
+        Leverages reolink-aio's send() to handle auth and HTTP transport.
+        """
+        t0 = time.monotonic()
+        results = []
+        for ch in self._nvr.channels:
+            if self._nvr.api_version("GetPush") >= 1:
+                body = [{"cmd": "GetPushV20", "action": 1, "param": {"channel": ch}}]
+            else:
+                body = [{"cmd": "GetPush", "action": 1, "param": {"channel": ch}}]
+
+            response = await self._nvr.send(body, expected_response_type="json")
+            logger.debug("Push schedule response ch=%d: %s", ch, response)
+
+            table = {}
+            if response and len(response) > 0:
+                value = response[0].get("value", {})
+                push = value.get("Push", {})
+                schedule = push.get("schedule", {})
+                raw_table = schedule.get("table", {})
+                if isinstance(raw_table, dict):
+                    table = raw_table
+                elif isinstance(raw_table, str):
+                    # Legacy GetPush returns a single flat string for MD only
+                    table = {"MD": raw_table}
+
+            results.append({
+                "channel": ch,
+                "name": self._nvr.camera_name(ch),
+                "table": table,
+            })
+
+        elapsed = time.monotonic() - t0
+        logger.info("NVR fetched push schedules for %d channels in %.1fs", len(results), elapsed)
+        return results
+
     async def is_channel_online(self, channel: int) -> bool:
         """Check if a camera channel is currently online."""
         online = self._nvr.camera_online(channel)

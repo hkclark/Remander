@@ -39,9 +39,9 @@ class TestDashboard:
         assert "Set Away Now" in response.text
         assert "Set Home Now" in response.text
 
-    async def test_command_progress_partial(self, client: AsyncClient) -> None:
+    async def test_command_progress_partial_no_active(self, client: AsyncClient) -> None:
         response = await client.get("/partials/command-progress")
-        assert response.status_code == 200
+        assert response.status_code == 286
 
 
 class TestDashboardAwayButtons:

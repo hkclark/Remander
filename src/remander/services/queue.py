@@ -74,13 +74,13 @@ async def run_workflow(cmd: Command) -> bool | None:
     tapo_client = TapoClient()
     sonoff_client = SonoffClient()
     notification_sender = EmailNotificationSender(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_username,
-        password=settings.smtp_password.get_secret_value(),
-        from_addr=settings.smtp_from,
-        to_addr=settings.smtp_to,
-        use_tls=settings.smtp_use_tls,
+        smtp_host=settings.smtp_host,
+        smtp_port=settings.smtp_port,
+        smtp_username=settings.smtp_username,
+        smtp_password=settings.smtp_password.get_secret_value(),
+        smtp_from=settings.smtp_from,
+        smtp_to=settings.smtp_to,
+        smtp_use_tls=settings.smtp_use_tls,
     )
 
     # Gather enabled device IDs
@@ -139,13 +139,13 @@ async def execute_rearm(command_id: int) -> None:
     tapo_client = TapoClient()
     sonoff_client = SonoffClient()
     notification_sender = EmailNotificationSender(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_username,
-        password=settings.smtp_password.get_secret_value(),
-        from_addr=settings.smtp_from,
-        to_addr=settings.smtp_to,
-        use_tls=settings.smtp_use_tls,
+        smtp_host=settings.smtp_host,
+        smtp_port=settings.smtp_port,
+        smtp_username=settings.smtp_username,
+        smtp_password=settings.smtp_password.get_secret_value(),
+        smtp_from=settings.smtp_from,
+        smtp_to=settings.smtp_to,
+        smtp_use_tls=settings.smtp_use_tls,
     )
 
     devices = await Device.filter(is_enabled=True)

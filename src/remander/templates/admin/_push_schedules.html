@@ -1,0 +1,56 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+    {{ error }}
+</div>
+{% elif schedules %}
+<div class="space-y-6">
+    {% for sched in schedules %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-4 py-3 bg-gray-50 border-b">
+            <span class="font-semibold text-gray-900">Ch {{ sched.channel }}</span>
+            <span class="text-gray-600">— {{ sched.name }}</span>
+        </div>
+        {% if sched.table %}
+        <div class="p-4 space-y-4 overflow-x-auto">
+            {% for det_type, bitmask in sched.table.items() %}
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-1">{{ det_type }}</h4>
+                <table class="border-collapse text-xs font-mono">
+                    <thead>
+                        <tr>
+                            <th class="px-1 py-0.5 text-gray-400 text-right w-12"></th>
+                            {% for h in range(24) %}
+                            <th class="px-0 py-0.5 text-gray-400 w-4 text-center">{{ h }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+                        {% for d in range(7) %}
+                        <tr>
+                            <td class="px-1 py-0.5 text-gray-500 text-right">{{ days[d] }}</td>
+                            {% for h in range(24) %}
+                            {% set idx = d * 24 + h %}
+                            {% if idx < bitmask|length %}
+                            <td class="w-4 h-4 {{ 'bg-green-500' if bitmask[idx] == '1' else 'bg-gray-200' }}"
+                                title="{{ days[d] }} {{ '%02d'|format(h) }}:00 — {{ 'ON' if bitmask[idx] == '1' else 'OFF' }}"></td>
+                            {% else %}
+                            <td class="w-4 h-4 bg-gray-100"></td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-4 text-sm text-gray-500">No schedule data available.</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-sm text-gray-500">No channels found.</div>
+{% endif %}

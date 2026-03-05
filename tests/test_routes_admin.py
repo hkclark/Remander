@@ -184,6 +184,76 @@ class TestQueryNvrWithComparison:
         assert "Add/Update All" not in response.text
 
 
+class TestQueryPushSchedules:
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_query_schedules_returns_200(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "table": {
+                    "MD": "1" * 168,
+                    "AI_PEOPLE": "0" * 168,
+                },
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-push-schedules")
+        assert response.status_code == 200
+        assert "Front" in response.text
+        assert "MD" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_query_schedules_shows_detection_types(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "table": {
+                    "MD": "1" * 168,
+                    "AI_PEOPLE": "0" * 168,
+                    "AI_VEHICLE": "0" * 168,
+                },
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-push-schedules")
+        assert "AI_PEOPLE" in response.text
+        assert "AI_VEHICLE" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_query_schedules_timeout(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.login.side_effect = asyncio.TimeoutError
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-push-schedules")
+        assert response.status_code == 200
+        assert "timed out" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_query_schedules_error(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.login.side_effect = ConnectionError("Connection refused")
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-push-schedules")
+        assert response.status_code == 200
+        assert "Connection refused" in response.text
+
+
 class TestNvrSyncCreate:
     async def test_creates_device_returns_ok_row(self, client: AsyncClient) -> None:
         response = await client.post(

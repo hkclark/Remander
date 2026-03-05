@@ -40,8 +40,11 @@ async def command_progress(request: Request) -> HTMLResponse:
     from remander.main import templates
 
     active_command = await get_active_command()
+    # HTMX treats 286 as "stop polling" — stop once the command finishes
+    status_code = 200 if active_command else 286
     return templates.TemplateResponse(
         request,
         "partials/command_progress.html",
         {"active_command": active_command},
+        status_code=status_code,
     )

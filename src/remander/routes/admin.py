@@ -95,6 +95,52 @@ async def query_nvr(request: Request) -> HTMLResponse:
     )
 
 
+@router.post("/query-push-schedules", response_class=HTMLResponse)
+async def query_push_schedules(request: Request) -> HTMLResponse:
+    from remander.config import get_settings
+    from remander.main import templates
+
+    settings = get_settings()
+    client = ReolinkNVRClient(
+        host=settings.nvr_host,
+        port=settings.nvr_port,
+        username=settings.nvr_username,
+        password=settings.nvr_password.get_secret_value(),
+        use_https=settings.nvr_use_https,
+        timeout=settings.nvr_timeout,
+    )
+
+    async def _query() -> list[dict]:
+        await client.login()
+        schedules = await client.get_push_schedules()
+        await client.logout()
+        return schedules
+
+    try:
+        schedules = await asyncio.wait_for(_query(), timeout=settings.nvr_timeout)
+    except TimeoutError:
+        logger.warning("Push schedule query timed out after %ds", settings.nvr_timeout)
+        return templates.TemplateResponse(
+            request,
+            "admin/_push_schedules.html",
+            {"schedules": [], "error": f"NVR query timed out after {settings.nvr_timeout}s"},
+        )
+    except Exception as e:
+        logger.warning("Push schedule query failed: %s", e)
+        return templates.TemplateResponse(
+            request,
+            "admin/_push_schedules.html",
+            {"schedules": [], "error": str(e)},
+        )
+
+    logger.info("Push schedule query returned %d channels", len(schedules))
+    return templates.TemplateResponse(
+        request,
+        "admin/_push_schedules.html",
+        {"schedules": schedules, "error": None},
+    )
+
+
 @router.post("/nvr-sync/create", response_class=HTMLResponse)
 async def nvr_sync_create(
     request: Request,
