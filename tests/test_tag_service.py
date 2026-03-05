@@ -8,6 +8,7 @@ from remander.services.tag import (
     create_tag,
     delete_tag,
     get_devices_by_tag,
+    list_dashboard_tags,
     list_tags,
     remove_tag_from_device,
 )
@@ -105,6 +106,30 @@ class TestRemoveTagFromDevice:
         camera = await create_camera(name="No-op Cam")
         # Should not raise
         await remove_tag_from_device(camera.id, 99999)
+
+
+class TestShowOnDashboard:
+    async def test_default_is_false(self) -> None:
+        tag = await create_tag(name="hidden")
+        assert tag.show_on_dashboard is False
+
+    async def test_can_create_with_show_on_dashboard(self) -> None:
+        tag = await create_tag(name="visible", show_on_dashboard=True)
+        assert tag.show_on_dashboard is True
+
+
+class TestListDashboardTags:
+    async def test_returns_only_dashboard_tags(self) -> None:
+        await create_tag(name="hidden-tag", show_on_dashboard=False)
+        await create_tag(name="visible-tag", show_on_dashboard=True)
+        tags = await list_dashboard_tags()
+        assert len(tags) == 1
+        assert tags[0].name == "visible-tag"
+
+    async def test_empty_when_no_dashboard_tags(self) -> None:
+        await create_tag(name="not-on-dash")
+        tags = await list_dashboard_tags()
+        assert tags == []
 
 
 class TestGetDevicesByTag:

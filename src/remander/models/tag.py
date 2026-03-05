@@ -7,6 +7,7 @@ from tortoise.models import Model
 class Tag(Model):
     id = fields.IntField(primary_key=True)
     name = fields.CharField(max_length=100, unique=True)
+    show_on_dashboard = fields.BooleanField(default=False)
 
     # Many-to-many with Device via device_tag junction table
     devices: fields.ManyToManyRelation["Device"] = fields.ManyToManyField(

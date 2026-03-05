@@ -6,9 +6,9 @@ from remander.models.device import Device
 from remander.models.tag import Tag
 
 
-async def create_tag(name: str) -> Tag:
+async def create_tag(name: str, *, show_on_dashboard: bool = False) -> Tag:
     """Create a new tag."""
-    return await Tag.create(name=name)
+    return await Tag.create(name=name, show_on_dashboard=show_on_dashboard)
 
 
 async def list_tags() -> list[Tag]:
@@ -23,6 +23,11 @@ async def delete_tag(tag_id: int) -> bool:
         return False
     await tag.delete()
     return True
+
+
+async def list_dashboard_tags() -> list[Tag]:
+    """List tags flagged for display on the dashboard pause section."""
+    return await Tag.filter(show_on_dashboard=True).order_by("name")
 
 
 async def add_tag_to_device(device_id: int, tag_id: int) -> None:

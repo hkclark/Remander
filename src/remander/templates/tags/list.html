@@ -14,6 +14,10 @@
                 <input type="text" name="name" id="name" required placeholder="Tag name"
                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
             </div>
+            <div class="flex items-center pb-1">
+                <input type="checkbox" name="show_on_dashboard" id="show_on_dashboard" class="rounded border-gray-300">
+                <label for="show_on_dashboard" class="ml-2 text-sm text-gray-700 whitespace-nowrap">Show on dashboard</label>
+            </div>
             <button type="submit"
                     class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
                 Create
@@ -28,6 +32,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Devices</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Dashboard</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
@@ -36,6 +41,14 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-900">{{ tag.name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ tag.device_count }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <form action="/tags/{{ tag.id }}/toggle-dashboard" method="post" class="inline">
+                            <button type="submit" title="Toggle dashboard visibility"
+                                    class="text-lg {% if tag.show_on_dashboard %}text-amber-500{% else %}text-gray-300 hover:text-gray-400{% endif %}">
+                                {% if tag.show_on_dashboard %}&#9733;{% else %}&#9734;{% endif %}
+                            </button>
+                        </form>
+                    </td>
                     <td class="px-4 py-3 text-right">
                         <form action="/tags/{{ tag.id }}/delete" method="post" class="inline"
                               hx-confirm="Delete tag '{{ tag.name }}'?">
@@ -45,7 +58,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">No tags created yet.</td>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">No tags created yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -4,6 +4,7 @@ from httpx import AsyncClient
 
 from remander.models.enums import CommandStatus, CommandType
 from remander.models.state import AppState
+from remander.services.tag import create_tag
 from tests.factories import create_command
 
 
@@ -41,3 +42,44 @@ class TestDashboard:
     async def test_command_progress_partial(self, client: AsyncClient) -> None:
         response = await client.get("/partials/command-progress")
         assert response.status_code == 200
+
+
+class TestDashboardAwayButtons:
+    async def test_shows_set_away_delayed_buttons(self, client: AsyncClient) -> None:
+        response = await client.get("/")
+        assert "Set Away in 3 Min" in response.text
+        assert "Set Away in 5 Min" in response.text
+
+    async def test_set_away_delayed_posts_delay_minutes(self, client: AsyncClient) -> None:
+        response = await client.post(
+            "/commands/execute/set-away-delayed",
+            data={"delay_minutes": "3"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+
+class TestDashboardPauseNotifications:
+    async def test_shows_pause_section_for_dashboard_tags(self, client: AsyncClient) -> None:
+        await create_tag("driveway", show_on_dashboard=True)
+        response = await client.get("/")
+        assert "driveway" in response.text
+        assert "Pause Notifications" in response.text
+
+    async def test_hides_non_dashboard_tags(self, client: AsyncClient) -> None:
+        await create_tag("hidden-tag", show_on_dashboard=False)
+        response = await client.get("/")
+        assert "hidden-tag" not in response.text
+
+    async def test_shows_time_period_buttons(self, client: AsyncClient) -> None:
+        await create_tag("patio", show_on_dashboard=True)
+        response = await client.get("/")
+        assert "3 Min" in response.text
+        assert "15 Min" in response.text
+        assert "30 Min" in response.text
+        assert "1 Hour" in response.text
+        assert "2 Hours" in response.text
+
+    async def test_no_pause_section_when_no_dashboard_tags(self, client: AsyncClient) -> None:
+        response = await client.get("/")
+        assert "Pause Notifications" not in response.text

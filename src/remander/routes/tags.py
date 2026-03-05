@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from remander.models.tag import Tag
 from remander.services.tag import (
     add_tag_to_device,
     create_tag,
@@ -27,14 +28,27 @@ async def tag_list(request: Request) -> HTMLResponse:
 
 
 @router.post("/tags/create")
-async def tag_create(request: Request, name: str = Form(...)) -> RedirectResponse:
-    await create_tag(name=name)
+async def tag_create(
+    request: Request,
+    name: str = Form(...),
+    show_on_dashboard: str | None = Form(None),
+) -> RedirectResponse:
+    await create_tag(name=name, show_on_dashboard=show_on_dashboard == "on")
     return RedirectResponse(url="/tags", status_code=303)
 
 
 @router.post("/tags/{tag_id}/delete")
 async def tag_delete(request: Request, tag_id: int) -> RedirectResponse:
     await delete_tag(tag_id)
+    return RedirectResponse(url="/tags", status_code=303)
+
+
+@router.post("/tags/{tag_id}/toggle-dashboard")
+async def tag_toggle_dashboard(request: Request, tag_id: int) -> RedirectResponse:
+    tag = await Tag.get_or_none(id=tag_id)
+    if tag:
+        tag.show_on_dashboard = not tag.show_on_dashboard
+        await tag.save()
     return RedirectResponse(url="/tags", status_code=303)
 
 

@@ -29,12 +29,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         nvr_debug=settings.nvr_debug,
         nvr_debug_max_length=settings.nvr_debug_max_length,
     )
-    logger.info("Starting Remander")
+    logger.info(
+        "Starting Remander (nvr_debug=%s, nvr_debug_max_length=%d)",
+        settings.nvr_debug,
+        settings.nvr_debug_max_length,
+    )
 
     # Initialize Tortoise ORM
     config = get_tortoise_config()
     await Tortoise.init(config=config)
-    await Tortoise.generate_schemas()
     logger.info("Database initialized")
 
     # Initialize SAQ worker
