@@ -1,9 +1,14 @@
 <div id="toast-container" hx-swap-oob="afterbegin:#toast-container">
-    <div class="px-4 py-3 rounded shadow-lg text-white text-sm
+    <div class="px-4 py-3 rounded shadow-lg text-white text-sm transition-opacity duration-300
                 {% if level == 'error' %}bg-red-600
                 {% elif level == 'warning' %}bg-yellow-500 text-gray-900
-                {% else %}bg-green-600{% endif %}"
-         x-data x-init="setTimeout(() => $el.remove(), 4000)">
+                {% else %}bg-green-600{% endif %}">
         {{ message }}
+        <script>
+            (function(toast) {
+                setTimeout(function() { toast.style.opacity = '0'; }, 3700);
+                setTimeout(function() { toast.remove(); }, 4000);
+            })(document.currentScript.parentElement);
+        </script>
     </div>
 </div>
