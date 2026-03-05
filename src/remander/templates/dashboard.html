@@ -70,7 +70,9 @@
             <div>
                 <h3 class="text-sm font-medium text-gray-700 mb-2">{{ tag.name }}</h3>
                 <div class="flex flex-wrap gap-2">
-                    {% for minutes, label in [(3, "3 Min"), (15, "15 Min"), (30, "30 Min"), (60, "1 Hour"), (120, "2 Hours")] %}
+                    {% set intervals = [(1, "1 Min")] if debug else [] %}
+                    {% set intervals = intervals + [(3, "3 Min"), (15, "15 Min"), (30, "30 Min"), (60, "1 Hour"), (120, "2 Hours")] %}
+                    {% for minutes, label in intervals %}
                     <form action="/commands/execute/pause-notifications" method="post">
                         <input type="hidden" name="pause_minutes" value="{{ minutes }}">
                         <input type="hidden" name="tag_filter" value="{{ tag.name }}">

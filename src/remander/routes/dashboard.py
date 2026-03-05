@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
+from remander.config import get_settings
 from remander.models.state import AppState
 from remander.services.command import get_active_command, list_commands
 from remander.services.tag import list_dashboard_tags
@@ -22,6 +23,7 @@ async def dashboard(request: Request) -> HTMLResponse:
 
     active_command = await get_active_command()
     dashboard_tags = await list_dashboard_tags()
+    settings = get_settings()
 
     return templates.TemplateResponse(
         request,
@@ -31,6 +33,7 @@ async def dashboard(request: Request) -> HTMLResponse:
             "last_command": last_command,
             "active_command": active_command,
             "dashboard_tags": dashboard_tags,
+            "debug": settings.debug,
         },
     )
 

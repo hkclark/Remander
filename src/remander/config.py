@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     latitude: float = 0.0
     longitude: float = 0.0
 
+    # Debug mode
+    debug: bool = False
+
     # Logging
     log_dir: str = "./logs"
     log_level: str = "INFO"

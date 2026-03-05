@@ -1,5 +1,7 @@
 """Tests for dashboard routes."""
 
+from unittest.mock import AsyncMock, patch
+
 from httpx import AsyncClient
 
 from remander.models.enums import CommandStatus, CommandType
@@ -57,6 +59,27 @@ class TestDashboardAwayButtons:
             follow_redirects=False,
         )
         assert response.status_code == 303
+
+
+class TestDashboardDebugMode:
+    @patch("remander.routes.dashboard.get_settings")
+    async def test_shows_1min_pause_in_debug_mode(
+        self, mock_settings: AsyncMock, client: AsyncClient
+    ) -> None:
+        from remander.config import Settings
+
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+        settings.debug = True
+        mock_settings.return_value = settings
+        await create_tag("test-tag", show_on_dashboard=True)
+        response = await client.get("/")
+        assert "1 Min" in response.text
+
+    async def test_hides_1min_pause_without_debug(self, client: AsyncClient) -> None:
+        await create_tag("test-tag", show_on_dashboard=True)
+        response = await client.get("/")
+        assert "1 Min" not in response.text
+        assert "3 Min" in response.text
 
 
 class TestDashboardPauseNotifications:
