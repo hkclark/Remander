@@ -1,5 +1,5 @@
 <tr id="nvr-row-{{ result.channel }}">
-    <form>
+    <td class="px-4 py-3 text-sm">
         <input type="hidden" name="channel" value="{{ result.channel }}">
         <input type="hidden" name="name" value="{{ result.name or '' }}">
         <input type="hidden" name="model" value="{{ result.model or '' }}">
@@ -9,70 +9,69 @@
         {% if result.device_id %}
         <input type="hidden" name="device_id" value="{{ result.device_id }}">
         {% endif %}
-
-        <td class="px-4 py-3 text-sm">{{ result.channel }}</td>
-        <td class="px-4 py-3 text-sm font-medium">
-            {{ result.name or '' }}
-            {% for diff in result.diffs if diff.field_name == 'name' %}
-            <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
-            {% endfor %}
-        </td>
-        <td class="px-4 py-3 text-sm">
-            {{ result.model or '' }}
-            {% for diff in result.diffs if diff.field_name == 'model_name' %}
-            <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
-            {% endfor %}
-        </td>
-        <td class="px-4 py-3 text-sm">
-            {{ result.hw_version or '' }}
-            {% for diff in result.diffs if diff.field_name == 'hw_version' %}
-            <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
-            {% endfor %}
-        </td>
-        <td class="px-4 py-3 text-sm">
-            {{ result.firmware or '' }}
-            {% for diff in result.diffs if diff.field_name == 'firmware' %}
-            <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
-            {% endfor %}
-        </td>
-        <td class="px-4 py-3">
-            {% if result.online %}
-            <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Online</span>
-            {% else %}
-            <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Offline</span>
-            {% endif %}
-        </td>
-        <td class="px-4 py-3">
-            {% if result.status == 'new' %}
-            <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">New</span>
-            {% elif result.status == 'changed' %}
-            <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">Changed</span>
-            {% else %}
-            <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">OK</span>
-            {% endif %}
-        </td>
-        <td class="px-4 py-3">
-            {% if result.status == 'new' %}
-            <button type="button"
-                    hx-post="/admin/nvr-sync/create"
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                    hx-include="closest form"
-                    class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
-                Create
-            </button>
-            {% elif result.status == 'changed' %}
-            <button type="button"
-                    hx-post="/admin/nvr-sync/update"
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                    hx-include="closest form"
-                    class="px-3 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded">
-                Update
-            </button>
-            {% endif %}
-        </td>
-    </form>
+        {{ result.channel }}
+    </td>
+    <td class="px-4 py-3 text-sm font-medium">
+        {{ result.name or '' }}
+        {% for diff in result.diffs if diff.field_name == 'name' %}
+        <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
+        {% endfor %}
+    </td>
+    <td class="px-4 py-3 text-sm">
+        {{ result.model or '' }}
+        {% for diff in result.diffs if diff.field_name == 'model_name' %}
+        <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
+        {% endfor %}
+    </td>
+    <td class="px-4 py-3 text-sm">
+        {{ result.hw_version or '' }}
+        {% for diff in result.diffs if diff.field_name == 'hw_version' %}
+        <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
+        {% endfor %}
+    </td>
+    <td class="px-4 py-3 text-sm">
+        {{ result.firmware or '' }}
+        {% for diff in result.diffs if diff.field_name == 'firmware' %}
+        <br><span class="line-through text-gray-400 text-xs">{{ diff.db_value or '' }}</span>
+        {% endfor %}
+    </td>
+    <td class="px-4 py-3">
+        {% if result.online %}
+        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Online</span>
+        {% else %}
+        <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Offline</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3">
+        {% if result.status == 'new' %}
+        <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">New</span>
+        {% elif result.status == 'changed' %}
+        <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">Changed</span>
+        {% else %}
+        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">OK</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3">
+        {% if result.status == 'new' %}
+        <button type="button"
+                hx-post="/admin/nvr-sync/create"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                hx-include="closest tr"
+                class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
+            Create
+        </button>
+        {% elif result.status == 'changed' %}
+        <button type="button"
+                hx-post="/admin/nvr-sync/update"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                hx-include="closest tr"
+                class="px-3 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded">
+            Update
+        </button>
+        {% endif %}
+    </td>
 </tr>
 
 {% if toast_message is defined and toast_message %}
