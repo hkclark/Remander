@@ -1,0 +1,9 @@
+<div id="toast-container" hx-swap-oob="afterbegin:#toast-container">
+    <div class="px-4 py-3 rounded shadow-lg text-white text-sm
+                {% if level == 'error' %}bg-red-600
+                {% elif level == 'warning' %}bg-yellow-500 text-gray-900
+                {% else %}bg-green-600{% endif %}"
+         x-data x-init="setTimeout(() => $el.remove(), 4000)">
+        {{ message }}
+    </div>
+</div>

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Activity Log - Remander{% endblock %}
+{% block nav_activity %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Activity Log</h1>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" action="/activity" class="flex items-end space-x-4">
+            <div>
+                <label for="command_id" class="block text-xs font-medium text-gray-500">Command ID</label>
+                <input type="number" name="command_id" id="command_id"
+                       value="{{ filters.command_id }}"
+                       class="mt-1 block w-24 rounded border-gray-300 shadow-sm text-sm">
+            </div>
+            <div>
+                <label for="device_id" class="block text-xs font-medium text-gray-500">Device ID</label>
+                <input type="number" name="device_id" id="device_id"
+                       value="{{ filters.device_id }}"
+                       class="mt-1 block w-24 rounded border-gray-300 shadow-sm text-sm">
+            </div>
+            <div>
+                <label for="status" class="block text-xs font-medium text-gray-500">Status</label>
+                <select name="status" id="status"
+                        class="mt-1 block rounded border-gray-300 shadow-sm text-sm">
+                    <option value="">All</option>
+                    <option value="started" {{ 'selected' if filters.status == 'started' else '' }}>Started</option>
+                    <option value="succeeded" {{ 'selected' if filters.status == 'succeeded' else '' }}>Succeeded</option>
+                    <option value="failed" {{ 'selected' if filters.status == 'failed' else '' }}>Failed</option>
+                    <option value="skipped" {{ 'selected' if filters.status == 'skipped' else '' }}>Skipped</option>
+                </select>
+            </div>
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium">
+                Filter
+            </button>
+            <a href="/activity" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm">
+                Clear
+            </a>
+        </form>
+    </div>
+
+    <!-- Activity table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Command</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Step</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detail</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for act in activities %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2 text-sm text-gray-600">
+                        {{ act.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td class="px-4 py-2 text-sm">
+                        <a href="/commands/{{ act.command_id }}" class="text-blue-600 hover:underline">
+                            #{{ act.command_id }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-2 text-sm font-mono">{{ act.step_name }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-600">
+                        {% if act.device_id %}
+                        <a href="/devices/{{ act.device_id }}" class="text-blue-600 hover:underline">
+                            #{{ act.device_id }}
+                        </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                            {% if act.status.value == 'succeeded' %}bg-green-100 text-green-700
+                            {% elif act.status.value == 'failed' %}bg-red-100 text-red-700
+                            {% elif act.status.value == 'skipped' %}bg-gray-100 text-gray-600
+                            {% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ act.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-sm text-gray-600">
+                        {{ '%dms' % act.duration_ms if act.duration_ms else '—' }}
+                    </td>
+                    <td class="px-4 py-2 text-sm text-gray-600 max-w-xs truncate">
+                        {{ act.detail or '' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No activity entries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

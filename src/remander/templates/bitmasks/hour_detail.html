@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ bitmask.name }} - Remander{% endblock %}
+{% block nav_bitmasks %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">{{ bitmask.name }}</h1>
+        <div class="flex space-x-3">
+            <a href="/bitmasks/hour/{{ bitmask.id }}/edit"
+               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                Edit
+            </a>
+            <a href="/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+                Back
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <dl class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Subtype</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ bitmask.subtype }}</dd>
+            </div>
+            {% if bitmask.subtype.value == 'static' %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Value</dt>
+                <dd class="mt-1 font-mono text-sm text-gray-900">{{ bitmask.static_value }}</dd>
+            </div>
+            {% else %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Sunrise Offset</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ bitmask.sunrise_offset_minutes or 0 }} min</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Sunset Offset</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ bitmask.sunset_offset_minutes or 0 }} min</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Fill Value</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ bitmask.fill_value or '1' }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+
+        <!-- Visual 24-hour timeline -->
+        {% if bitmask.static_value %}
+        <div>
+            <h3 class="text-sm font-medium text-gray-500 mb-2">24-Hour Timeline</h3>
+            <div class="flex">
+                {% for hour in range(24) %}
+                <div class="flex-1 h-8 {{ 'bg-blue-500' if bitmask.static_value[hour] == '1' else 'bg-gray-200' }}
+                            {{ 'rounded-l' if loop.first else '' }}{{ 'rounded-r' if loop.last else '' }}"
+                     title="Hour {{ hour }}: {{ 'Active' if bitmask.static_value[hour] == '1' else 'Inactive' }}">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex text-xs text-gray-400 mt-1">
+                <span class="flex-1">0</span>
+                <span class="flex-1 text-center">6</span>
+                <span class="flex-1 text-center">12</span>
+                <span class="flex-1 text-center">18</span>
+                <span class="text-right">23</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

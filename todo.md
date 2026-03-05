@@ -539,3 +539,210 @@ steps.
 - [x] Validation: post-command NVR verification detects mismatches as warnings
 - [x] Notifications: email sends for succeeded, failed, completed_with_errors, validation warnings
 - [x] Activity logging: every node execution logged per-device with status and duration
+
+---
+
+# Milestone 4: Web UI
+
+**Goal**: All user-facing pages — dashboard, device/bitmask/tag management, command execution,
+history, activity log, and admin tools.
+
+**Exit criteria**: All pages render correctly. Commands can be initiated from the UI. Progress
+updates in real time. Activity logs and audit trail are browsable.
+
+**Methodology**: Red/green TDD — write failing route/view tests first (FastAPI test client), then
+implement routes and templates to make them pass.
+
+**Status**: Complete
+
+---
+
+## Tasks
+
+### 1. Base Template & Static Assets
+
+- [x] Create `src/remander/templates/base.html` — Jinja2 layout with:
+  - Tailwind CSS (CDN for dev)
+  - HTMX script include
+  - Navigation bar (Dashboard, Devices, Bitmasks, Tags, Commands, Activity, Admin)
+  - Flash/toast notification area (for HTMX `hx-swap-oob`)
+  - Content block for child templates
+- [x] Create `src/remander/templates/partials/` directory for HTMX partial responses
+- [x] Create `src/remander/templates/partials/toast.html` — reusable toast notification fragment
+
+### 2. Dashboard
+
+**RED** — Write failing tests (`tests/test_routes_dashboard.py`):
+- [x] Test `GET /` returns 200 and renders dashboard template
+- [x] Test dashboard shows current mode (home/away from `app_state`)
+- [x] Test dashboard shows last command summary
+- [x] Test dashboard shows quick-action buttons (Set Away Now, Set Home Now)
+- [x] Test `GET /partials/command-progress` returns active command progress (HTMX polling target)
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/dashboard.py` — dashboard route handler
+- [x] Create `src/remander/templates/dashboard.html` — dashboard template
+  - Current mode indicator with visual distinction (color/icon)
+  - Last command summary (type, status, timestamp)
+  - Quick-action buttons: Set Away Now, Set Home Now
+  - Active command progress section (polled via `hx-get` every 2s)
+- [x] Create `src/remander/templates/partials/command_progress.html` — progress partial
+- [x] Register dashboard router in `main.py`
+
+### 3. Device Pages
+
+**RED** — Write failing tests (`tests/test_routes_devices.py`):
+- [x] Test `GET /devices` returns 200 with device list
+- [x] Test `GET /devices/{id}` returns 200 with device detail
+- [x] Test `GET /devices/{id}` returns 404 for nonexistent device
+- [x] Test `GET /devices/create` returns 200 with empty form
+- [x] Test `POST /devices/create` creates device and redirects
+- [x] Test `GET /devices/{id}/edit` returns 200 with populated form
+- [x] Test `POST /devices/{id}/edit` updates device and redirects
+- [x] Test `POST /devices/{id}/delete` deletes device and redirects
+- [x] Test device list shows name, type, brand, channel, tags, enabled status
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/devices.py` — device route handlers (list, detail, create, edit, delete)
+- [x] Create `src/remander/templates/devices/list.html` — device table with columns from spec 15.2
+- [x] Create `src/remander/templates/devices/detail.html` — full device info, detection types, bitmask assignments, power device, activity history
+- [x] Create `src/remander/templates/devices/form.html` — create/edit form with tag management, detection type checkboxes
+- [x] Register device router in `main.py`
+
+### 4. Bitmask Pages
+
+**RED** — Write failing tests (`tests/test_routes_bitmasks.py`):
+- [x] Test `GET /bitmasks` returns 200 with hour bitmask and zone mask lists
+- [x] Test `GET /bitmasks/hour/{id}` returns 200 with hour bitmask detail
+- [x] Test `GET /bitmasks/zone/{id}` returns 200 with zone mask detail
+- [x] Test `GET /bitmasks/hour/create` returns 200 with empty form
+- [x] Test `POST /bitmasks/hour/create` creates hour bitmask and redirects
+- [x] Test `GET /bitmasks/hour/{id}/edit` returns 200 with populated form
+- [x] Test `POST /bitmasks/hour/{id}/edit` updates and redirects
+- [x] Test `POST /bitmasks/hour/{id}/delete` deletes and redirects
+- [x] Test `GET /bitmasks/zone/create` returns 200 with empty form
+- [x] Test `POST /bitmasks/zone/create` creates zone mask and redirects
+- [x] Test `POST /bitmasks/zone/{id}/delete` deletes and redirects
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/bitmasks.py` — route handlers for hour bitmasks and zone masks
+- [x] Create `src/remander/templates/bitmasks/list.html` — combined list of hour bitmasks and zone masks
+- [x] Create `src/remander/templates/bitmasks/hour_detail.html` — visual 24-hour timeline; dynamic bitmask shows today's calculated value
+- [x] Create `src/remander/templates/bitmasks/zone_detail.html` — visual 80x60 grid representation
+- [x] Create `src/remander/templates/bitmasks/hour_form.html` — create/edit form (static value input or dynamic parameters)
+- [x] Create `src/remander/templates/bitmasks/zone_form.html` — create/edit form
+- [x] Register bitmask router in `main.py`
+
+### 5. Tag Management
+
+**RED** — Write failing tests (`tests/test_routes_tags.py`):
+- [x] Test `GET /tags` returns 200 with tag list and device counts
+- [x] Test `POST /tags/create` creates tag and redirects
+- [x] Test `POST /tags/{id}/delete` deletes tag and redirects
+- [x] Test `POST /devices/{id}/tags/add` assigns tag to device (HTMX)
+- [x] Test `POST /devices/{id}/tags/remove` removes tag from device (HTMX)
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/tags.py` — tag route handlers
+- [x] Create `src/remander/templates/tags/list.html` — tag list with device counts, create form, delete buttons
+- [x] Create `src/remander/templates/partials/device_tags.html` — inline tag management fragment for device detail/edit
+- [x] Register tag router in `main.py`
+
+### 6. Command Execution
+
+**RED** — Write failing tests (`tests/test_routes_commands.py`):
+- [x] Test `GET /commands/execute` returns 200 with command execution page
+- [x] Test `POST /commands/execute/set-away-now` creates command, enqueues, and redirects
+- [x] Test `POST /commands/execute/set-away-delayed` with `delay_minutes` creates delayed command
+- [x] Test `POST /commands/execute/set-home-now` creates command and redirects
+- [x] Test `POST /commands/execute/pause-notifications` with `pause_minutes` and optional `tag_filter`
+- [x] Test `POST /commands/execute/pause-recording` with `pause_minutes` and optional `tag_filter`
+- [x] Test command execution records `initiated_by_ip` from request
+- [x] Test command execution records `initiated_by_user` from `?user=` query param
+- [x] Test `POST /commands/{id}/cancel` cancels a pending/queued command
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/commands.py` — command execution and management route handlers
+- [x] Create `src/remander/templates/commands/execute.html` — command execution page:
+  - Set Away: "Set Away Now" button and "Set Away in X Minutes" form
+  - Set Home: "Set Home Now" button
+  - Pause Notifications: tag filter dropdown, duration input, "Pause" button
+  - Pause Recording: tag filter dropdown, duration input, "Pause" button
+  - Optional `?user=` parameter input
+- [x] Register command router in `main.py`
+
+### 7. Command History & Detail
+
+**RED** — Write failing tests (`tests/test_routes_command_history.py`):
+- [x] Test `GET /commands` returns 200 with paginated command list
+- [x] Test `GET /commands?page=2` returns second page
+- [x] Test `GET /commands/{id}` returns 200 with command detail
+- [x] Test `GET /commands/{id}` returns 404 for nonexistent command
+- [x] Test command detail includes activity log entries grouped by device
+- [x] Test command detail includes validation results
+
+**GREEN** — Implement:
+- [x] Create `src/remander/templates/commands/list.html` — paginated command table (ID, type, status, initiated by, created at, duration)
+- [x] Create `src/remander/templates/commands/detail.html` — full command info, activity log grouped by device, validation results
+- [x] Add history/detail handlers to `src/remander/routes/commands.py`
+
+### 8. Activity Log Viewer
+
+**RED** — Write failing tests (`tests/test_routes_activity.py`):
+- [x] Test `GET /activity` returns 200 with activity log table
+- [x] Test `GET /activity?command_id=1` filters by command
+- [x] Test `GET /activity?device_id=1` filters by device
+- [x] Test `GET /activity?status=failed` filters by status
+- [x] Test activity log is sortable and paginated
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/activity.py` — activity log route handler with filters
+- [x] Create `src/remander/templates/activity/list.html` — searchable/filterable log viewer with filter controls (command ID, device, date range, status)
+- [x] Register activity router in `main.py`
+
+### 9. Admin Pages
+
+**RED** — Write failing tests (`tests/test_routes_admin.py`):
+- [x] Test `GET /admin` returns 200 with admin page
+- [x] Test `POST /admin/query-nvr` queries NVR and returns camera metadata (mocked)
+- [x] Test `GET /admin/pending-jobs` returns 200 with pending SAQ jobs list
+- [x] Test `GET /admin/audit` returns 200 with searchable audit trail
+
+**GREEN** — Implement:
+- [x] Create `src/remander/routes/admin.py` — admin route handlers
+- [x] Create `src/remander/templates/admin/index.html` — admin dashboard with links
+- [x] Create `src/remander/templates/admin/nvr_cameras.html` — NVR camera query results
+- [x] Create `src/remander/templates/admin/pending_jobs.html` — SAQ pending/scheduled jobs list
+- [x] Create `src/remander/templates/admin/audit.html` — searchable command history with full audit info
+- [x] Register admin router in `main.py`
+
+### 10. HTMX Integration & Polish
+
+- [x] Dashboard: `hx-get="/partials/command-progress"` with `hx-trigger="every 2s"` for live progress
+- [x] Command execution: `hx-post` for form submissions with redirect on success
+- [x] Device edit: inline tag management with `hx-post`/`hx-delete` for add/remove tags
+- [x] Toast notifications: `hx-swap-oob` for success/error messages after actions
+- [x] Confirmation dialogs: `hx-confirm` for destructive actions (delete device, cancel command)
+- [x] Bitmask assignment: inline editing on device detail page
+
+### 11. Final Verification
+- [x] All new tests pass (`make test`) — 307 tests passing
+- [x] `make lint` passes with no errors
+- [x] `make format` produces no changes
+- [x] Dashboard: shows current mode, last command, quick actions
+- [x] Dashboard: active command progress updates in real time via HTMX polling
+- [x] Devices: list, detail, create, edit, delete all work
+- [x] Devices: tag assignment and detection type management work inline
+- [x] Bitmasks: hour bitmask and zone mask CRUD with visual previews
+- [x] Bitmasks: dynamic bitmask shows today's calculated value
+- [x] Tags: list with device counts, create, delete
+- [x] Commands: all 5 types can be initiated from the UI
+- [x] Commands: history is paginated with click-through to detail
+- [x] Commands: detail shows activity log grouped by device
+- [x] Activity: log viewer with filters (command, device, status, date range)
+- [x] Admin: query NVR shows camera metadata
+- [x] Admin: pending jobs list shows SAQ queue state
+- [x] Admin: audit trail is searchable
+- [x] Navigation: all pages are reachable from the nav bar
+- [x] HTMX: toast notifications appear for actions
+- [x] HTMX: confirmation dialogs work for destructive actions

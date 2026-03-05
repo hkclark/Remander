@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit ' + bitmask.name if bitmask else 'Create Hour Bitmask' }} - Remander{% endblock %}
+{% block nav_bitmasks %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">
+        {{ 'Edit ' + bitmask.name if bitmask else 'Create Hour Bitmask' }}
+    </h1>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post"
+              action="{{ '/bitmasks/hour/' + bitmask.id|string + '/edit' if bitmask else '/bitmasks/hour/create' }}"
+              class="space-y-4">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" name="name" id="name" required
+                       value="{{ bitmask.name if bitmask else '' }}"
+                       class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+            </div>
+            <div>
+                <label for="subtype" class="block text-sm font-medium text-gray-700">Subtype</label>
+                <select name="subtype" id="subtype"
+                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    {% for st in subtypes %}
+                    <option value="{{ st.value }}" {{ 'selected' if bitmask and bitmask.subtype == st else '' }}>
+                        {{ st.value|capitalize }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="static_value" class="block text-sm font-medium text-gray-700">
+                    Static Value (24 chars of 0/1)
+                </label>
+                <input type="text" name="static_value" id="static_value" maxlength="24"
+                       pattern="[01]{24}"
+                       value="{{ bitmask.static_value if bitmask and bitmask.static_value else '' }}"
+                       class="mt-1 block w-full rounded border-gray-300 shadow-sm font-mono">
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="sunrise_offset_minutes" class="block text-sm font-medium text-gray-700">
+                        Sunrise Offset (min)
+                    </label>
+                    <input type="number" name="sunrise_offset_minutes" id="sunrise_offset_minutes"
+                           value="{{ bitmask.sunrise_offset_minutes if bitmask and bitmask.sunrise_offset_minutes else '' }}"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="sunset_offset_minutes" class="block text-sm font-medium text-gray-700">
+                        Sunset Offset (min)
+                    </label>
+                    <input type="number" name="sunset_offset_minutes" id="sunset_offset_minutes"
+                           value="{{ bitmask.sunset_offset_minutes if bitmask and bitmask.sunset_offset_minutes else '' }}"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="fill_value" class="block text-sm font-medium text-gray-700">Fill Value</label>
+                    <select name="fill_value" id="fill_value"
+                            class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        <option value="1" {{ 'selected' if bitmask and bitmask.fill_value == '1' else '' }}>1 (daytime active)</option>
+                        <option value="0" {{ 'selected' if bitmask and bitmask.fill_value == '0' else '' }}>0 (nighttime active)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <a href="/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                    {{ 'Update' if bitmask else 'Create' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

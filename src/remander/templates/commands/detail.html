@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Command #{{ command.id }} - Remander{% endblock %}
+{% block nav_commands %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">Command #{{ command.id }}</h1>
+        <a href="/commands" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+            Back
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <dl class="grid grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Type</dt>
+                <dd class="mt-1 font-mono text-sm text-gray-900">{{ command.command_type }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1">
+                    <span class="px-2 py-1 rounded text-xs font-medium
+                        {% if command.status.value == 'succeeded' %}bg-green-100 text-green-700
+                        {% elif command.status.value == 'failed' %}bg-red-100 text-red-700
+                        {% elif command.status.value == 'running' %}bg-blue-100 text-blue-700
+                        {% elif command.status.value == 'cancelled' %}bg-gray-100 text-gray-700
+                        {% elif command.status.value == 'completed_with_errors' %}bg-yellow-100 text-yellow-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ command.status }}
+                    </span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Created</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ command.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+            </div>
+            {% if command.started_at %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Started</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ command.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+            </div>
+            {% endif %}
+            {% if command.completed_at %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Completed</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ command.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+            </div>
+            {% endif %}
+            {% if command.initiated_by_user %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">User</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ command.initiated_by_user }}</dd>
+            </div>
+            {% endif %}
+            {% if command.initiated_by_ip %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">IP</dt>
+                <dd class="mt-1 text-sm font-mono text-gray-900">{{ command.initiated_by_ip }}</dd>
+            </div>
+            {% endif %}
+            {% if command.tag_filter %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Tag Filter</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ command.tag_filter }}</dd>
+            </div>
+            {% endif %}
+            {% if command.error_summary %}
+            <div class="col-span-2">
+                <dt class="text-sm font-medium text-red-500">Error</dt>
+                <dd class="mt-1 text-sm text-red-700 bg-red-50 p-3 rounded">{{ command.error_summary }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <!-- Activity Log -->
+    {% if activities %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <h2 class="px-4 py-3 text-lg font-semibold text-gray-800 border-b">Activity Log</h2>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Step</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Detail</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for act in activities %}
+                <tr>
+                    <td class="px-4 py-2 text-sm font-mono">{{ act.step_name }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-600">{{ act.device_id or '—' }}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                            {% if act.status.value == 'succeeded' %}bg-green-100 text-green-700
+                            {% elif act.status.value == 'failed' %}bg-red-100 text-red-700
+                            {% elif act.status.value == 'skipped' %}bg-gray-100 text-gray-600
+                            {% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ act.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-sm text-gray-600">
+                        {{ '%dms' % act.duration_ms if act.duration_ms else '—' }}
+                    </td>
+                    <td class="px-4 py-2 text-sm text-gray-600">{{ act.detail or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

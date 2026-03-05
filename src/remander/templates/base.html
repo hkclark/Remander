@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Remander{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-gray-800 text-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-14">
+                <a href="/" class="text-lg font-bold tracking-wide">Remander</a>
+                <div class="flex space-x-4 text-sm">
+                    <a href="/" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
+                    <a href="/devices" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_devices %}{% endblock %}">Devices</a>
+                    <a href="/bitmasks" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_bitmasks %}{% endblock %}">Bitmasks</a>
+                    <a href="/tags" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_tags %}{% endblock %}">Tags</a>
+                    <a href="/commands" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_commands %}{% endblock %}">Commands</a>
+                    <a href="/activity" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_activity %}{% endblock %}">Activity</a>
+                    <a href="/admin" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_admin %}{% endblock %}">Admin</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

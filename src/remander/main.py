@@ -57,6 +57,23 @@ app = FastAPI(title="Remander", version="0.1.0", lifespan=lifespan)
 
 templates = Jinja2Templates(directory="src/remander/templates")
 
+# Register routers
+from remander.routes.activity import router as activity_router  # noqa: E402
+from remander.routes.admin import router as admin_router  # noqa: E402
+from remander.routes.bitmasks import router as bitmasks_router  # noqa: E402
+from remander.routes.commands import router as commands_router  # noqa: E402
+from remander.routes.dashboard import router as dashboard_router  # noqa: E402
+from remander.routes.devices import router as devices_router  # noqa: E402
+from remander.routes.tags import router as tags_router  # noqa: E402
+
+app.include_router(dashboard_router)
+app.include_router(devices_router)
+app.include_router(bitmasks_router)
+app.include_router(tags_router)
+app.include_router(commands_router)
+app.include_router(activity_router)
+app.include_router(admin_router)
+
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
