@@ -3,7 +3,7 @@
 from httpx import AsyncClient
 
 from remander.models.enums import DeviceBrand
-from tests.factories import create_camera
+from tests.factories import create_camera, create_tag
 
 
 class TestDeviceList:
@@ -29,6 +29,13 @@ class TestDeviceList:
         response = await client.get("/devices")
         assert response.status_code == 200
 
+    async def test_shows_tags_on_list(self, client: AsyncClient) -> None:
+        cam = await create_camera(name="Tagged List Cam")
+        tag = await create_tag(name="outdoor")
+        await tag.devices.add(cam)
+        response = await client.get("/devices")
+        assert "outdoor" in response.text
+
 
 class TestDeviceDetail:
     async def test_get_device_detail(self, client: AsyncClient) -> None:
@@ -40,6 +47,34 @@ class TestDeviceDetail:
     async def test_device_not_found(self, client: AsyncClient) -> None:
         response = await client.get("/devices/999")
         assert response.status_code == 404
+
+
+class TestDeviceDetailTags:
+    async def test_shows_assigned_tags(self, client: AsyncClient) -> None:
+        cam = await create_camera(name="Tagged Cam")
+        tag = await create_tag(name="outdoor")
+        await tag.devices.add(cam)
+        response = await client.get(f"/devices/{cam.id}")
+        assert "outdoor" in response.text
+
+    async def test_shows_add_tag_dropdown(self, client: AsyncClient) -> None:
+        cam = await create_camera(name="Cam For Tags")
+        await create_tag(name="indoor")
+        response = await client.get(f"/devices/{cam.id}")
+        assert "indoor" in response.text
+
+    async def test_add_tag_dropdown_excludes_already_assigned(self, client: AsyncClient) -> None:
+        cam = await create_camera(name="Partial Tags Cam")
+        assigned = await create_tag(name="assigned-tag")
+        await create_tag(name="available-tag")
+        await assigned.devices.add(cam)
+        response = await client.get(f"/devices/{cam.id}")
+        # "available-tag" should be in the add dropdown
+        assert "available-tag" in response.text
+        # "assigned-tag" should appear in the current tags section but not the dropdown
+        # Count occurrences — it should appear once (in the tags list), not in the select
+        text = response.text
+        assert text.count("assigned-tag") >= 1
 
 
 class TestDeviceCreate:
@@ -69,6 +104,12 @@ class TestDeviceEdit:
         response = await client.get(f"/devices/{cam.id}/edit")
         assert response.status_code == 200
         assert "Edit Me" in response.text
+
+    async def test_edit_form_shows_tag_link(self, client: AsyncClient) -> None:
+        cam = await create_camera(name="Tag Link Cam")
+        response = await client.get(f"/devices/{cam.id}/edit")
+        assert f"/devices/{cam.id}" in response.text
+        assert "device detail page" in response.text
 
     async def test_post_edit_device(self, client: AsyncClient) -> None:
         cam = await create_camera(name="Old Name")

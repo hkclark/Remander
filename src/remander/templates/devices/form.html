@@ -69,5 +69,12 @@
             </div>
         </form>
     </div>
+
+    {% if device %}
+    <div class="flex items-center gap-2 text-sm text-gray-500">
+        <span>Tags are managed on the</span>
+        <a href="/devices/{{ device.id }}" class="text-blue-600 hover:underline font-medium">device detail page</a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

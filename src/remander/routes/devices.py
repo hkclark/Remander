@@ -11,6 +11,7 @@ from remander.services.device import (
     list_devices,
     update_device,
 )
+from remander.services.tag import list_tags
 
 router = APIRouter(prefix="/devices")
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/devices")
 async def device_list(request: Request) -> HTMLResponse:
     from remander.main import templates
 
-    devices = await list_devices()
+    devices = await list_devices(prefetch=["tags"])
     return templates.TemplateResponse(
         request,
         "devices/list.html",
@@ -75,10 +76,15 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
     if device is None:
         return HTMLResponse("Device not found", status_code=404)
 
+    await device.fetch_related("tags")
+    assigned_tag_ids = {t.id for t in device.tags}
+    all_tags = await list_tags()
+    available_tags = [t for t in all_tags if t.id not in assigned_tag_ids]
+
     return templates.TemplateResponse(
         request,
         "devices/detail.html",
-        {"device": device},
+        {"device": device, "available_tags": available_tags},
     )
 
 

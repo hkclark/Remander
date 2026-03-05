@@ -31,6 +31,13 @@
                         <a href="/devices/{{ device.id }}" class="text-blue-600 hover:underline font-medium">
                             {{ device.name }}
                         </a>
+                        {% if device.tags %}
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for tag in device.tags %}
+                            <span class="px-1.5 py-0.5 rounded-full text-xs bg-blue-100 text-blue-600">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ device.device_type }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ device.brand }}</td>

@@ -21,6 +21,7 @@ async def list_devices(
     *,
     device_type: DeviceType | None = None,
     is_enabled: bool | None = None,
+    prefetch: list[str] | None = None,
 ) -> list[Device]:
     """List devices with optional filters."""
     qs = Device.all()
@@ -28,6 +29,8 @@ async def list_devices(
         qs = qs.filter(device_type=device_type)
     if is_enabled is not None:
         qs = qs.filter(is_enabled=is_enabled)
+    if prefetch:
+        qs = qs.prefetch_related(*prefetch)
     return await qs
 
 
