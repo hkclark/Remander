@@ -1,4 +1,4 @@
-.PHONY: help run run-dev redis-up redis-down test lint format migrate migrate-init transcripts transcripts-all
+.PHONY: help run run-dev redis-up redis-down test lint format migrate transcripts transcripts-all
 
 .DEFAULT_GOAL := help
 
@@ -38,13 +38,10 @@ lint:
 format:
 	uv run ruff format .
 
-## Generate and apply pending database migrations
+## Generate (if needed) and apply database migrations
 migrate:
-	uv run aerich migrate && uv run aerich upgrade
-
-## Initialize database from scratch (new system or fresh start)
-migrate-init:
-	uv run aerich init-db
+	@uv run aerich migrate 2>/dev/null || true
+	uv run aerich upgrade
 
 ## Show auto-exported session transcripts
 transcripts:
