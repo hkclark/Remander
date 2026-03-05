@@ -1,12 +1,14 @@
 """Tests for admin routes."""
 
 import asyncio
+import json
 from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
+from remander.models.device import Device
 from remander.models.enums import CommandStatus, CommandType
-from tests.factories import create_command
+from tests.factories import create_camera, create_command
 
 
 class TestAdminPage:
@@ -66,3 +68,207 @@ class TestAdminPage:
         )
         response = await client.get("/admin/audit")
         assert "set_away_now" in response.text
+
+
+class TestQueryNvrWithComparison:
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_new_channel_shows_new_badge(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.list_channels.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": True,
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-nvr")
+        assert response.status_code == 200
+        assert "New" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_changed_channel_shows_changed_badge(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        await create_camera(
+            name="OldName", channel=0, model_name="RLC-810A", hw_version="v1", firmware="3.0"
+        )
+        mock_client = AsyncMock()
+        mock_client.list_channels.return_value = [
+            {
+                "channel": 0,
+                "name": "NewName",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": True,
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-nvr")
+        assert response.status_code == 200
+        assert "Changed" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_ok_channel_shows_ok_badge(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        await create_camera(
+            name="Front", channel=0, model_name="RLC-810A", hw_version="v1", firmware="3.0"
+        )
+        mock_client = AsyncMock()
+        mock_client.list_channels.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": True,
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-nvr")
+        assert response.status_code == 200
+        assert "OK" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_add_update_all_visible_when_actionable(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.list_channels.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": True,
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-nvr")
+        assert "Add/Update All" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_add_update_all_hidden_when_all_ok(
+        self, mock_nvr_cls: AsyncMock, client: AsyncClient
+    ) -> None:
+        await create_camera(
+            name="Front", channel=0, model_name="RLC-810A", hw_version="v1", firmware="3.0"
+        )
+        mock_client = AsyncMock()
+        mock_client.list_channels.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": True,
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await client.post("/admin/query-nvr")
+        assert "Add/Update All" not in response.text
+
+
+class TestNvrSyncCreate:
+    async def test_creates_device_returns_ok_row(self, client: AsyncClient) -> None:
+        response = await client.post(
+            "/admin/nvr-sync/create",
+            data={
+                "channel": "0",
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": "true",
+            },
+        )
+        assert response.status_code == 200
+        assert "OK" in response.text
+        device = await Device.get(channel=0)
+        assert device.name == "Front"
+
+    async def test_duplicate_name_returns_error_toast(self, client: AsyncClient) -> None:
+        await create_camera(name="Front", channel=5)
+        response = await client.post(
+            "/admin/nvr-sync/create",
+            data={
+                "channel": "0",
+                "name": "Front",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "3.0",
+                "online": "true",
+            },
+        )
+        assert response.status_code == 200
+        assert "already exists" in response.text
+
+
+class TestNvrSyncUpdate:
+    async def test_updates_device_returns_ok_row(self, client: AsyncClient) -> None:
+        device = await create_camera(name="OldName", channel=0, model_name="RLC-810A")
+        response = await client.post(
+            "/admin/nvr-sync/update",
+            data={
+                "device_id": str(device.id),
+                "channel": "0",
+                "name": "NewName",
+                "model": "RLC-810A",
+                "hw_version": "v1",
+                "firmware": "2.0",
+                "online": "true",
+            },
+        )
+        assert response.status_code == 200
+        assert "OK" in response.text
+        await device.refresh_from_db()
+        assert device.name == "NewName"
+
+
+class TestNvrSyncAll:
+    async def test_bulk_sync_returns_full_table(self, client: AsyncClient) -> None:
+        cameras_json = json.dumps(
+            [
+                {
+                    "channel": 0,
+                    "name": "Front",
+                    "model": "RLC-810A",
+                    "hw_version": "v1",
+                    "firmware": "3.0",
+                    "online": True,
+                },
+                {
+                    "channel": 1,
+                    "name": "Back",
+                    "model": "RLC-520A",
+                    "hw_version": "v2",
+                    "firmware": "2.0",
+                    "online": False,
+                },
+            ]
+        )
+        response = await client.post(
+            "/admin/nvr-sync/sync-all",
+            data={"cameras_json": cameras_json},
+        )
+        assert response.status_code == 200
+        # After sync, both devices should be OK
+        assert "OK" in response.text
+        # Check devices were created
+        assert await Device.filter(channel=0).exists()
+        assert await Device.filter(channel=1).exists()

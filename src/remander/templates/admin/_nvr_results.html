@@ -4,33 +4,51 @@
 </div>
 {% endif %}
 
-{% if cameras %}
+{% if sync_results %}
+{% if has_actionable %}
+<div class="mb-4">
+    <form>
+        <input type="hidden" name="cameras_json" value="{{ cameras_json | e }}">
+        <button type="button"
+                hx-post="/admin/nvr-sync/sync-all"
+                hx-target="#nvr-results"
+                hx-swap="innerHTML"
+                hx-include="closest form"
+                hx-confirm="This will create new devices and update changed ones. Continue?"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow text-sm font-medium">
+            Add/Update All
+        </button>
+    </form>
+</div>
+{% endif %}
+
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Channel</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ch</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HW Ver</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmware</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Online</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-            {% for cam in cameras %}
-            <tr>
-                <td class="px-4 py-3 text-sm">{{ cam.channel }}</td>
-                <td class="px-4 py-3 text-sm font-medium">{{ cam.name }}</td>
-                <td class="px-4 py-3">
-                    {% if cam.online %}
-                    <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Online</span>
-                    {% else %}
-                    <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Offline</span>
-                    {% endif %}
-                </td>
-            </tr>
+            {% for result in sync_results %}
+            {% include "admin/_nvr_sync_row.html" %}
             {% endfor %}
         </tbody>
     </table>
 </div>
 {% elif not error %}
 <div class="bg-gray-50 rounded-lg p-6 text-center text-gray-500">No cameras found.</div>
+{% endif %}
+
+{% if toast_message is defined and toast_message %}
+{% set level = toast_level %}
+{% set message = toast_message %}
+{% include "partials/toast.html" %}
 {% endif %}

@@ -61,3 +61,9 @@ class ActivityStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     SKIPPED = "skipped"
+
+
+class ChannelSyncStatus(StrEnum):
+    NEW = "new"
+    CHANGED = "changed"
+    OK = "ok"
