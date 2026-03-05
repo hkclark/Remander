@@ -26,9 +26,20 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
         self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
 
+        logger.info(
+            "[cmd %d] SetNotificationBitmasks: mode=%s, %d devices",
+            ctx.state.command_id,
+            self.mode,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if device.channel is None:
+                logger.debug(
+                    "[cmd %d] SetNotificationBitmasks: skipping device %d (no channel)",
+                    ctx.state.command_id,
+                    device_id,
+                )
                 continue
 
             try:
@@ -39,6 +50,14 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     longitude=ctx.deps.longitude,
                 )
                 for entry in resolved:
+                    logger.info(
+                        "[cmd %d] SetNotificationBitmasks: device '%s' ch=%d %s bitmask=%s",
+                        ctx.state.command_id,
+                        device.name,
+                        device.channel,
+                        entry["detection_type"],
+                        entry["hour_bitmask"],
+                    )
                     await ctx.deps.nvr_client.set_alarm_schedule(
                         device.channel, entry["detection_type"], entry["hour_bitmask"]
                     )
@@ -59,7 +78,10 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.device_results[device_id] = "succeeded"
             except Exception as e:
                 logger.warning(
-                    "Failed to set notification bitmasks for device %d: %s", device_id, e
+                    "[cmd %d] SetNotificationBitmasks: device %d failed: %s",
+                    ctx.state.command_id,
+                    device_id,
+                    e,
                 )
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -85,6 +107,12 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.validate import ValidateNode
 
+        logger.info(
+            "[cmd %d] SetZoneMasks: mode=%s, %d devices",
+            ctx.state.command_id,
+            self.mode,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if device.channel is None:
@@ -99,6 +127,21 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
                 for entry in resolved:
                     if entry["zone_mask"]:
+                        logger.info(
+                            "[cmd %d] SetZoneMasks: device '%s' ch=%d %s mask_len=%d",
+                            ctx.state.command_id,
+                            device.name,
+                            device.channel,
+                            entry["detection_type"],
+                            len(entry["zone_mask"]),
+                        )
+                        logger.debug(
+                            "[cmd %d] SetZoneMasks: device '%s' %s zone_mask=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            entry["detection_type"],
+                            entry["zone_mask"],
+                        )
                         await ctx.deps.nvr_client.set_detection_zones(
                             device.channel, entry["detection_type"], entry["zone_mask"]
                         )
@@ -117,7 +160,12 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("Failed to set zone masks for device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] SetZoneMasks: device %d failed: %s",
+                    ctx.state.command_id,
+                    device_id,
+                    e,
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,

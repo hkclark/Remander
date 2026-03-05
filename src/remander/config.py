@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     # Logging
     log_dir: str = "./logs"
     log_level: str = "INFO"
+    workflow_debug: bool = False
 
     # Docker user/group
     puid: int = 1000

@@ -21,6 +21,11 @@ class ScheduleReArmNode(BaseNode[WorkflowState, WorkflowDeps, str]):
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> End[str]:
         from remander.services.scheduling import schedule_rearm
 
+        logger.info(
+            "[cmd %d] ScheduleReArm: pause_minutes=%s",
+            ctx.state.command_id,
+            ctx.state.pause_minutes,
+        )
         pause_minutes = ctx.state.pause_minutes
         if pause_minutes and pause_minutes > 0:
             await schedule_rearm(ctx.state.command_id, pause_minutes)
@@ -31,7 +36,7 @@ class ScheduleReArmNode(BaseNode[WorkflowState, WorkflowDeps, str]):
                 detail=f"Re-arm scheduled in {pause_minutes} minutes",
             )
             logger.info(
-                "Re-arm scheduled for command %d in %d minutes",
+                "[cmd %d] ScheduleReArm: re-arm scheduled in %d minutes",
                 ctx.state.command_id,
                 pause_minutes,
             )

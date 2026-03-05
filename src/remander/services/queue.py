@@ -12,10 +12,12 @@ logger = logging.getLogger(__name__)
 
 async def enqueue_command(command_id: int) -> None:
     """Transition a command to QUEUED and submit it to the SAQ job queue."""
+    logger.info("[cmd %d] Enqueuing command to SAQ job queue", command_id)
     await transition_status(command_id, CommandStatus.QUEUED)
     queue = get_queue()
     if queue is not None:
         await queue.enqueue("process_command", command_id=command_id)
+        logger.info("[cmd %d] Command enqueued successfully", command_id)
 
 
 async def execute_command(command_id: int) -> None:
@@ -28,20 +30,30 @@ async def execute_command(command_id: int) -> None:
 
     # Skip cancelled commands — they may have been cancelled while sitting in the queue
     if cmd.status == CommandStatus.CANCELLED:
-        logger.info("Skipping cancelled command %d", command_id)
+        logger.info("[cmd %d] Skipping cancelled command", command_id)
         return
 
+    logger.info(
+        "[cmd %d] Executing command: type=%s tag_filter=%s delay=%s pause=%s",
+        command_id,
+        cmd.command_type,
+        cmd.tag_filter,
+        cmd.delay_minutes,
+        cmd.pause_minutes,
+    )
     await transition_status(command_id, CommandStatus.RUNNING)
 
     try:
         result = await run_workflow(cmd)
         if result:
             # run_workflow returns True to indicate partial errors
+            logger.warning("[cmd %d] Command completed with errors", command_id)
             await transition_status(command_id, CommandStatus.COMPLETED_WITH_ERRORS)
         else:
+            logger.info("[cmd %d] Command succeeded", command_id)
             await transition_status(command_id, CommandStatus.SUCCEEDED)
     except Exception as e:
-        logger.exception("Command %d failed: %s", command_id, e)
+        logger.exception("[cmd %d] Command failed: %s", command_id, e)
         await transition_status(command_id, CommandStatus.FAILED)
         await set_error_summary(command_id, str(e))
 
@@ -106,7 +118,15 @@ async def run_workflow(cmd: Command) -> bool | None:
     )
 
     graph, start_node = get_workflow_for_command(cmd.command_type)
+    logger.info(
+        "[cmd %d] Starting workflow: graph=%s start_node=%s devices=%s",
+        cmd.id,
+        type(graph).__name__,
+        type(start_node).__name__,
+        device_ids,
+    )
     result = await graph.run(start_node, state=state, deps=deps)
+    logger.info("[cmd %d] Workflow finished: has_errors=%s", cmd.id, result.state.has_errors)
 
     return True if result.state.has_errors else None
 
@@ -126,6 +146,7 @@ async def execute_rearm(command_id: int) -> None:
     from remander.workflows.graphs import get_workflow_for_command
     from remander.workflows.state import WorkflowDeps, WorkflowState
 
+    logger.info("[cmd %d] Starting re-arm workflow", command_id)
     cmd = await Command.get(id=command_id)
     settings = get_settings()
 

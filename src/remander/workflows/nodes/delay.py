@@ -22,9 +22,15 @@ class OptionalDelayNode(BaseNode[WorkflowState, WorkflowDeps]):
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> NVRLoginNode:
         delay = ctx.state.delay_minutes
+        logger.info("[cmd %d] OptionalDelay: delay_minutes=%s", ctx.state.command_id, delay)
         if delay and delay > 0:
             seconds = delay * 60
-            logger.info("Delaying command %d for %d minutes", ctx.state.command_id, delay)
+            logger.info(
+                "[cmd %d] OptionalDelay: waiting %d minutes (%ds)",
+                ctx.state.command_id,
+                delay,
+                seconds,
+            )
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="optional_delay",

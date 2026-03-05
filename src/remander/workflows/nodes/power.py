@@ -42,6 +42,11 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Send power-on commands to power devices for cameras that need to come online."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> WaitForPowerOnNode:
+        logger.info(
+            "[cmd %d] PowerOn: powering on %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.power_device_id:
@@ -55,6 +60,14 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 continue
 
             try:
+                power_device = await Device.get(id=device.power_device_id)
+                logger.info(
+                    "[cmd %d] PowerOn: device '%s' via %s at %s",
+                    ctx.state.command_id,
+                    device.name,
+                    power_device.brand,
+                    power_device.ip_address,
+                )
                 await _power_on_device(device, ctx.deps)
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -63,7 +76,9 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("Failed to power on device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] PowerOn: device %d failed: %s", ctx.state.command_id, device_id, e
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,
@@ -97,8 +112,17 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 cameras_to_wait.append(device)
 
         if not cameras_to_wait:
+            logger.info(
+                "[cmd %d] WaitForPowerOn: no cameras need power-on wait", ctx.state.command_id
+            )
             return PTZCalibrateNode()
 
+        logger.info(
+            "[cmd %d] WaitForPowerOn: waiting for %d cameras (timeout=%ds)",
+            ctx.state.command_id,
+            len(cameras_to_wait),
+            self.timeout_seconds,
+        )
         start_time = time.monotonic()
         pending = {d.id: d for d in cameras_to_wait}
 
@@ -107,6 +131,14 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 try:
                     online = await ctx.deps.nvr_client.is_channel_online(device.channel)
                     if online:
+                        elapsed = int(time.monotonic() - start_time)
+                        logger.info(
+                            "[cmd %d] WaitForPowerOn: device '%s' ch=%d online after %ds",
+                            ctx.state.command_id,
+                            device.name,
+                            device.channel,
+                            elapsed,
+                        )
                         await log_activity(
                             command_id=ctx.state.command_id,
                             device_id=device_id,
@@ -116,13 +148,24 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                         )
                         del pending[device_id]
                 except Exception as e:
-                    logger.warning("Poll error for device %d: %s", device_id, e)
+                    logger.warning(
+                        "[cmd %d] WaitForPowerOn: poll error device %d: %s",
+                        ctx.state.command_id,
+                        device_id,
+                        e,
+                    )
 
             if pending:
                 await asyncio.sleep(self.poll_interval_seconds)
 
         # Mark timed-out cameras as failed
         for device_id in pending:
+            logger.warning(
+                "[cmd %d] WaitForPowerOn: device %d timed out after %ds",
+                ctx.state.command_id,
+                device_id,
+                self.timeout_seconds,
+            )
             await log_activity(
                 command_id=ctx.state.command_id,
                 device_id=device_id,
@@ -145,12 +188,25 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.validate import ValidateNode
 
+        logger.info(
+            "[cmd %d] PowerOff: powering off %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.power_device_id:
                 continue
 
             try:
+                power_device = await Device.get(id=device.power_device_id)
+                logger.info(
+                    "[cmd %d] PowerOff: device '%s' via %s at %s",
+                    ctx.state.command_id,
+                    device.name,
+                    power_device.brand,
+                    power_device.ip_address,
+                )
                 await _power_off_device(device, ctx.deps)
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -159,7 +215,9 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("Failed to power off device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] PowerOff: device %d failed: %s", ctx.state.command_id, device_id, e
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,

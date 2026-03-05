@@ -21,6 +21,11 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Query the NVR to verify bitmasks match expected values."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> NVRLogoutNode:
+        logger.info(
+            "[cmd %d] Validate: verifying bitmasks for %d devices",
+            ctx.state.command_id,
+            len(ctx.state.expected_bitmasks),
+        )
         for device_id in ctx.state.device_ids:
             if device_id not in ctx.state.expected_bitmasks:
                 continue
@@ -39,7 +44,24 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         device.channel, detection_type
                     )
 
+                    logger.debug(
+                        "[cmd %d] Validate: device '%s' %s actual_hour=%s expected=%s",
+                        ctx.state.command_id,
+                        device.name,
+                        detection_type,
+                        actual_hour,
+                        expected.get("hour_bitmask"),
+                    )
                     if actual_hour != expected.get("hour_bitmask"):
+                        logger.warning(
+                            "[cmd %d] Validate: MISMATCH device '%s' %s "
+                            "hour_bitmask expected=%s actual=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            detection_type,
+                            expected.get("hour_bitmask"),
+                            actual_hour,
+                        )
                         discrepancy = {
                             "device": device.name,
                             "device_id": device_id,
@@ -58,6 +80,12 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         )
 
                     if actual_zone != expected.get("zone_mask"):
+                        logger.warning(
+                            "[cmd %d] Validate: MISMATCH device '%s' %s zone_mask",
+                            ctx.state.command_id,
+                            device.name,
+                            detection_type,
+                        )
                         discrepancy = {
                             "device": device.name,
                             "device_id": device_id,
@@ -76,7 +104,9 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         )
 
                 except Exception as e:
-                    logger.warning("Validation failed for device %d: %s", device_id, e)
+                    logger.warning(
+                        "[cmd %d] Validate: device %d error: %s", ctx.state.command_id, device_id, e
+                    )
                     await log_activity(
                         command_id=ctx.state.command_id,
                         device_id=device_id,
@@ -85,6 +115,12 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         detail=str(e),
                     )
 
+        if ctx.state.validation_discrepancies:
+            logger.warning(
+                "[cmd %d] Validate: %d discrepancies found",
+                ctx.state.command_id,
+                len(ctx.state.validation_discrepancies),
+            )
         if not ctx.state.validation_discrepancies:
             await log_activity(
                 command_id=ctx.state.command_id,

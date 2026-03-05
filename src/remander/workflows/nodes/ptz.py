@@ -20,6 +20,11 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Run PTZ calibration on cameras that support it."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> SetPTZPresetNode:
+        logger.info(
+            "[cmd %d] PTZCalibrate: calibrating %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
@@ -28,6 +33,14 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
             try:
                 # Calibrate by moving to preset 0 and back
                 if device.ptz_away_preset is not None:
+                    logger.info(
+                        "[cmd %d] PTZCalibrate: device '%s' ch=%d preset=%d speed=%d",
+                        ctx.state.command_id,
+                        device.name,
+                        device.channel,
+                        device.ptz_away_preset,
+                        device.ptz_speed,
+                    )
                     await ctx.deps.nvr_client.move_to_preset(
                         device.channel, device.ptz_away_preset, device.ptz_speed
                     )
@@ -38,7 +51,12 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("PTZ calibration failed for device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] PTZCalibrate: device %d failed: %s",
+                    ctx.state.command_id,
+                    device_id,
+                    e,
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,
@@ -59,6 +77,11 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
 
+        logger.info(
+            "[cmd %d] SetPTZPreset: setting away presets for %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
@@ -67,6 +90,14 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
                 continue
 
             try:
+                logger.info(
+                    "[cmd %d] SetPTZPreset: device '%s' ch=%d preset=%d speed=%d",
+                    ctx.state.command_id,
+                    device.name,
+                    device.channel,
+                    device.ptz_away_preset,
+                    device.ptz_speed,
+                )
                 await ctx.deps.nvr_client.move_to_preset(
                     device.channel, device.ptz_away_preset, device.ptz_speed
                 )
@@ -77,7 +108,12 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("PTZ preset failed for device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] SetPTZPreset: device %d failed: %s",
+                    ctx.state.command_id,
+                    device_id,
+                    e,
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,
@@ -98,6 +134,11 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.power import PowerOffNode
 
+        logger.info(
+            "[cmd %d] SetPTZHome: setting home presets for %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
@@ -106,6 +147,14 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                 continue
 
             try:
+                logger.info(
+                    "[cmd %d] SetPTZHome: device '%s' ch=%d preset=%d speed=%d",
+                    ctx.state.command_id,
+                    device.name,
+                    device.channel,
+                    device.ptz_home_preset,
+                    device.ptz_speed,
+                )
                 await ctx.deps.nvr_client.move_to_preset(
                     device.channel, device.ptz_home_preset, device.ptz_speed
                 )
@@ -116,7 +165,9 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.SUCCEEDED,
                 )
             except Exception as e:
-                logger.warning("PTZ home failed for device %d: %s", device_id, e)
+                logger.warning(
+                    "[cmd %d] SetPTZHome: device %d failed: %s", ctx.state.command_id, device_id, e
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,

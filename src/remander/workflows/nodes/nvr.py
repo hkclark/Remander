@@ -25,6 +25,7 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
         from remander.models.enums import CommandType
         from remander.workflows.nodes.save_restore import RestoreBitmasksNode, SaveBitmasksNode
 
+        logger.info("[cmd %d] NVRLogin: connecting...", ctx.state.command_id)
         start = time.monotonic()
         await log_activity(
             command_id=ctx.state.command_id,
@@ -34,20 +35,24 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
         try:
             await ctx.deps.nvr_client.login()
             elapsed_ms = int((time.monotonic() - start) * 1000)
+            logger.info("[cmd %d] NVRLogin: succeeded in %dms", ctx.state.command_id, elapsed_ms)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="nvr_login",
                 status=ActivityStatus.SUCCEEDED,
                 duration_ms=elapsed_ms,
             )
-        except Exception:
+        except Exception as e:
             elapsed_ms = int((time.monotonic() - start) * 1000)
+            logger.error(
+                "[cmd %d] NVRLogin: failed in %dms: %s", ctx.state.command_id, elapsed_ms, e
+            )
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="nvr_login",
                 status=ActivityStatus.FAILED,
                 duration_ms=elapsed_ms,
-                detail=str(Exception),
+                detail=str(e),
             )
             raise
 
@@ -68,15 +73,17 @@ class NVRLogoutNode(BaseNode[WorkflowState, WorkflowDeps]):
         from remander.workflows.nodes.notify import NotifyNode
         from remander.workflows.nodes.schedule import ScheduleReArmNode
 
+        logger.info("[cmd %d] NVRLogout: disconnecting...", ctx.state.command_id)
         try:
             await ctx.deps.nvr_client.logout()
+            logger.info("[cmd %d] NVRLogout: succeeded", ctx.state.command_id)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="nvr_logout",
                 status=ActivityStatus.SUCCEEDED,
             )
         except Exception as e:
-            logger.warning("NVR logout failed: %s", e)
+            logger.warning("[cmd %d] NVRLogout: failed: %s", ctx.state.command_id, e)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="nvr_logout",

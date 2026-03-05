@@ -75,7 +75,15 @@ class TestDashboardDebugMode:
         response = await client.get("/")
         assert "1 Min" in response.text
 
-    async def test_hides_1min_pause_without_debug(self, client: AsyncClient) -> None:
+    @patch("remander.routes.dashboard.get_settings")
+    async def test_hides_1min_pause_without_debug(
+        self, mock_settings: AsyncMock, client: AsyncClient
+    ) -> None:
+        from remander.config import Settings
+
+        settings = Settings(_env_file=None)  # type: ignore[call-arg]
+        settings.debug = False
+        mock_settings.return_value = settings
         await create_tag("test-tag", show_on_dashboard=True)
         response = await client.get("/")
         assert "1 Min" not in response.text

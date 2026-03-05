@@ -16,9 +16,7 @@ class TruncateFilter(logging.Filter):
     Attach to handlers (not loggers) so propagated child records are caught.
     """
 
-    def __init__(
-        self, name: str = "", max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH
-    ) -> None:
+    def __init__(self, name: str = "", max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH) -> None:
         super().__init__(name)
         self.max_length = max_length
 
@@ -27,7 +25,9 @@ class TruncateFilter(logging.Filter):
             return True  # not our logger hierarchy — pass through unmodified
         full_message = record.getMessage()
         if len(full_message) > self.max_length:
-            record.msg = f"{full_message[:self.max_length]}... (truncated, {len(full_message)} chars total)"
+            record.msg = (
+                f"{full_message[: self.max_length]}... (truncated, {len(full_message)} chars total)"
+            )
             record.args = None
         return True
 
@@ -38,6 +38,7 @@ def setup_logging(
     *,
     nvr_debug: str = "false",
     nvr_debug_max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH,
+    workflow_debug: bool = False,
 ) -> None:
     """Configure application logging with stdout and file handlers.
 
@@ -78,6 +79,13 @@ def setup_logging(
 
     # Quiet down noisy third-party loggers
     logging.getLogger("tortoise").setLevel(logging.WARNING)
+
+    # Workflow debug logging — when enabled, sets remander.workflows and
+    # remander.services.queue loggers to DEBUG so all bitmask values, zone
+    # masks, and step-level detail appear in the logs.
+    if workflow_debug:
+        logging.getLogger("remander.workflows").setLevel(logging.DEBUG)
+        logging.getLogger("remander.services.queue").setLevel(logging.DEBUG)
 
     # NVR debug logging — reolink-aio has 200+ DEBUG statements covering
     # HTTP requests/responses, connection state, and Baichuan protocol traffic.

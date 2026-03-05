@@ -26,12 +26,29 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.power import PowerOnNode
 
+        logger.info(
+            "[cmd %d] SaveBitmasks: saving state for %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if device.channel is None:
+                logger.debug(
+                    "[cmd %d] SaveBitmasks: skipping device %d (no channel)",
+                    ctx.state.command_id,
+                    device_id,
+                )
                 continue
 
             enabled_types = await DeviceDetectionType.filter(device_id=device_id, is_enabled=True)
+            logger.debug(
+                "[cmd %d] SaveBitmasks: device '%s' ch=%d has %d detection types",
+                ctx.state.command_id,
+                device.name,
+                device.channel,
+                len(enabled_types),
+            )
             for dt_record in enabled_types:
                 try:
                     hour_bitmask = await ctx.deps.nvr_client.get_alarm_schedule(
@@ -39,6 +56,20 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     )
                     zone_mask = await ctx.deps.nvr_client.get_detection_zones(
                         device.channel, dt_record.detection_type
+                    )
+                    logger.info(
+                        "[cmd %d] SaveBitmasks: device '%s' %s bitmask=%s",
+                        ctx.state.command_id,
+                        device.name,
+                        dt_record.detection_type,
+                        hour_bitmask,
+                    )
+                    logger.debug(
+                        "[cmd %d] SaveBitmasks: device '%s' %s zone_mask=%s",
+                        ctx.state.command_id,
+                        device.name,
+                        dt_record.detection_type,
+                        zone_mask,
                     )
                     await SavedDeviceState.create(
                         command_id=ctx.state.command_id,
@@ -55,7 +86,12 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         detail=f"Saved {dt_record.detection_type}",
                     )
                 except Exception as e:
-                    logger.warning("Failed to save bitmasks for device %d: %s", device_id, e)
+                    logger.warning(
+                        "[cmd %d] SaveBitmasks: device %d failed: %s",
+                        ctx.state.command_id,
+                        device_id,
+                        e,
+                    )
                     await log_activity(
                         command_id=ctx.state.command_id,
                         device_id=device_id,
@@ -87,6 +123,11 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
         from remander.workflows.nodes.ptz import SetPTZHomeNode
 
+        logger.info(
+            "[cmd %d] RestoreBitmasks: restoring state for %d devices",
+            ctx.state.command_id,
+            len(ctx.state.device_ids),
+        )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if device.channel is None:
@@ -97,13 +138,34 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 device_id=device_id,
                 is_consumed=False,
             )
+            logger.debug(
+                "[cmd %d] RestoreBitmasks: device '%s' ch=%d has %d saved states",
+                ctx.state.command_id,
+                device.name,
+                device.channel,
+                len(saved_states),
+            )
             for saved in saved_states:
                 try:
                     if saved.saved_hour_bitmask:
+                        logger.info(
+                            "[cmd %d] RestoreBitmasks: device '%s' %s restoring bitmask=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            saved.detection_type,
+                            saved.saved_hour_bitmask,
+                        )
                         await ctx.deps.nvr_client.set_alarm_schedule(
                             device.channel, saved.detection_type, saved.saved_hour_bitmask
                         )
                     if saved.saved_zone_mask:
+                        logger.debug(
+                            "[cmd %d] RestoreBitmasks: device '%s' %s restoring zone_mask=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            saved.detection_type,
+                            saved.saved_zone_mask,
+                        )
                         await ctx.deps.nvr_client.set_detection_zones(
                             device.channel, saved.detection_type, saved.saved_zone_mask
                         )
@@ -117,7 +179,12 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         detail=f"Restored {saved.detection_type}",
                     )
                 except Exception as e:
-                    logger.warning("Failed to restore bitmasks for device %d: %s", device_id, e)
+                    logger.warning(
+                        "[cmd %d] RestoreBitmasks: device %d failed: %s",
+                        ctx.state.command_id,
+                        device_id,
+                        e,
+                    )
                     await log_activity(
                         command_id=ctx.state.command_id,
                         device_id=device_id,

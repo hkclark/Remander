@@ -21,7 +21,11 @@ class FilterByTagNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Filter the device list to only those matching the command's tag filter."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> NVRLoginNode:
+        logger.info(
+            "[cmd %d] FilterByTag: tag_filter=%s", ctx.state.command_id, ctx.state.tag_filter
+        )
         if not ctx.state.tag_filter:
+            logger.info("[cmd %d] FilterByTag: skipped (no tag filter)", ctx.state.command_id)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="filter_by_tag",
@@ -34,9 +38,24 @@ class FilterByTagNode(BaseNode[WorkflowState, WorkflowDeps]):
         matching_ids: set[int] = set()
         for tag_name in tag_names:
             devices = await get_devices_by_tag(tag_name)
+            logger.debug(
+                "[cmd %d] FilterByTag: tag '%s' matched %d devices: %s",
+                ctx.state.command_id,
+                tag_name,
+                len(devices),
+                [d.id for d in devices],
+            )
             matching_ids.update(d.id for d in devices)
 
+        before_count = len(ctx.state.device_ids)
         ctx.state.device_ids = [did for did in ctx.state.device_ids if did in matching_ids]
+        logger.info(
+            "[cmd %d] FilterByTag: %d -> %d devices (tags: %s)",
+            ctx.state.command_id,
+            before_count,
+            len(ctx.state.device_ids),
+            ctx.state.tag_filter,
+        )
 
         await log_activity(
             command_id=ctx.state.command_id,

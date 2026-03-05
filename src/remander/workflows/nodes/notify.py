@@ -26,9 +26,11 @@ class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
     """Send a notification with the command result."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> End[str]:
+        logger.info("[cmd %d] Notify: sending notification", ctx.state.command_id)
         try:
             cmd = await Command.get(id=ctx.state.command_id)
             subject, body = self._render_notification(cmd, ctx.state)
+            logger.info("[cmd %d] Notify: subject='%s'", ctx.state.command_id, subject)
 
             await ctx.deps.notification_sender.send(subject, body)
 
@@ -38,7 +40,7 @@ class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
                 status=ActivityStatus.SUCCEEDED,
             )
         except Exception as e:
-            logger.warning("Notification failed: %s", e)
+            logger.warning("[cmd %d] Notify: failed: %s", ctx.state.command_id, e)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="notify",
