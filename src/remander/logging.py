@@ -7,14 +7,15 @@ from pathlib import Path
 
 
 def setup_logging(
-    log_dir: str = "./logs", log_level: str = "INFO", *, nvr_debug: bool = False
+    log_dir: str = "./logs", log_level: str = "INFO", *, nvr_debug: str = "false"
 ) -> None:
     """Configure application logging with stdout and file handlers.
 
     Args:
         log_dir: Directory for log files.
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-        nvr_debug: Enable DEBUG-level logging for reolink-aio library.
+        nvr_debug: NVR debug level — "false" (warnings only), "true" (HTTP API debug),
+            or "full" (all reolink-aio debug including Baichuan protocol).
     """
     log_path = Path(log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
@@ -48,9 +49,13 @@ def setup_logging(
     logging.getLogger("tortoise").setLevel(logging.WARNING)
 
     # NVR debug logging — reolink-aio has 200+ DEBUG statements covering
-    # HTTP requests/responses, connection state, and command flow.
-    # Passwords are automatically masked by the library.
-    if nvr_debug:
+    # HTTP requests/responses, connection state, and Baichuan protocol traffic.
+    # "true" enables only the HTTP API logger; "full" enables everything.
+    nvr_debug_level = nvr_debug.lower()
+    if nvr_debug_level == "full":
         logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
+    elif nvr_debug_level == "true":
+        logging.getLogger("reolink_aio").setLevel(logging.WARNING)
+        logging.getLogger("reolink_aio.api").setLevel(logging.DEBUG)
     else:
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
