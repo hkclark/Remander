@@ -101,3 +101,26 @@ class TestTruncateFilterIntegration:
     def test_nvr_debug_full_has_filter_on_parent(self, tmp_path: str):
         setup_logging(log_dir=str(tmp_path), nvr_debug="full")
         assert self._has_truncate_filter("reolink_aio")
+
+    def _get_truncate_filter(self, logger_name: str) -> TruncateFilter:
+        for f in logging.getLogger(logger_name).filters:
+            if isinstance(f, TruncateFilter):
+                return f
+        raise AssertionError(f"No TruncateFilter on {logger_name}")
+
+    def test_custom_max_length_on_true(self, tmp_path: str):
+        setup_logging(log_dir=str(tmp_path), nvr_debug="true", nvr_debug_max_length=200)
+        f = self._get_truncate_filter("reolink_aio.api")
+        assert f.max_length == 200
+
+    def test_custom_max_length_on_full(self, tmp_path: str):
+        setup_logging(log_dir=str(tmp_path), nvr_debug="full", nvr_debug_max_length=1000)
+        f = self._get_truncate_filter("reolink_aio")
+        assert f.max_length == 1000
+
+    def test_default_max_length(self, tmp_path: str):
+        from remander.logging import DEFAULT_NVR_LOG_MAX_LENGTH
+
+        setup_logging(log_dir=str(tmp_path), nvr_debug="true")
+        f = self._get_truncate_filter("reolink_aio.api")
+        assert f.max_length == DEFAULT_NVR_LOG_MAX_LENGTH

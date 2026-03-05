@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     nvr_use_https: bool = False
     nvr_timeout: int = 15
     nvr_debug: str = "false"
+    nvr_debug_max_length: int = 500
 
     # Redis (SAQ job queue)
     redis_url: str = "redis://redis:6379/0"

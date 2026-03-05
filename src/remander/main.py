@@ -24,7 +24,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Configure logging
     setup_logging(
-        log_dir=settings.log_dir, log_level=settings.log_level, nvr_debug=settings.nvr_debug
+        log_dir=settings.log_dir,
+        log_level=settings.log_level,
+        nvr_debug=settings.nvr_debug,
+        nvr_debug_max_length=settings.nvr_debug_max_length,
     )
     logger.info("Starting Remander")
 

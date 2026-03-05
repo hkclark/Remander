@@ -24,7 +24,11 @@ class TruncateFilter(logging.Filter):
 
 
 def setup_logging(
-    log_dir: str = "./logs", log_level: str = "INFO", *, nvr_debug: str = "false"
+    log_dir: str = "./logs",
+    log_level: str = "INFO",
+    *,
+    nvr_debug: str = "false",
+    nvr_debug_max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH,
 ) -> None:
     """Configure application logging with stdout and file handlers.
 
@@ -33,6 +37,7 @@ def setup_logging(
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
         nvr_debug: NVR debug level — "false" (warnings only), "true" (HTTP API debug),
             or "full" (all reolink-aio debug including Baichuan protocol).
+        nvr_debug_max_length: Max character length for reolink-aio debug messages.
     """
     log_path = Path(log_dir)
     log_path.mkdir(parents=True, exist_ok=True)
@@ -69,7 +74,7 @@ def setup_logging(
     # HTTP requests/responses, connection state, and Baichuan protocol traffic.
     # "true" enables only the HTTP API logger; "full" enables everything.
     nvr_debug_level = nvr_debug.lower()
-    truncate = TruncateFilter()
+    truncate = TruncateFilter(max_length=nvr_debug_max_length)
     if nvr_debug_level == "full":
         logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
         logging.getLogger("reolink_aio").addFilter(truncate)
