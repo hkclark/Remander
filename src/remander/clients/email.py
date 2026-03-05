@@ -39,7 +39,7 @@ class EmailNotificationSender:
             msg,
             hostname=self.smtp_host,
             port=self.smtp_port,
-            username=self.smtp_username,
-            password=self.smtp_password,
+            username=self.smtp_username or None,
+            password=self.smtp_password or None,
             start_tls=self.smtp_use_tls,
         )
