@@ -20,6 +20,10 @@ make migrate
 make run-dev
 ```
 
+## Reolink API
+
+[Reolink API V8](https://github.com/rgl/reolink-e1-zoom-playground/blob/main/reolink-camera-http-api-user-guide.pdf)
+
 ## Database Migrations
 
 Remander uses [Aerich](https://github.com/tortoise/aerich) (Tortoise ORM's migration tool) to manage database schema changes. All schema changes must go through aerich — the app does not auto-create or modify tables on startup.
