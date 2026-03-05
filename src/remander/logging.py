@@ -9,13 +9,22 @@ DEFAULT_NVR_LOG_MAX_LENGTH = 500
 
 
 class TruncateFilter(logging.Filter):
-    """Truncates log messages that exceed max_length characters."""
+    """Truncates log messages from a logger hierarchy that exceed max_length.
 
-    def __init__(self, max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH) -> None:
-        super().__init__()
+    Uses logging.Filter's built-in name filtering: passing name="reolink_aio"
+    means this filter only applies to records from reolink_aio and its children.
+    Attach to handlers (not loggers) so propagated child records are caught.
+    """
+
+    def __init__(
+        self, name: str = "", max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH
+    ) -> None:
+        super().__init__(name)
         self.max_length = max_length
 
     def filter(self, record: logging.LogRecord) -> bool:
+        if not super().filter(record):
+            return True  # not our logger hierarchy — pass through unmodified
         full_message = record.getMessage()
         if len(full_message) > self.max_length:
             record.msg = f"{full_message[:self.max_length]}... (truncated, {len(full_message)} chars total)"
@@ -72,15 +81,22 @@ def setup_logging(
 
     # NVR debug logging — reolink-aio has 200+ DEBUG statements covering
     # HTTP requests/responses, connection state, and Baichuan protocol traffic.
-    # "true" enables only the HTTP API logger; "full" enables everything.
+    # "true" enables only the HTTP API logger (and children like .api.data);
+    # "full" enables everything including Baichuan protocol.
+    # The truncate filter is on the handlers so it catches records from child
+    # loggers (e.g. reolink_aio.api.data) that propagate up without passing
+    # through parent logger filters.
     nvr_debug_level = nvr_debug.lower()
-    truncate = TruncateFilter(max_length=nvr_debug_max_length)
     if nvr_debug_level == "full":
+        truncate = TruncateFilter(name="reolink_aio", max_length=nvr_debug_max_length)
         logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
-        logging.getLogger("reolink_aio").addFilter(truncate)
+        stdout_handler.addFilter(truncate)
+        file_handler.addFilter(truncate)
     elif nvr_debug_level == "true":
+        truncate = TruncateFilter(name="reolink_aio.api", max_length=nvr_debug_max_length)
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
         logging.getLogger("reolink_aio.api").setLevel(logging.DEBUG)
-        logging.getLogger("reolink_aio.api").addFilter(truncate)
+        stdout_handler.addFilter(truncate)
+        file_handler.addFilter(truncate)
     else:
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
