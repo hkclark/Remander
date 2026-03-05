@@ -10,9 +10,10 @@ class Settings(BaseSettings):
 
     # Reolink NVR
     nvr_host: str
-    nvr_port: int = 443
+    nvr_port: int = 80
     nvr_username: str
     nvr_password: SecretStr
+    nvr_use_https: bool = False
     nvr_timeout: int = 15
     nvr_debug: bool = False
 

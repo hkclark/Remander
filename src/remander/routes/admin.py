@@ -44,6 +44,7 @@ async def query_nvr(request: Request) -> HTMLResponse:
         port=settings.nvr_port,
         username=settings.nvr_username,
         password=settings.nvr_password.get_secret_value(),
+        use_https=settings.nvr_use_https,
         timeout=settings.nvr_timeout,
     )
 

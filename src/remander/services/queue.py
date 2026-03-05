@@ -69,6 +69,7 @@ async def run_workflow(cmd: Command) -> bool | None:
         port=settings.nvr_port,
         username=settings.nvr_username,
         password=settings.nvr_password.get_secret_value(),
+        use_https=settings.nvr_use_https,
     )
     tapo_client = TapoClient()
     sonoff_client = SonoffClient()
@@ -133,6 +134,7 @@ async def execute_rearm(command_id: int) -> None:
         port=settings.nvr_port,
         username=settings.nvr_username,
         password=settings.nvr_password.get_secret_value(),
+        use_https=settings.nvr_use_https,
     )
     tapo_client = TapoClient()
     sonoff_client = SonoffClient()

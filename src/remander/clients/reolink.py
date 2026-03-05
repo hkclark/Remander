@@ -24,6 +24,7 @@ class ReolinkNVRClient:
     port: int
     username: str
     password: str
+    use_https: bool = False
     timeout: int = 15
     _nvr: Host = attrs.field(init=False)
 
@@ -31,6 +32,7 @@ class ReolinkNVRClient:
         self._nvr = Host(
             host=self.host,
             port=self.port,
+            use_https=self.use_https,
             username=self.username,
             password=self.password,
             timeout=self.timeout,
