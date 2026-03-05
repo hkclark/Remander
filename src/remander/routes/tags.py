@@ -10,6 +10,7 @@ from remander.services.tag import (
     delete_tag,
     list_tags,
     remove_tag_from_device,
+    update_tag,
 )
 
 router = APIRouter()
@@ -34,6 +35,35 @@ async def tag_create(
     show_on_dashboard: str | None = Form(None),
 ) -> RedirectResponse:
     await create_tag(name=name, show_on_dashboard=show_on_dashboard == "on")
+    return RedirectResponse(url="/tags", status_code=303)
+
+
+@router.get("/tags/{tag_id}/edit", response_class=HTMLResponse)
+async def tag_edit_form(request: Request, tag_id: int) -> HTMLResponse:
+    from remander.main import templates
+
+    tag = await Tag.get_or_none(id=tag_id)
+    if not tag:
+        return HTMLResponse(status_code=404, content="Tag not found")
+    return templates.TemplateResponse(
+        request,
+        "tags/edit.html",
+        {"tag": tag},
+    )
+
+
+@router.post("/tags/{tag_id}/edit")
+async def tag_edit(
+    request: Request,
+    tag_id: int,
+    name: str = Form(...),
+    show_on_dashboard: str | None = Form(None),
+) -> RedirectResponse:
+    result = await update_tag(
+        tag_id, name=name, show_on_dashboard=show_on_dashboard == "on"
+    )
+    if not result:
+        return HTMLResponse(status_code=404, content="Tag not found")
     return RedirectResponse(url="/tags", status_code=303)
 
 

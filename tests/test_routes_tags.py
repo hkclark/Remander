@@ -41,6 +41,50 @@ class TestTagDelete:
         assert "/tags" in response.headers["location"]
 
 
+class TestTagEdit:
+    async def test_get_edit_form(self, client: AsyncClient) -> None:
+        tag = await create_tag(name="editable")
+        response = await client.get(f"/tags/{tag.id}/edit")
+        assert response.status_code == 200
+        assert "editable" in response.text
+        assert "Edit Tag" in response.text
+
+    async def test_get_edit_nonexistent_returns_404(self, client: AsyncClient) -> None:
+        response = await client.get("/tags/99999/edit")
+        assert response.status_code == 404
+
+    async def test_post_edit_tag(self, client: AsyncClient) -> None:
+        tag = await create_tag(name="before")
+        response = await client.post(
+            f"/tags/{tag.id}/edit",
+            data={"name": "after", "show_on_dashboard": "on"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert "/tags" in response.headers["location"]
+
+    async def test_post_edit_updates_values(self, client: AsyncClient) -> None:
+        tag = await create_tag(name="old")
+        await client.post(
+            f"/tags/{tag.id}/edit",
+            data={"name": "new"},
+            follow_redirects=False,
+        )
+        from remander.models.tag import Tag
+
+        updated = await Tag.get(id=tag.id)
+        assert updated.name == "new"
+        assert updated.show_on_dashboard is False
+
+    async def test_post_edit_nonexistent_returns_404(self, client: AsyncClient) -> None:
+        response = await client.post(
+            "/tags/99999/edit",
+            data={"name": "nope"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 404
+
+
 class TestDeviceTagManagement:
     async def test_add_tag_to_device(self, client: AsyncClient) -> None:
         cam = await create_camera(name="Tag Target")

@@ -11,6 +11,7 @@ from remander.services.tag import (
     list_dashboard_tags,
     list_tags,
     remove_tag_from_device,
+    update_tag,
 )
 from tests.factories import create_camera
 
@@ -130,6 +131,32 @@ class TestListDashboardTags:
         await create_tag(name="not-on-dash")
         tags = await list_dashboard_tags()
         assert tags == []
+
+
+class TestUpdateTag:
+    async def test_update_tag_name(self) -> None:
+        tag = await create_tag(name="old-name")
+        updated = await update_tag(tag.id, name="new-name")
+        assert updated is not None
+        assert updated.name == "new-name"
+        refreshed = await Tag.get(id=tag.id)
+        assert refreshed.name == "new-name"
+
+    async def test_update_tag_dashboard(self) -> None:
+        tag = await create_tag(name="mytag", show_on_dashboard=False)
+        updated = await update_tag(tag.id, show_on_dashboard=True)
+        assert updated is not None
+        assert updated.show_on_dashboard is True
+
+    async def test_update_tag_both_fields(self) -> None:
+        tag = await create_tag(name="original")
+        updated = await update_tag(tag.id, name="renamed", show_on_dashboard=True)
+        assert updated.name == "renamed"
+        assert updated.show_on_dashboard is True
+
+    async def test_update_nonexistent_tag_returns_none(self) -> None:
+        result = await update_tag(99999, name="nope")
+        assert result is None
 
 
 class TestGetDevicesByTag:

@@ -16,6 +16,24 @@ async def list_tags() -> list[Tag]:
     return await Tag.all().annotate(device_count=Count("devices"))
 
 
+async def update_tag(
+    tag_id: int,
+    *,
+    name: str | None = None,
+    show_on_dashboard: bool | None = None,
+) -> Tag | None:
+    """Update a tag's name and/or dashboard flag. Returns None if not found."""
+    tag = await Tag.get_or_none(id=tag_id)
+    if tag is None:
+        return None
+    if name is not None:
+        tag.name = name
+    if show_on_dashboard is not None:
+        tag.show_on_dashboard = show_on_dashboard
+    await tag.save()
+    return tag
+
+
 async def delete_tag(tag_id: int) -> bool:
     """Delete a tag by ID. Returns True if deleted, False if not found."""
     tag = await Tag.get_or_none(id=tag_id)
