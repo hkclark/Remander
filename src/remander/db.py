@@ -10,7 +10,7 @@ def get_tortoise_config(database_url: str | None = None) -> dict:
         database_url: Override the database URL (useful for testing).
     """
     if database_url is None:
-        database_url = os.environ.get("DATABASE_URL", "sqlite:///data/remander.db")
+        database_url = os.environ.get("DATABASE_URL", "sqlite:///app/data/remander.db")
     return {
         "connections": {"default": database_url},
         "apps": {

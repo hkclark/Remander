@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
 
     # Database
-    database_url: str = "sqlite:///data/remander.db"
+    database_url: str = "sqlite:///app/data/remander.db"
 
     # Email notifications
     smtp_host: str = ""
