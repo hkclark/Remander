@@ -5,6 +5,23 @@ import sys
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
+DEFAULT_NVR_LOG_MAX_LENGTH = 500
+
+
+class TruncateFilter(logging.Filter):
+    """Truncates log messages that exceed max_length characters."""
+
+    def __init__(self, max_length: int = DEFAULT_NVR_LOG_MAX_LENGTH) -> None:
+        super().__init__()
+        self.max_length = max_length
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        full_message = record.getMessage()
+        if len(full_message) > self.max_length:
+            record.msg = f"{full_message[:self.max_length]}... (truncated, {len(full_message)} chars total)"
+            record.args = None
+        return True
+
 
 def setup_logging(
     log_dir: str = "./logs", log_level: str = "INFO", *, nvr_debug: str = "false"
@@ -52,10 +69,13 @@ def setup_logging(
     # HTTP requests/responses, connection state, and Baichuan protocol traffic.
     # "true" enables only the HTTP API logger; "full" enables everything.
     nvr_debug_level = nvr_debug.lower()
+    truncate = TruncateFilter()
     if nvr_debug_level == "full":
         logging.getLogger("reolink_aio").setLevel(logging.DEBUG)
+        logging.getLogger("reolink_aio").addFilter(truncate)
     elif nvr_debug_level == "true":
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
         logging.getLogger("reolink_aio.api").setLevel(logging.DEBUG)
+        logging.getLogger("reolink_aio.api").addFilter(truncate)
     else:
         logging.getLogger("reolink_aio").setLevel(logging.WARNING)
