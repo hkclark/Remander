@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     # Shutdown SAQ worker
-    worker.stop()
+    await worker.stop()
     await worker_task
     await queue.disconnect()
     logger.info("SAQ worker stopped")

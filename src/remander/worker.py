@@ -5,6 +5,19 @@ import logging
 from saq import Queue, Worker
 from saq.types import Context
 
+
+class EmbeddedWorker(Worker):
+    """SAQ worker that doesn't install its own signal handlers.
+
+    When running inside uvicorn, signal handling is owned by uvicorn — it translates
+    SIGINT/SIGTERM into lifespan shutdown, which calls worker.stop(). If SAQ also
+    installs SIGINT/SIGTERM handlers, it steals the signal from uvicorn, causing
+    the app to hang until multiple Ctrl+C presses force-kill it.
+    """
+
+    SIGNALS: list = []
+
+
 logger = logging.getLogger(__name__)
 
 # Module-level queue instance, initialized during lifespan
@@ -32,9 +45,9 @@ async def process_rearm(ctx: Context, command_id: int) -> None:
     await execute_rearm(command_id)
 
 
-def create_worker(queue: Queue) -> Worker:
+def create_worker(queue: Queue) -> EmbeddedWorker:
     """Create a SAQ worker with concurrency=1 (one command at a time)."""
-    return Worker(
+    return EmbeddedWorker(
         queue=queue,
         functions=[
             ("process_command", process_command),
