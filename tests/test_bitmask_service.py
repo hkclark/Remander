@@ -342,9 +342,11 @@ class TestResolveHourBitmask:
 
 class TestResolveBitmasksForDevice:
     async def test_resolve_with_assignments(self) -> None:
-        camera = await create_camera(name="Resolve Cam")
+        # zone_masks_enabled=True and zone_mask_away set: zone_value comes from the device
+        camera = await create_camera(
+            name="Resolve Cam", zone_masks_enabled=True, zone_mask_away="1" * 4800
+        )
         hb = await factory_hour_bitmask(name="Resolve HB", static_value="000000111111111111110000")
-        zm = await factory_zone_mask(name="Resolve ZM")
 
         from remander.models.detection import DeviceDetectionType
 
@@ -356,7 +358,6 @@ class TestResolveBitmasksForDevice:
             mode=Mode.AWAY,
             detection_type=DetectionType.MOTION,
             hour_bitmask_id=hb.id,
-            zone_mask_id=zm.id,
         )
 
         result = await resolve_bitmasks_for_device(camera.id, Mode.AWAY)
@@ -366,7 +367,8 @@ class TestResolveBitmasksForDevice:
         assert result[0]["zone_mask"] == "1" * 4800
 
     async def test_resolve_no_assignment_uses_zeros(self) -> None:
-        """When no assignment exists for an enabled detection type, use all zeros."""
+        """When no assignment exists for an enabled detection type, use all zeros for hour bitmask.
+        Zone mask is None when zone_masks_enabled=False (the default)."""
         camera = await create_camera(name="Zero Cam")
         from remander.models.detection import DeviceDetectionType
 
@@ -378,7 +380,7 @@ class TestResolveBitmasksForDevice:
         assert len(result) == 1
         assert result[0]["detection_type"] == DetectionType.PERSON
         assert result[0]["hour_bitmask"] == "0" * 24
-        assert result[0]["zone_mask"] == "0" * 4800
+        assert result[0]["zone_mask"] is None
 
     async def test_resolve_disabled_detection_type_excluded(self) -> None:
         """Disabled detection types should not appear in resolution."""
@@ -393,7 +395,8 @@ class TestResolveBitmasksForDevice:
         assert len(result) == 0
 
     async def test_resolve_null_bitmask_in_assignment_uses_zeros(self) -> None:
-        """Assignment with null hour_bitmask → all-zero hour bitmask."""
+        """Assignment with null hour_bitmask → all-zero hour bitmask.
+        Zone mask is None when zone_masks_enabled=False (the default)."""
         camera = await create_camera(name="Null HB Cam")
         from remander.models.detection import DeviceDetectionType
 
@@ -410,4 +413,4 @@ class TestResolveBitmasksForDevice:
 
         result = await resolve_bitmasks_for_device(camera.id, Mode.AWAY)
         assert result[0]["hour_bitmask"] == "0" * 24
-        assert result[0]["zone_mask"] == "0" * 4800
+        assert result[0]["zone_mask"] is None

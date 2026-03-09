@@ -109,6 +109,97 @@ class TestAlarmSchedule:
             mock_set.assert_awaited_once_with(0, DetectionType.MOTION, bitmask)
 
 
+class TestAlarmScheduleAPIImpl:
+    """Tests for _api_get_alarm and _api_set_alarm using mocked send()."""
+
+    async def test_api_get_alarm_returns_bitmask(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(
+            return_value=[{"value": {"Push": {"schedule": {"table": {"MD": "1" * 168}}}}}]
+        )
+        result = await client._api_get_alarm(0, DetectionType.MOTION)
+        assert result == "1" * 168
+
+    async def test_api_get_alarm_uses_correct_key_for_person(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(
+            return_value=[
+                {"value": {"Push": {"schedule": {"table": {"MD": "0" * 168, "AI_PEOPLE": "1" * 168}}}}}
+            ]
+        )
+        result = await client._api_get_alarm(0, DetectionType.PERSON)
+        assert result == "1" * 168
+
+    async def test_api_get_alarm_uses_GetPushV20(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(
+            return_value=[{"value": {"Push": {"schedule": {"table": {"MD": "1" * 168}}}}}]
+        )
+        await client._api_get_alarm(0, DetectionType.MOTION)
+        cmd = mock_host.send.call_args[0][0][0]["cmd"]
+        assert cmd == "GetPushV20"
+
+    async def test_api_get_alarm_uses_GetPush_for_legacy(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=0)
+        mock_host.send = AsyncMock(
+            return_value=[{"value": {"Push": {"schedule": {"table": "1" * 168}}}}]
+        )
+        result = await client._api_get_alarm(0, DetectionType.MOTION)
+        assert result == "1" * 168
+        cmd = mock_host.send.call_args[0][0][0]["cmd"]
+        assert cmd == "GetPush"
+
+    async def test_api_set_alarm_expands_24_char_bitmask_to_168(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(return_value=[{}])
+        await client._api_set_alarm(0, DetectionType.MOTION, "0" * 24)
+        body = mock_host.send.call_args[0][0][0]
+        table = body["param"]["Push"]["schedule"]["table"]
+        assert table["MD"] == "0" * 168
+
+    async def test_api_set_alarm_uses_168_char_bitmask_unchanged(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(return_value=[{}])
+        bitmask = "1" * 100 + "0" * 68
+        await client._api_set_alarm(0, DetectionType.MOTION, bitmask)
+        body = mock_host.send.call_args[0][0][0]
+        table = body["param"]["Push"]["schedule"]["table"]
+        assert table["MD"] == bitmask
+
+    async def test_api_set_alarm_uses_SetPushV20_with_correct_key(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(return_value=[{}])
+        await client._api_set_alarm(0, DetectionType.PERSON, "0" * 24)
+        body = mock_host.send.call_args[0][0][0]
+        assert body["cmd"] == "SetPushV20"
+        assert "AI_PEOPLE" in body["param"]["Push"]["schedule"]["table"]
+        assert body["param"]["Push"]["schedule"]["channel"] == 0
+
+    async def test_api_set_alarm_vehicle_uses_AI_VEHICLE(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.api_version = MagicMock(return_value=1)
+        mock_host.send = AsyncMock(return_value=[{}])
+        await client._api_set_alarm(0, DetectionType.VEHICLE, "0" * 24)
+        body = mock_host.send.call_args[0][0][0]
+        table = body["param"]["Push"]["schedule"]["table"]
+        assert "AI_VEHICLE" in table
+
+
 class TestDetectionZones:
     async def test_get_detection_zones(
         self, client: ReolinkNVRClient, mock_host: MagicMock

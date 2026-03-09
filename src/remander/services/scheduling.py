@@ -18,13 +18,16 @@ async def schedule_delayed_command(command_id: int, delay_minutes: int) -> None:
 
     Stores the SAQ job key on the command for later cancellation.
     """
+    from remander.config import get_settings
+
     queue = get_queue()
     if queue is None:
         logger.warning("No queue available; cannot schedule delayed command %d", command_id)
         return
 
     scheduled = int(time.time()) + delay_minutes * 60
-    job = await queue.enqueue("process_command", command_id=command_id, scheduled=scheduled)
+    timeout = get_settings().job_timeout_seconds
+    job = await queue.enqueue("process_command", command_id=command_id, scheduled=scheduled, timeout=timeout)
     cmd = await Command.get(id=command_id)
     cmd.saq_job_id = job.key
     await cmd.save()
@@ -49,13 +52,16 @@ async def schedule_rearm(command_id: int, pause_minutes: int) -> None:
 
     Stores the SAQ job key on the originating command for later cancellation.
     """
+    from remander.config import get_settings
+
     queue = get_queue()
     if queue is None:
         logger.warning("No queue available; cannot schedule re-arm for command %d", command_id)
         return
 
     scheduled = int(time.time()) + pause_minutes * 60
-    job = await queue.enqueue("process_rearm", command_id=command_id, scheduled=scheduled)
+    timeout = get_settings().job_timeout_seconds
+    job = await queue.enqueue("process_rearm", command_id=command_id, scheduled=scheduled, timeout=timeout)
     cmd = await Command.get(id=command_id)
     cmd.saq_job_id = job.key
     await cmd.save()

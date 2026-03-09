@@ -51,7 +51,7 @@ def _make_state(**overrides):
 class TestSaveBitmasksNode:
     async def test_saves_current_bitmasks(self) -> None:
         cmd = await create_command()
-        camera = await create_camera(name="Save Cam", channel=0)
+        camera = await create_camera(name="Save Cam", channel=0, zone_masks_enabled=True)
 
         from remander.models.detection import DeviceDetectionType
 
@@ -321,20 +321,15 @@ class TestSetNotificationBitmasksNode:
 class TestSetZoneMasksNode:
     async def test_applies_zone_masks(self) -> None:
         cmd = await create_command()
-        camera = await create_camera(name="Zone Cam", channel=0)
+        # zone_masks_enabled=True and zone_mask_away set so zone mask resolution returns a value
+        camera = await create_camera(
+            name="Zone Cam", channel=0, zone_masks_enabled=True, zone_mask_away="1" * 4800
+        )
 
-        from remander.models.bitmask import DeviceBitmaskAssignment, ZoneMask
         from remander.models.detection import DeviceDetectionType
 
         await DeviceDetectionType.create(
             device=camera, detection_type=DetectionType.MOTION, is_enabled=True
-        )
-        zm = await ZoneMask.create(name="Full Frame", mask_value="1" * 4800)
-        await DeviceBitmaskAssignment.create(
-            device=camera,
-            mode=Mode.AWAY,
-            detection_type=DetectionType.MOTION,
-            zone_mask=zm,
         )
 
         deps = _make_deps()
@@ -349,8 +344,12 @@ class TestSetZoneMasksNode:
 
     async def test_handles_per_device_failure(self) -> None:
         cmd = await create_command()
-        cam1 = await create_camera(name="OK Zone Cam", channel=0)
-        cam2 = await create_camera(name="Fail Zone Cam", channel=1)
+        cam1 = await create_camera(
+            name="OK Zone Cam", channel=0, zone_masks_enabled=True, zone_mask_away="1" * 4800
+        )
+        cam2 = await create_camera(
+            name="Fail Zone Cam", channel=1, zone_masks_enabled=True, zone_mask_away="1" * 4800
+        )
 
         from remander.models.detection import DeviceDetectionType
 

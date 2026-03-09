@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     power_on_timeout_seconds: int = 120
     power_on_poll_interval_seconds: int = 10
 
+    # SAQ job timeout — NVR operations can take many seconds; 10s SAQ default is too short
+    job_timeout_seconds: int = 120
+
 
 def get_settings() -> Settings:
     """Create and return a Settings instance."""

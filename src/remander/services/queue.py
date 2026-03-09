@@ -12,11 +12,14 @@ logger = logging.getLogger(__name__)
 
 async def enqueue_command(command_id: int) -> None:
     """Transition a command to QUEUED and submit it to the SAQ job queue."""
+    from remander.config import get_settings
+
     logger.info("[cmd %d] Enqueuing command to SAQ job queue", command_id)
     await transition_status(command_id, CommandStatus.QUEUED)
     queue = get_queue()
     if queue is not None:
-        await queue.enqueue("process_command", command_id=command_id)
+        timeout = get_settings().job_timeout_seconds
+        await queue.enqueue("process_command", command_id=command_id, timeout=timeout)
         logger.info("[cmd %d] Command enqueued successfully", command_id)
 
 

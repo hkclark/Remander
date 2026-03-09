@@ -185,26 +185,77 @@ class ReolinkNVRClient:
         logger.debug("NVR channel %d online=%s", channel, online)
         return online
 
-    # --- Direct HTTP API stubs ---
-    # These will be implemented with httpx calls using the NVR session token
-    # when we have access to a real NVR for integration testing.
+    # --- Detection type → Reolink push schedule table key ---
+
+    _PUSH_SCHEDULE_KEY: dict[DetectionType, str] = {
+        DetectionType.MOTION: "MD",
+        DetectionType.PERSON: "AI_PEOPLE",
+        DetectionType.VEHICLE: "AI_VEHICLE",
+        DetectionType.ANIMAL: "AI_DOG_CAT",
+        DetectionType.FACE: "AI_FACE",
+        DetectionType.PACKAGE: "AI_PACKAGE",
+    }
 
     async def _api_get_alarm(self, channel: int, detection_type: DetectionType) -> str:
-        """Fetch alarm schedule bitmask via direct NVR HTTP API."""
-        raise NotImplementedError("Direct NVR API call — requires integration testing")
+        """Fetch alarm schedule bitmask from NVR push notification schedule."""
+        nvr_key = self._PUSH_SCHEDULE_KEY[detection_type]
+        if self._nvr.api_version("GetPush") >= 1:
+            body = [{"cmd": "GetPushV20", "action": 0, "param": {"channel": channel}}]
+        else:
+            body = [{"cmd": "GetPush", "action": 0, "param": {"channel": channel}}]
+        response = await self._nvr.send(body, expected_response_type="json")
+        if not response:
+            raise RuntimeError(f"Empty response getting push schedule for ch={channel}")
+        value = response[0].get("value", {})
+        schedule = value.get("Push", {}).get("schedule", {})
+        table = schedule.get("table", {})
+        if isinstance(table, str):
+            # Legacy GetPush: single flat string for MD only
+            if detection_type == DetectionType.MOTION:
+                return table
+            raise RuntimeError(f"Legacy push schedule does not support {detection_type}")
+        bitmask = table.get(nvr_key, "")
+        if not bitmask:
+            raise RuntimeError(f"No {nvr_key} in push schedule table for ch={channel}")
+        return bitmask
 
     async def _api_set_alarm(
         self, channel: int, detection_type: DetectionType, hour_bitmask: str
     ) -> None:
-        """Set alarm schedule bitmask via direct NVR HTTP API."""
-        raise NotImplementedError("Direct NVR API call — requires integration testing")
+        """Set alarm schedule bitmask in NVR push notification schedule.
+
+        Accepts 24-char (per-hour) or 168-char (7 days × 24 hours) bitmasks.
+        24-char bitmasks are expanded to 168 chars by repeating for each day.
+        """
+        nvr_key = self._PUSH_SCHEDULE_KEY[detection_type]
+        # Expand 24-char per-hour bitmask to 168-char (7 days × 24 hours/day)
+        nvr_bitmask = hour_bitmask * 7 if len(hour_bitmask) == 24 else hour_bitmask
+        if self._nvr.api_version("GetPush") >= 1:
+            body = [
+                {
+                    "cmd": "SetPushV20",
+                    "action": 0,
+                    "param": {
+                        "Push": {"schedule": {"channel": channel, "table": {nvr_key: nvr_bitmask}}}
+                    },
+                }
+            ]
+        else:
+            body = [
+                {
+                    "cmd": "SetPush",
+                    "action": 0,
+                    "param": {"Push": {"schedule": {"channel": channel, "table": nvr_bitmask}}},
+                }
+            ]
+        await self._nvr.send(body, expected_response_type="json")
 
     async def _api_get_zones(self, channel: int, detection_type: DetectionType) -> str:
         """Fetch detection zone mask via direct NVR HTTP API."""
-        raise NotImplementedError("Direct NVR API call — requires integration testing")
+        raise NotImplementedError("Detection zone read — requires integration testing")
 
     async def _api_set_zones(
         self, channel: int, detection_type: DetectionType, zone_mask: str
     ) -> None:
         """Set detection zone mask via direct NVR HTTP API."""
-        raise NotImplementedError("Direct NVR API call — requires integration testing")
+        raise NotImplementedError("Detection zone write — requires integration testing")
