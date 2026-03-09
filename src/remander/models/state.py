@@ -15,7 +15,7 @@ class SavedDeviceState(Model):
         "models.Device", related_name="saved_states", on_delete=fields.CASCADE
     )
     detection_type = fields.CharEnumField(DetectionType)
-    saved_hour_bitmask = fields.CharField(max_length=24, null=True)
+    saved_hour_bitmask = fields.CharField(max_length=168, null=True)
     saved_zone_mask = fields.CharField(max_length=4800, null=True)
     is_consumed = fields.BooleanField(default=False)
     created_at = fields.DatetimeField(auto_now_add=True)
