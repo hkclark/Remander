@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         workflow_debug=settings.workflow_debug,
     )
     logger.info("Starting Remander — current settings:")
-    for key, value in settings.model_dump().items():
+    for key, value in sorted(settings.model_dump().items()):
         logger.info("  %s = %r", key, value)
 
     # Initialize Tortoise ORM
