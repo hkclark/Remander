@@ -179,7 +179,7 @@ class TestWaitForPowerOnNode:
             await node.run(ctx)
 
         assert state.has_errors is True
-        assert state.device_results.get(camera.id) == "failed"
+        assert state.device_results.get(camera.id) == "Timeout after 2s"
 
 
 class TestPowerOffNode:
@@ -315,7 +315,7 @@ class TestSetNotificationBitmasksNode:
             await node.run(ctx)
 
         assert state.has_errors is True
-        assert state.device_results.get(cam2.id) == "failed"
+        assert state.device_results.get(cam2.id) == "NVR error"
 
 
 class TestSetZoneMasksNode:

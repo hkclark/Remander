@@ -92,7 +92,7 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                     detail=str(e),
                 )
                 ctx.state.has_errors = True
-                ctx.state.device_results[device_id] = "failed"
+                ctx.state.device_results[device_id] = str(e)
 
         return WaitForPowerOnNode()
 
@@ -180,7 +180,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 detail=f"Timeout after {self.timeout_seconds}s",
             )
             ctx.state.has_errors = True
-            ctx.state.device_results[device_id] = "failed"
+            ctx.state.device_results[device_id] = f"Timeout after {self.timeout_seconds}s"
 
         return PTZCalibrateNode()
 
@@ -237,6 +237,6 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
                     detail=str(e),
                 )
                 ctx.state.has_errors = True
-                ctx.state.device_results[device_id] = "failed"
+                ctx.state.device_results[device_id] = str(e)
 
         return ValidateNode()

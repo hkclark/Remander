@@ -104,7 +104,7 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         detail=str(e),
                     )
                     ctx.state.has_errors = True
-                    ctx.state.device_results[device_id] = "failed"
+                    ctx.state.device_results[device_id] = str(e)
 
         from remander.models.enums import CommandType
         from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
@@ -207,6 +207,6 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         detail=str(e),
                     )
                     ctx.state.has_errors = True
-                    ctx.state.device_results[device_id] = "failed"
+                    ctx.state.device_results[device_id] = str(e)
 
         return SetPTZHomeNode()
