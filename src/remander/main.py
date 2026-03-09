@@ -39,6 +39,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await Tortoise.init(config=config)
     logger.info("Database initialized")
 
+    # Reset any commands stuck in RUNNING state from a previous crash or timeout
+    from remander.models.command import Command
+    from remander.models.enums import CommandStatus
+
+    stale = await Command.filter(status=CommandStatus.RUNNING).update(
+        status=CommandStatus.FAILED, error_summary="Process exited while command was running"
+    )
+    if stale:
+        logger.warning("Reset %d stale RUNNING command(s) to FAILED on startup", stale)
+
     # Initialize SAQ worker
     queue = create_queue(settings.redis_url)
     set_queue(queue)

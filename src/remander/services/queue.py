@@ -1,5 +1,6 @@
 """Command queueing and execution — bridges SAQ jobs with pydantic-graph workflows."""
 
+import asyncio
 import logging
 
 from remander.models.command import Command
@@ -55,6 +56,12 @@ async def execute_command(command_id: int) -> None:
         else:
             logger.info("[cmd %d] Command succeeded", command_id)
             await transition_status(command_id, CommandStatus.SUCCEEDED)
+    except asyncio.CancelledError:
+        # SAQ job was cancelled or timed out — CancelledError is BaseException, not Exception
+        logger.warning("[cmd %d] Command job was cancelled or timed out", command_id)
+        await transition_status(command_id, CommandStatus.FAILED)
+        await set_error_summary(command_id, "Job timed out or was cancelled")
+        raise  # re-raise so SAQ knows the job did not complete
     except Exception as e:
         logger.exception("[cmd %d] Command failed: %s", command_id, e)
         await transition_status(command_id, CommandStatus.FAILED)
