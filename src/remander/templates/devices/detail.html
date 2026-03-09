@@ -74,6 +74,26 @@
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Detection Types</h2>
+        <form method="post" action="/devices/{{ device.id }}/detection-types" class="space-y-3">
+            <div class="flex flex-wrap gap-4">
+                {% for dt in all_detection_types %}
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" name="detection_types" value="{{ dt }}"
+                           {% if dt in enabled_detection_types %}checked{% endif %}
+                           class="rounded border-gray-300 text-blue-600">
+                    {{ dt }}
+                </label>
+                {% endfor %}
+            </div>
+            <button type="submit"
+                    class="mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                Save Detection Types
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
 
         {% if device.tags %}

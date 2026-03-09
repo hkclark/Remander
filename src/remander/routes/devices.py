@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from remander.models.enums import DeviceBrand, DeviceType
+from remander.models.enums import DetectionType, DeviceBrand, DeviceType
+from remander.services.detection import get_enabled_detection_types, set_detection_types
 from remander.services.device import (
     create_device,
     delete_device,
@@ -80,11 +81,19 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
     assigned_tag_ids = {t.id for t in device.tags}
     all_tags = await list_tags()
     available_tags = [t for t in all_tags if t.id not in assigned_tag_ids]
+    enabled_detection_types = {
+        dt.detection_type for dt in await get_enabled_detection_types(device_id)
+    }
 
     return templates.TemplateResponse(
         request,
         "devices/detail.html",
-        {"device": device, "available_tags": available_tags},
+        {
+            "device": device,
+            "available_tags": available_tags,
+            "all_detection_types": list(DetectionType),
+            "enabled_detection_types": enabled_detection_types,
+        },
     )
 
 
@@ -130,6 +139,17 @@ async def device_edit(
         kwargs["ip_address"] = ip_address
 
     await update_device(device_id, **kwargs)
+    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+
+
+@router.post("/{device_id}/detection-types")
+async def device_set_detection_types(
+    request: Request,
+    device_id: int,
+    detection_types: list[str] = Form(default=[]),
+) -> RedirectResponse:
+    valid = [DetectionType(dt) for dt in detection_types if dt in DetectionType._value2member_map_]
+    await set_detection_types(device_id, valid)
     return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
 
 
