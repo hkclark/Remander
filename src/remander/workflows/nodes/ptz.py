@@ -28,6 +28,13 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
+                logger.debug(
+                    "[cmd %d] PTZCalibrate: skipping device '%s' (has_ptz=%s, channel=%s)",
+                    ctx.state.command_id,
+                    device.name,
+                    device.has_ptz,
+                    device.channel,
+                )
                 continue
 
             try:
@@ -85,8 +92,20 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
+                logger.debug(
+                    "[cmd %d] SetPTZPreset: skipping device '%s' (has_ptz=%s, channel=%s)",
+                    ctx.state.command_id,
+                    device.name,
+                    device.has_ptz,
+                    device.channel,
+                )
                 continue
             if device.ptz_away_preset is None:
+                logger.debug(
+                    "[cmd %d] SetPTZPreset: skipping device '%s' (no ptz_away_preset)",
+                    ctx.state.command_id,
+                    device.name,
+                )
                 continue
 
             try:
@@ -142,8 +161,20 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
+                logger.debug(
+                    "[cmd %d] SetPTZHome: skipping device '%s' (has_ptz=%s, channel=%s)",
+                    ctx.state.command_id,
+                    device.name,
+                    device.has_ptz,
+                    device.channel,
+                )
                 continue
             if device.ptz_home_preset is None:
+                logger.debug(
+                    "[cmd %d] SetPTZHome: skipping device '%s' (no ptz_home_preset)",
+                    ctx.state.command_id,
+                    device.name,
+                )
                 continue
 
             try:

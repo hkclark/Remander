@@ -55,9 +55,19 @@ class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
         device_count = len(state.device_ids)
 
         if state.validation_discrepancies:
+            logger.debug(
+                "[cmd %d] Notify: %d validation discrepancy(s) → validation_warnings template",
+                state.command_id,
+                len(state.validation_discrepancies),
+            )
             return render_validation_warnings_notification(cmd, state.validation_discrepancies)
 
         if cmd.status == CommandStatus.FAILED:
+            logger.debug(
+                "[cmd %d] Notify: status=FAILED, error=%r → command_failed template",
+                state.command_id,
+                cmd.error_summary,
+            )
             return render_command_failed_notification(
                 cmd, error=cmd.error_summary or "Unknown error", failed_step="unknown"
             )
@@ -73,6 +83,19 @@ class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
                 for did, result in state.device_results.items()
                 if result != "succeeded"
             ]
+            logger.debug(
+                "[cmd %d] Notify: status=COMPLETED_WITH_ERRORS (%d ok, %d failed)"
+                " → completed_with_errors template",
+                state.command_id,
+                len(successes),
+                len(failures),
+            )
             return render_completed_with_errors_notification(cmd, successes, failures)
 
+        logger.debug(
+            "[cmd %d] Notify: status=%s, %d device(s) → command_succeeded template",
+            state.command_id,
+            cmd.status,
+            device_count,
+        )
         return render_command_succeeded_notification(cmd, device_count, duration_s=0.0)

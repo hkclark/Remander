@@ -58,8 +58,19 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
 
         # Route to the correct next node based on command type
         if ctx.state.command_type == CommandType.SET_HOME_NOW or ctx.state.is_rearm:
+            logger.debug(
+                "[cmd %d] NVRLogin: command_type=%s is_rearm=%s → RestoreBitmasks",
+                ctx.state.command_id,
+                ctx.state.command_type,
+                ctx.state.is_rearm,
+            )
             return RestoreBitmasksNode()
         # Set Away and Pause commands all start with SaveBitmasks
+        logger.debug(
+            "[cmd %d] NVRLogin: command_type=%s → SaveBitmasks",
+            ctx.state.command_id,
+            ctx.state.command_type,
+        )
         return SaveBitmasksNode()
 
 
@@ -93,5 +104,16 @@ class NVRLogoutNode(BaseNode[WorkflowState, WorkflowDeps]):
 
         # Pause commands schedule re-arm; other commands send notification
         if ctx.state.pause_minutes and ctx.state.pause_minutes > 0:
+            logger.debug(
+                "[cmd %d] NVRLogout: pause_minutes=%d → ScheduleReArm",
+                ctx.state.command_id,
+                ctx.state.pause_minutes,
+            )
             return ScheduleReArmNode()
+        logger.debug(
+            "[cmd %d] NVRLogout: no pause_minutes → Notify (has_errors=%s, discrepancies=%d)",
+            ctx.state.command_id,
+            ctx.state.has_errors,
+            len(ctx.state.validation_discrepancies),
+        )
         return NotifyNode()

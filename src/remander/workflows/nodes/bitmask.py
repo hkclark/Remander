@@ -128,17 +128,10 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 for entry in resolved:
                     if entry["zone_mask"]:
                         logger.info(
-                            "[cmd %d] SetZoneMasks: device '%s' ch=%d %s mask_len=%d",
+                            "[cmd %d] SetZoneMasks: device '%s' ch=%d %s zone_mask=%s",
                             ctx.state.command_id,
                             device.name,
                             device.channel,
-                            entry["detection_type"],
-                            len(entry["zone_mask"]),
-                        )
-                        logger.debug(
-                            "[cmd %d] SetZoneMasks: device '%s' %s zone_mask=%s",
-                            ctx.state.command_id,
-                            device.name,
                             entry["detection_type"],
                             entry["zone_mask"],
                         )

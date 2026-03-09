@@ -44,13 +44,16 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         device.channel, detection_type
                     )
 
-                    logger.debug(
-                        "[cmd %d] Validate: device '%s' %s actual_hour=%s expected=%s",
+                    logger.info(
+                        "[cmd %d] Validate: device '%s' %s "
+                        "hour_bitmask expected=%s actual=%s zone_mask expected=%s actual=%s",
                         ctx.state.command_id,
                         device.name,
                         detection_type,
-                        actual_hour,
                         expected.get("hour_bitmask"),
+                        actual_hour,
+                        expected.get("zone_mask"),
+                        actual_zone,
                     )
                     if actual_hour != expected.get("hour_bitmask"):
                         logger.warning(
@@ -81,10 +84,13 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
 
                     if actual_zone != expected.get("zone_mask"):
                         logger.warning(
-                            "[cmd %d] Validate: MISMATCH device '%s' %s zone_mask",
+                            "[cmd %d] Validate: MISMATCH device '%s' %s "
+                            "zone_mask expected=%s actual=%s",
                             ctx.state.command_id,
                             device.name,
                             detection_type,
+                            expected.get("zone_mask"),
+                            actual_zone,
                         )
                         discrepancy = {
                             "device": device.name,

@@ -50,6 +50,11 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.power_device_id:
+                logger.debug(
+                    "[cmd %d] PowerOn: skipping device '%s' (no power_device_id)",
+                    ctx.state.command_id,
+                    device.name,
+                )
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,
@@ -118,10 +123,11 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             return PTZCalibrateNode()
 
         logger.info(
-            "[cmd %d] WaitForPowerOn: waiting for %d cameras (timeout=%ds)",
+            "[cmd %d] WaitForPowerOn: waiting for %d cameras (timeout=%ds): %s",
             ctx.state.command_id,
             len(cameras_to_wait),
             self.timeout_seconds,
+            [d.name for d in cameras_to_wait],
         )
         start_time = time.monotonic()
         pending = {d.id: d for d in cameras_to_wait}
@@ -196,6 +202,11 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.power_device_id:
+                logger.debug(
+                    "[cmd %d] PowerOff: skipping device '%s' (no power_device_id)",
+                    ctx.state.command_id,
+                    device.name,
+                )
                 continue
 
             try:

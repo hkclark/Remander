@@ -58,17 +58,11 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         device.channel, dt_record.detection_type
                     )
                     logger.info(
-                        "[cmd %d] SaveBitmasks: device '%s' %s bitmask=%s",
+                        "[cmd %d] SaveBitmasks: device '%s' %s hour_bitmask=%s zone_mask=%s",
                         ctx.state.command_id,
                         device.name,
                         dt_record.detection_type,
                         hour_bitmask,
-                    )
-                    logger.debug(
-                        "[cmd %d] SaveBitmasks: device '%s' %s zone_mask=%s",
-                        ctx.state.command_id,
-                        device.name,
-                        dt_record.detection_type,
                         zone_mask,
                     )
                     await SavedDeviceState.create(
@@ -110,7 +104,17 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
             CommandType.PAUSE_NOTIFICATIONS,
             CommandType.PAUSE_RECORDING,
         ):
+            logger.debug(
+                "[cmd %d] SaveBitmasks: command_type=%s → SetNotificationBitmasks (skipping PowerOn)",
+                ctx.state.command_id,
+                ctx.state.command_type,
+            )
             return SetNotificationBitmasksNode(mode=Mode.AWAY)
+        logger.debug(
+            "[cmd %d] SaveBitmasks: command_type=%s → PowerOn",
+            ctx.state.command_id,
+            ctx.state.command_type,
+        )
         return PowerOnNode()
 
 
@@ -138,8 +142,8 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 device_id=device_id,
                 is_consumed=False,
             )
-            logger.debug(
-                "[cmd %d] RestoreBitmasks: device '%s' ch=%d has %d saved states",
+            logger.info(
+                "[cmd %d] RestoreBitmasks: device '%s' ch=%d restoring %d saved state(s)",
                 ctx.state.command_id,
                 device.name,
                 device.channel,
@@ -149,7 +153,7 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 try:
                     if saved.saved_hour_bitmask:
                         logger.info(
-                            "[cmd %d] RestoreBitmasks: device '%s' %s restoring bitmask=%s",
+                            "[cmd %d] RestoreBitmasks: device '%s' %s hour_bitmask=%s",
                             ctx.state.command_id,
                             device.name,
                             saved.detection_type,
@@ -159,8 +163,8 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                             device.channel, saved.detection_type, saved.saved_hour_bitmask
                         )
                     if saved.saved_zone_mask:
-                        logger.debug(
-                            "[cmd %d] RestoreBitmasks: device '%s' %s restoring zone_mask=%s",
+                        logger.info(
+                            "[cmd %d] RestoreBitmasks: device '%s' %s zone_mask=%s",
                             ctx.state.command_id,
                             device.name,
                             saved.detection_type,

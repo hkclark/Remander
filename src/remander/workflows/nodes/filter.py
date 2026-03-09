@@ -38,12 +38,12 @@ class FilterByTagNode(BaseNode[WorkflowState, WorkflowDeps]):
         matching_ids: set[int] = set()
         for tag_name in tag_names:
             devices = await get_devices_by_tag(tag_name)
-            logger.debug(
-                "[cmd %d] FilterByTag: tag '%s' matched %d devices: %s",
+            logger.info(
+                "[cmd %d] FilterByTag: tag '%s' matched %d device(s): %s",
                 ctx.state.command_id,
                 tag_name,
                 len(devices),
-                [d.id for d in devices],
+                [d.name for d in devices],
             )
             matching_ids.update(d.id for d in devices)
 
