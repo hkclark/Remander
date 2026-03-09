@@ -222,3 +222,25 @@ async def resolve_bitmasks_for_device(
         )
 
     return results
+
+
+async def find_devices_missing_bitmasks(device_ids: list[int], mode: Mode) -> list:
+    """Return enabled camera devices (channel is set) with no hour bitmask assignment for mode.
+
+    Used to block command execution when devices aren't fully configured.
+    """
+    from remander.models.device import Device
+
+    missing = []
+    for device_id in device_ids:
+        device = await Device.get_or_none(id=device_id)
+        if device is None or device.channel is None:
+            continue
+        has_assignment = (
+            await DeviceBitmaskAssignment.filter(device_id=device_id, mode=mode)
+            .exclude(hour_bitmask_id=None)
+            .exists()
+        )
+        if not has_assignment:
+            missing.append(device)
+    return missing

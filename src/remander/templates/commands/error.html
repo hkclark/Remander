@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Cannot Execute Command - Remander{% endblock %}
+{% block nav_commands %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Cannot Execute Command</h1>
+
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 space-y-4">
+        <p class="text-red-800 font-medium">
+            The following devices have no bitmask assignments configured for
+            <span class="font-mono">{{ mode }}</span> mode and cannot be included in this command:
+        </p>
+        <ul class="space-y-2">
+            {% for device in problem_devices %}
+            <li class="flex items-center gap-2">
+                <span class="text-red-500">&#x26A0;</span>
+                <a href="/devices/{{ device.id }}"
+                   class="text-blue-600 hover:underline font-medium">
+                    {{ device.name }}
+                </a>
+                <span class="text-sm text-gray-500">(channel {{ device.channel }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="text-sm text-gray-600">
+            Open each device above, go to the Bitmasks section, and assign at least one
+            hour bitmask for <strong>{{ mode }}</strong> mode before retrying.
+        </p>
+    </div>
+
+    <div class="flex space-x-3">
+        <a href="/"
+           class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+            Dashboard
+        </a>
+        <a href="/commands/execute"
+           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+            Execute Command
+        </a>
+    </div>
+</div>
+{% endblock %}

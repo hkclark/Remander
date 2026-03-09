@@ -1,9 +1,11 @@
 """Command route handlers — execution, history, detail, cancellation."""
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from remander.models.enums import CommandType
+from remander.models.device import Device
+from remander.models.enums import CommandType, Mode
+from remander.services.bitmask import find_devices_missing_bitmasks
 from remander.services.command import (
     cancel_command,
     create_command,
@@ -11,9 +13,41 @@ from remander.services.command import (
     list_commands,
 )
 from remander.services.queue import enqueue_command
-from remander.services.tag import list_tags
+from remander.services.tag import get_devices_by_tag, list_tags
 
 router = APIRouter(prefix="/commands")
+
+
+async def _bitmask_error_response(
+    request: Request,
+    tag_filter: str | None,
+    mode: Mode,
+) -> HTMLResponse | None:
+    """Return an error response if any camera devices are missing bitmask assignments.
+
+    Returns None when validation passes (command can proceed).
+    """
+    from remander.main import templates
+
+    if tag_filter:
+        devices: list[Device] = []
+        for tag_name in tag_filter.split(","):
+            devices.extend(await get_devices_by_tag(tag_name.strip()))
+        device_ids = [d.id for d in devices if d.is_enabled]
+    else:
+        all_devices = await Device.filter(is_enabled=True)
+        device_ids = [d.id for d in all_devices]
+
+    missing = await find_devices_missing_bitmasks(device_ids, mode)
+    if not missing:
+        return None
+
+    return templates.TemplateResponse(
+        request,
+        "commands/error.html",
+        {"problem_devices": missing, "mode": mode},
+        status_code=422,
+    )
 
 
 @router.get("/execute", response_class=HTMLResponse)
@@ -29,7 +63,9 @@ async def command_execute_page(request: Request) -> HTMLResponse:
 
 
 @router.post("/execute/set-away-now")
-async def execute_set_away_now(request: Request, user: str | None = None) -> RedirectResponse:
+async def execute_set_away_now(request: Request, user: str | None = None) -> Response:
+    if error := await _bitmask_error_response(request, tag_filter=None, mode=Mode.AWAY):
+        return error
     cmd = await create_command(
         CommandType.SET_AWAY_NOW,
         initiated_by_ip=request.client.host if request.client else None,
@@ -43,7 +79,9 @@ async def execute_set_away_now(request: Request, user: str | None = None) -> Red
 async def execute_set_away_delayed(
     request: Request,
     delay_minutes: str = Form(...),
-) -> RedirectResponse:
+) -> Response:
+    if error := await _bitmask_error_response(request, tag_filter=None, mode=Mode.AWAY):
+        return error
     cmd = await create_command(
         CommandType.SET_AWAY_DELAYED,
         delay_minutes=int(delay_minutes),
@@ -70,7 +108,9 @@ async def execute_pause_notifications(
     request: Request,
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
-) -> RedirectResponse:
+) -> Response:
+    if error := await _bitmask_error_response(request, tag_filter=tag_filter, mode=Mode.AWAY):
+        return error
     cmd = await create_command(
         CommandType.PAUSE_NOTIFICATIONS,
         pause_minutes=int(pause_minutes),
@@ -87,7 +127,9 @@ async def execute_pause_recording(
     request: Request,
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
-) -> RedirectResponse:
+) -> Response:
+    if error := await _bitmask_error_response(request, tag_filter=tag_filter, mode=Mode.AWAY):
+        return error
     cmd = await create_command(
         CommandType.PAUSE_RECORDING,
         pause_minutes=int(pause_minutes),
