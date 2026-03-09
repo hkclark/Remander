@@ -90,6 +90,8 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
         "devices/detail.html",
         {
             "device": device,
+            "device_types": list(DeviceType),
+            "brands": list(DeviceBrand),
             "available_tags": available_tags,
             "all_detection_types": list(DetectionType),
             "enabled_detection_types": enabled_detection_types,
@@ -102,22 +104,8 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
 
 
 @router.get("/{device_id}/edit", response_class=HTMLResponse)
-async def device_edit_form(request: Request, device_id: int) -> HTMLResponse:
-    from remander.main import templates
-
-    device = await get_device(device_id)
-    if device is None:
-        return HTMLResponse("Device not found", status_code=404)
-
-    return templates.TemplateResponse(
-        request,
-        "devices/form.html",
-        {
-            "device": device,
-            "device_types": list(DeviceType),
-            "brands": list(DeviceBrand),
-        },
-    )
+async def device_edit_form(request: Request, device_id: int) -> RedirectResponse:
+    return RedirectResponse(url=f"/devices/{device_id}", status_code=301)
 
 
 @router.post("/{device_id}/edit")
@@ -187,6 +175,8 @@ async def device_set_zone_masks(
             "devices/detail.html",
             {
                 "device": device,
+                "device_types": list(DeviceType),
+                "brands": list(DeviceBrand),
                 "available_tags": available_tags,
                 "all_detection_types": list(DetectionType),
                 "enabled_detection_types": enabled_detection_types,

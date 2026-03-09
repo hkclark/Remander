@@ -6,73 +6,73 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">{{ device.name }}</h1>
-        <div class="flex space-x-3">
-            <a href="/devices/{{ device.id }}/edit"
-               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
-                Edit
-            </a>
-            <a href="/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
-                Back
-            </a>
-        </div>
+        <a href="/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+            Back
+        </a>
     </div>
 
+    <!-- Basic Settings -->
     <div class="bg-white rounded-lg shadow p-6">
-        <dl class="grid grid-cols-2 gap-4">
-            <div>
-                <dt class="text-sm font-medium text-gray-500">Type</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ device.device_type }}</dd>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Settings</h2>
+        <form method="post" action="/devices/{{ device.id }}/edit" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" name="name" id="name" required
+                           value="{{ device.name }}"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="device_type" class="block text-sm font-medium text-gray-700">Type</label>
+                    <select name="device_type" id="device_type"
+                            class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        {% for dt in device_types %}
+                        <option value="{{ dt.value }}" {{ 'selected' if device.device_type == dt else '' }}>
+                            {{ dt.value|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="brand" class="block text-sm font-medium text-gray-700">Brand</label>
+                    <select name="brand" id="brand"
+                            class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        {% for b in brands %}
+                        <option value="{{ b.value }}" {{ 'selected' if device.brand == b else '' }}>
+                            {{ b.value|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="channel" class="block text-sm font-medium text-gray-700">Channel</label>
+                    <input type="number" name="channel" id="channel"
+                           value="{{ device.channel if device.channel is not none else '' }}"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="ip_address" class="block text-sm font-medium text-gray-700">IP Address</label>
+                    <input type="text" name="ip_address" id="ip_address"
+                           value="{{ device.ip_address or '' }}"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div class="col-span-2 flex items-center">
+                    <input type="checkbox" name="is_enabled" id="is_enabled"
+                           {{ 'checked' if device.is_enabled else '' }}
+                           class="rounded border-gray-300">
+                    <label for="is_enabled" class="ml-2 text-sm text-gray-700">Enabled</label>
+                </div>
             </div>
-            <div>
-                <dt class="text-sm font-medium text-gray-500">Brand</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ device.brand }}</dd>
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                    Save
+                </button>
             </div>
-            {% if device.channel is not none %}
-            <div>
-                <dt class="text-sm font-medium text-gray-500">Channel</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ device.channel }}</dd>
-            </div>
-            {% endif %}
-            {% if device.ip_address %}
-            <div>
-                <dt class="text-sm font-medium text-gray-500">IP Address</dt>
-                <dd class="mt-1 text-sm font-mono text-gray-900">{{ device.ip_address }}</dd>
-            </div>
-            {% endif %}
-            <div>
-                <dt class="text-sm font-medium text-gray-500">Enabled</dt>
-                <dd class="mt-1">
-                    {% if device.is_enabled %}
-                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Yes</span>
-                    {% else %}
-                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">No</span>
-                    {% endif %}
-                </dd>
-            </div>
-            {% if device.model_name %}
-            <div>
-                <dt class="text-sm font-medium text-gray-500">Model</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ device.model_name }}</dd>
-            </div>
-            {% endif %}
-            {% if device.has_ptz %}
-            <div>
-                <dt class="text-sm font-medium text-gray-500">PTZ</dt>
-                <dd class="mt-1 text-sm text-gray-900">
-                    Away preset: {{ device.ptz_away_preset or '—' }},
-                    Home preset: {{ device.ptz_home_preset or '—' }}
-                </dd>
-            </div>
-            {% endif %}
-            {% if device.notes %}
-            <div class="col-span-2">
-                <dt class="text-sm font-medium text-gray-500">Notes</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ device.notes }}</dd>
-            </div>
-            {% endif %}
-        </dl>
+        </form>
     </div>
 
+    <!-- Detection Types -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Detection Types</h2>
         <form method="post" action="/devices/{{ device.id }}/detection-types" class="space-y-3">
@@ -93,6 +93,7 @@
         </form>
     </div>
 
+    <!-- Zone Masks -->
     {% set zm_enabled = zone_masks_enabled_form if zone_mask_error else device.zone_masks_enabled %}
     {% set zm_away = zone_mask_away_form if zone_mask_error else (device.zone_mask_away or '') %}
     {% set zm_home = zone_mask_home_form if zone_mask_error else (device.zone_mask_home or '') %}
@@ -134,6 +135,7 @@
         </form>
     </div>
 
+    <!-- Tags -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
 

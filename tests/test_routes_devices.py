@@ -99,17 +99,11 @@ class TestDeviceCreate:
 
 
 class TestDeviceEdit:
-    async def test_get_edit_form(self, client: AsyncClient) -> None:
+    async def test_get_edit_redirects_to_detail(self, client: AsyncClient) -> None:
         cam = await create_camera(name="Edit Me")
-        response = await client.get(f"/devices/{cam.id}/edit")
-        assert response.status_code == 200
-        assert "Edit Me" in response.text
-
-    async def test_edit_form_shows_tag_link(self, client: AsyncClient) -> None:
-        cam = await create_camera(name="Tag Link Cam")
-        response = await client.get(f"/devices/{cam.id}/edit")
-        assert f"/devices/{cam.id}" in response.text
-        assert "device detail page" in response.text
+        response = await client.get(f"/devices/{cam.id}/edit", follow_redirects=False)
+        assert response.status_code == 301
+        assert response.headers["location"] == f"/devices/{cam.id}"
 
     async def test_post_edit_device(self, client: AsyncClient) -> None:
         cam = await create_camera(name="Old Name")
