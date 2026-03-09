@@ -30,12 +30,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         nvr_debug_max_length=settings.nvr_debug_max_length,
         workflow_debug=settings.workflow_debug,
     )
-    logger.info(
-        "Starting Remander (nvr_debug=%s, nvr_debug_max_length=%d, workflow_debug=%s)",
-        settings.nvr_debug,
-        settings.nvr_debug_max_length,
-        settings.workflow_debug,
-    )
+    logger.info("Starting Remander — current settings:")
+    for key, value in settings.model_dump().items():
+        logger.info("  %s = %r", key, value)
 
     # Initialize Tortoise ORM
     config = get_tortoise_config()
