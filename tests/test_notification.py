@@ -1,16 +1,12 @@
-"""Tests for the notification system — RED phase (TDD)."""
+"""Tests for the notification system."""
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 from remander.clients.email import EmailNotificationSender
 from remander.models.enums import CommandStatus, CommandType
 from remander.services.notification import NotificationSender
-from remander.services.notification_templates import (
-    render_command_failed_notification,
-    render_command_succeeded_notification,
-    render_completed_with_errors_notification,
-    render_validation_warnings_notification,
-)
+from remander.services.notification_templates import render_notification
 from tests.factories import create_command
 
 
@@ -26,7 +22,6 @@ class TestNotificationSenderProtocol:
             smtp_to="to@example.com",
             smtp_use_tls=True,
         )
-        # Protocol conformance check at runtime
         assert isinstance(sender, NotificationSender)
 
 
@@ -46,7 +41,6 @@ class TestEmailNotificationSender:
             await sender.send("Test Subject", "Test body")
             mock_send.assert_called_once()
             call_kwargs = mock_send.call_args
-            # The message should be an email.message.EmailMessage
             msg = call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("message")
             assert msg["Subject"] == "Test Subject"
             assert msg["From"] == "from@example.com"
@@ -69,51 +63,162 @@ class TestEmailNotificationSender:
 
 
 class TestNotificationTemplates:
-    async def test_render_succeeded(self) -> None:
+    async def test_subject_pass_with_channels(self) -> None:
         cmd = await create_command(
-            command_type=CommandType.SET_AWAY_NOW,
+            command_type=CommandType.PAUSE_NOTIFICATIONS,
             status=CommandStatus.SUCCEEDED,
         )
-        subject, body = render_command_succeeded_notification(cmd, device_count=5, duration_s=12.5)
-        assert "Set Away Now" in subject or "set_away_now" in subject.lower()
-        assert "5" in body
-        assert subject  # non-empty
+        subject, _ = render_notification(
+            command=cmd,
+            channel_bitmask_results={6: {"motion": "0" * 24, "person": "1" * 24}},
+            validation_discrepancies=[],
+            overall_pass=True,
+        )
+        assert subject == "PASS: Pause Notifications - Channels: [6]"
 
-    async def test_render_failed(self) -> None:
+    async def test_subject_fail_multiple_channels(self) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
             status=CommandStatus.FAILED,
         )
-        subject, body = render_command_failed_notification(
-            cmd, error="NVR login failed", failed_step="nvr_login"
+        subject, _ = render_notification(
+            command=cmd,
+            channel_bitmask_results={
+                2: {"motion": "0" * 24},
+                5: {"motion": "1" * 24},
+                11: {"motion": "1" * 24},
+            },
+            validation_discrepancies=[],
+            overall_pass=False,
         )
-        assert "failed" in subject.lower() or "Failed" in subject
-        assert "NVR login failed" in body
+        assert subject == "FAIL: Set Away Now - Channels: [2, 5, 11]"
 
-    async def test_render_completed_with_errors(self) -> None:
+    async def test_subject_empty_channels(self) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
-            status=CommandStatus.COMPLETED_WITH_ERRORS,
+            status=CommandStatus.FAILED,
         )
-        successes = [{"device": "Cam 1", "detail": "OK"}]
-        failures = [{"device": "Cam 2", "detail": "Timeout"}]
-        subject, body = render_completed_with_errors_notification(cmd, successes, failures)
-        assert subject  # non-empty
-        assert "Cam 2" in body
-        assert "Timeout" in body
+        subject, _ = render_notification(
+            command=cmd,
+            channel_bitmask_results={},
+            validation_discrepancies=[],
+            overall_pass=False,
+            error_message="NVR login failed",
+        )
+        assert subject == "FAIL: Set Away Now - Channels: []"
 
-    async def test_render_validation_warnings(self) -> None:
+    async def test_body_header_section(self) -> None:
+        now = datetime(2026, 3, 9, 14, 35, 12, tzinfo=timezone.utc)
+        cmd = await create_command(
+            command_type=CommandType.PAUSE_NOTIFICATIONS,
+            status=CommandStatus.SUCCEEDED,
+        )
+        cmd.started_at = now
+        cmd.completed_at = now
+        cmd.initiated_by_ip = "192.168.1.101"
+        subject, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={},
+            validation_discrepancies=[],
+            overall_pass=True,
+        )
+        assert "Overall: PASS" in body
+        assert "Pause Notifications" in body
+        assert "N/A (192.168.1.101)" in body
+        assert "Start Time:" in body
+        assert "Finish Time:" in body
+
+    async def test_body_bitmask_visual_display(self) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
             status=CommandStatus.SUCCEEDED,
         )
-        discrepancies = [
-            {
-                "device": "Cam 1",
-                "expected": "111111111111111111111111",
-                "actual": "000000000000000000000000",
-            }
-        ]
-        subject, body = render_validation_warnings_notification(cmd, discrepancies)
-        assert "validation" in subject.lower() or "warning" in subject.lower()
-        assert "Cam 1" in body
+        subject, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={
+                6: {
+                    "motion": "0" * 24,
+                    "person": "1" * 24,
+                }
+            },
+            validation_discrepancies=[],
+            overall_pass=True,
+        )
+        assert "channel=6:" in body
+        # motion → MD, displayed as dots
+        assert "MD" in body
+        assert "." * 24 in body
+        # person displayed as pipes
+        assert "person" in body
+        assert "|" * 24 in body
+
+    async def test_body_bitmask_ok_and_fail_status(self) -> None:
+        cmd = await create_command(
+            command_type=CommandType.SET_AWAY_NOW,
+            status=CommandStatus.COMPLETED_WITH_ERRORS,
+        )
+        subject, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={
+                6: {"motion": "0" * 24, "person": "1" * 24},
+            },
+            validation_discrepancies=[
+                {"channel": 6, "detection_type": "person", "device": "Cam", "device_id": 1}
+            ],
+            overall_pass=False,
+        )
+        assert "OK" in body
+        assert "FAIL" in body
+
+    async def test_body_error_message_included(self) -> None:
+        cmd = await create_command(
+            command_type=CommandType.SET_AWAY_NOW,
+            status=CommandStatus.FAILED,
+        )
+        _, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={},
+            validation_discrepancies=[],
+            overall_pass=False,
+            error_message="NVR login timed out",
+        )
+        assert "NVR login timed out" in body
+
+    async def test_body_rearm_label(self) -> None:
+        cmd = await create_command(
+            command_type=CommandType.PAUSE_NOTIFICATIONS,
+            status=CommandStatus.SUCCEEDED,
+        )
+        subject, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={6: {"motion": "1" * 24}},
+            validation_discrepancies=[],
+            overall_pass=True,
+            is_rearm=True,
+        )
+        assert "Re-arm" in subject
+        assert "Re-arm" in body
+
+    async def test_motion_sorted_last_ai_types_first(self) -> None:
+        cmd = await create_command(
+            command_type=CommandType.SET_AWAY_NOW,
+            status=CommandStatus.SUCCEEDED,
+        )
+        _, body = render_notification(
+            command=cmd,
+            channel_bitmask_results={
+                6: {
+                    "motion": "0" * 24,
+                    "person": "1" * 24,
+                    "vehicle": "1" * 24,
+                }
+            },
+            validation_discrepancies=[],
+            overall_pass=True,
+        )
+        # MD should appear after person and vehicle in the output
+        person_pos = body.index("person")
+        vehicle_pos = body.index("vehicle")
+        md_pos = body.index("MD")
+        assert person_pos < md_pos
+        assert vehicle_pos < md_pos

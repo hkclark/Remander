@@ -107,6 +107,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         discrepancy = {
                             "device": device.name,
                             "device_id": device_id,
+                            "channel": device.channel,
                             "detection_type": str(detection_type),
                             "field": "hour_bitmask",
                             "expected": expected_hour,
@@ -134,6 +135,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         discrepancy = {
                             "device": device.name,
                             "device_id": device_id,
+                            "channel": device.channel,
                             "detection_type": str(detection_type),
                             "field": "zone_mask",
                             "expected": expected_zone,

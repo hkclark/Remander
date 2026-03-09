@@ -41,6 +41,10 @@ class WorkflowState:
     # Validation discrepancies collected by ValidateNode
     validation_discrepancies: list[dict] = field(default_factory=list)
 
+    # Final bitmask state per channel for notification display
+    # channel -> {detection_type_str -> 24-char bitmask}
+    channel_bitmask_results: dict[int, dict[str, str]] = field(default_factory=dict)
+
 
 # Reason: dataclass required by pydantic-graph for deps (immutable by convention)
 @dataclass

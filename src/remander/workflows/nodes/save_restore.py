@@ -17,6 +17,16 @@ from remander.workflows.state import WorkflowDeps, WorkflowState
 logger = logging.getLogger(__name__)
 
 
+def _fmt_bitmask(value: str) -> str:
+    """Return a compact bitmask representation for log lines.
+
+    168-char NVR values are condensed to 'first_24 (×7 days)' for readability.
+    """
+    if len(value) == 168:
+        return f"{value[:24]} (×7 days)"
+    return value
+
+
 @dataclass
 class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Read current bitmask values from NVR and save them to saved_device_state."""
@@ -63,7 +73,7 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                             ctx.state.command_id,
                             device.name,
                             dt_record.detection_type,
-                            hour_bitmask,
+                            _fmt_bitmask(hour_bitmask),
                             zone_mask,
                         )
                     else:
@@ -73,7 +83,7 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                             ctx.state.command_id,
                             device.name,
                             dt_record.detection_type,
-                            hour_bitmask,
+                            _fmt_bitmask(hour_bitmask),
                         )
                     await SavedDeviceState.create(
                         command_id=ctx.state.command_id,
@@ -167,11 +177,15 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                             ctx.state.command_id,
                             device.name,
                             saved.detection_type,
-                            saved.saved_hour_bitmask,
+                            _fmt_bitmask(saved.saved_hour_bitmask),
                         )
                         await ctx.deps.nvr_client.set_alarm_schedule(
                             device.channel, saved.detection_type, saved.saved_hour_bitmask
                         )
+                        # Track final bitmask state for notification display
+                        dt_str = str(saved.detection_type)
+                        bitmask_24 = saved.saved_hour_bitmask[:24]
+                        ctx.state.channel_bitmask_results.setdefault(device.channel, {})[dt_str] = bitmask_24
                     if saved.saved_zone_mask:
                         logger.info(
                             "[cmd %d] RestoreBitmasks: device '%s' %s zone_mask=%s",

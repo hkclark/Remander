@@ -68,6 +68,10 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         "hour_bitmask": entry["hour_bitmask"],
                         "zone_mask": entry.get("zone_mask", ""),
                     }
+                    # Track final bitmask state for notification display
+                    dt_str = str(entry["detection_type"])
+                    bitmask_24 = entry["hour_bitmask"][:24]
+                    ctx.state.channel_bitmask_results.setdefault(device.channel, {})[dt_str] = bitmask_24
 
                 await log_activity(
                     command_id=ctx.state.command_id,
