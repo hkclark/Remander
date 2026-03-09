@@ -27,6 +27,9 @@ class Device(Model):
     power_device: fields.ForeignKeyNullableRelation["Device"] = fields.ForeignKeyField(
         "models.Device", related_name="powered_cameras", null=True, on_delete=fields.SET_NULL
     )
+    zone_masks_enabled = fields.BooleanField(default=False)
+    zone_mask_away = fields.TextField(null=True)
+    zone_mask_home = fields.TextField(null=True)
     notes = fields.TextField(null=True)
     is_enabled = fields.BooleanField(default=True)
     created_at = fields.DatetimeField(auto_now_add=True)

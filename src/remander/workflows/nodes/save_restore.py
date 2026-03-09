@@ -54,17 +54,27 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     hour_bitmask = await ctx.deps.nvr_client.get_alarm_schedule(
                         device.channel, dt_record.detection_type
                     )
-                    zone_mask = await ctx.deps.nvr_client.get_detection_zones(
-                        device.channel, dt_record.detection_type
-                    )
-                    logger.info(
-                        "[cmd %d] SaveBitmasks: device '%s' %s hour_bitmask=%s zone_mask=%s",
-                        ctx.state.command_id,
-                        device.name,
-                        dt_record.detection_type,
-                        hour_bitmask,
-                        zone_mask,
-                    )
+                    if device.zone_masks_enabled:
+                        zone_mask: str | None = await ctx.deps.nvr_client.get_detection_zones(
+                            device.channel, dt_record.detection_type
+                        )
+                        logger.info(
+                            "[cmd %d] SaveBitmasks: device '%s' %s hour_bitmask=%s zone_mask=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            dt_record.detection_type,
+                            hour_bitmask,
+                            zone_mask,
+                        )
+                    else:
+                        zone_mask = None
+                        logger.info(
+                            "[cmd %d] SaveBitmasks: device '%s' %s hour_bitmask=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            dt_record.detection_type,
+                            hour_bitmask,
+                        )
                     await SavedDeviceState.create(
                         command_id=ctx.state.command_id,
                         device_id=device_id,

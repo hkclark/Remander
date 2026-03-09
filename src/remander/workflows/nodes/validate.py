@@ -37,32 +37,47 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
             expectations = ctx.state.expected_bitmasks[device_id]
             for detection_type, expected in expectations.items():
                 try:
+                    expected_hour = expected.get("hour_bitmask")
+                    expected_zone = expected.get("zone_mask")  # None when zone masks disabled
+
                     actual_hour = await ctx.deps.nvr_client.get_alarm_schedule(
                         device.channel, detection_type
                     )
-                    actual_zone = await ctx.deps.nvr_client.get_detection_zones(
-                        device.channel, detection_type
-                    )
 
-                    logger.info(
-                        "[cmd %d] Validate: device '%s' %s "
-                        "hour_bitmask expected=%s actual=%s zone_mask expected=%s actual=%s",
-                        ctx.state.command_id,
-                        device.name,
-                        detection_type,
-                        expected.get("hour_bitmask"),
-                        actual_hour,
-                        expected.get("zone_mask"),
-                        actual_zone,
-                    )
-                    if actual_hour != expected.get("hour_bitmask"):
+                    if expected_zone is not None:
+                        actual_zone = await ctx.deps.nvr_client.get_detection_zones(
+                            device.channel, detection_type
+                        )
+                        logger.info(
+                            "[cmd %d] Validate: device '%s' %s "
+                            "hour_bitmask expected=%s actual=%s zone_mask expected=%s actual=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            detection_type,
+                            expected_hour,
+                            actual_hour,
+                            expected_zone,
+                            actual_zone,
+                        )
+                    else:
+                        actual_zone = None
+                        logger.info(
+                            "[cmd %d] Validate: device '%s' %s hour_bitmask expected=%s actual=%s",
+                            ctx.state.command_id,
+                            device.name,
+                            detection_type,
+                            expected_hour,
+                            actual_hour,
+                        )
+
+                    if actual_hour != expected_hour:
                         logger.warning(
                             "[cmd %d] Validate: MISMATCH device '%s' %s "
                             "hour_bitmask expected=%s actual=%s",
                             ctx.state.command_id,
                             device.name,
                             detection_type,
-                            expected.get("hour_bitmask"),
+                            expected_hour,
                             actual_hour,
                         )
                         discrepancy = {
@@ -70,7 +85,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             "device_id": device_id,
                             "detection_type": str(detection_type),
                             "field": "hour_bitmask",
-                            "expected": expected.get("hour_bitmask"),
+                            "expected": expected_hour,
                             "actual": actual_hour,
                         }
                         ctx.state.validation_discrepancies.append(discrepancy)
@@ -82,14 +97,14 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             detail=f"Hour bitmask mismatch for {detection_type}",
                         )
 
-                    if actual_zone != expected.get("zone_mask"):
+                    if expected_zone is not None and actual_zone != expected_zone:
                         logger.warning(
                             "[cmd %d] Validate: MISMATCH device '%s' %s "
                             "zone_mask expected=%s actual=%s",
                             ctx.state.command_id,
                             device.name,
                             detection_type,
-                            expected.get("zone_mask"),
+                            expected_zone,
                             actual_zone,
                         )
                         discrepancy = {
@@ -97,7 +112,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             "device_id": device_id,
                             "detection_type": str(detection_type),
                             "field": "zone_mask",
-                            "expected": expected.get("zone_mask"),
+                            "expected": expected_zone,
                             "actual": actual_zone,
                         }
                         ctx.state.validation_discrepancies.append(discrepancy)

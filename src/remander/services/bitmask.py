@@ -184,9 +184,20 @@ async def resolve_bitmasks_for_device(
 
     Returns a list of dicts: [{detection_type, hour_bitmask, zone_mask}, ...]
     """
+    from remander.models.device import Device
+
+    device = await Device.get(id=device_id)
     enabled_types = await DeviceDetectionType.filter(device_id=device_id, is_enabled=True)
     if not enabled_types:
         return []
+
+    # Zone mask value for this mode: None means "disabled, skip zone mask entirely"
+    if device.zone_masks_enabled:
+        zone_value: str | None = (
+            device.zone_mask_away if mode == Mode.AWAY else device.zone_mask_home
+        )
+    else:
+        zone_value = None
 
     results = []
     for dt_record in enabled_types:
@@ -201,12 +212,6 @@ async def resolve_bitmasks_for_device(
             hour_value = await resolve_hour_bitmask(hb, latitude=latitude, longitude=longitude)
         else:
             hour_value = "0" * 24
-
-        if assignment is not None and assignment.zone_mask_id is not None:
-            zm = await ZoneMask.get(id=assignment.zone_mask_id)
-            zone_value = zm.mask_value
-        else:
-            zone_value = "0" * 4800
 
         results.append(
             {

@@ -38,9 +38,13 @@ lint:
 format:
 	uv run ruff format .
 
-## Generate (if needed) and apply database migrations
+## Apply all pending database migrations (also works for fresh installs)
 migrate:
-	@uv run aerich migrate 2>/dev/null || true
+	uv run aerich upgrade
+
+## Generate a new migration after model changes: make migration name=add_foo_field
+migration:
+	uv run aerich migrate --name $(name)
 	uv run aerich upgrade
 
 ## Show auto-exported session transcripts
