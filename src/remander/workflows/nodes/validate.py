@@ -16,6 +16,30 @@ from remander.workflows.state import WorkflowDeps, WorkflowState
 logger = logging.getLogger(__name__)
 
 
+def _bitmasks_match(expected: str, actual: str) -> bool:
+    """Compare bitmasks, handling 24-char internal vs 168-char NVR format.
+
+    Our internal representation is a 24-char single-day pattern applied uniformly
+    to every day of the week. The NVR stores 168 chars (7 days × 24 hours). We set
+    all 7 days identically, so a valid match means actual == expected repeated 7 times.
+    """
+    if expected == actual:
+        return True
+    if len(expected) == 24 and len(actual) == 168:
+        return actual == expected * 7
+    return False
+
+
+def _fmt_bitmask(value: str) -> str:
+    """Return a compact bitmask representation for log lines.
+
+    168-char NVR values are condensed to 'first_24 (×7 days)' for readability.
+    """
+    if len(value) == 168:
+        return f"{value[:24]} (×7 days)"
+    return value
+
+
 @dataclass
 class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Query the NVR to verify bitmasks match expected values."""
@@ -55,7 +79,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             device.name,
                             detection_type,
                             expected_hour,
-                            actual_hour,
+                            _fmt_bitmask(actual_hour),
                             expected_zone,
                             actual_zone,
                         )
@@ -67,10 +91,10 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             device.name,
                             detection_type,
                             expected_hour,
-                            actual_hour,
+                            _fmt_bitmask(actual_hour),
                         )
 
-                    if actual_hour != expected_hour:
+                    if not _bitmasks_match(expected_hour, actual_hour):
                         logger.warning(
                             "[cmd %d] Validate: MISMATCH device '%s' %s "
                             "hour_bitmask expected=%s actual=%s",
@@ -78,7 +102,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
                             device.name,
                             detection_type,
                             expected_hour,
-                            actual_hour,
+                            _fmt_bitmask(actual_hour),
                         )
                         discrepancy = {
                             "device": device.name,
