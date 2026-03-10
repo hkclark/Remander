@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 
 from remander.config import get_settings
 from remander.models.state import AppState
+from remander.plugins.registry import get_registry
 from remander.services.command import get_active_command, list_commands
 from remander.services.dashboard_button import list_dashboard_buttons
 from remander.services.tag import list_dashboard_tags
@@ -26,6 +27,7 @@ async def dashboard(request: Request) -> HTMLResponse:
     dashboard_tags = await list_dashboard_tags()
     dashboard_buttons = await list_dashboard_buttons(enabled_only=True, show_on_main=True)
     settings = get_settings()
+    plugin_widgets = get_registry().all_dashboard_widgets("dashboard")
 
     return templates.TemplateResponse(
         request,
@@ -37,6 +39,7 @@ async def dashboard(request: Request) -> HTMLResponse:
             "dashboard_tags": dashboard_tags,
             "dashboard_buttons": dashboard_buttons,
             "debug": settings.debug,
+            "plugin_widgets": plugin_widgets,
         },
     )
 

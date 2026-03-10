@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from remander.config import get_settings
 from remander.models.enums import ButtonOperationType, CommandType
 from remander.models.state import AppState
+from remander.plugins.registry import get_registry
 from remander.services.command import create_command
 from remander.services.dashboard_button import get_dashboard_button, list_dashboard_buttons
 from remander.services.queue import enqueue_command
@@ -26,6 +27,7 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
 
     dashboard_buttons = await list_dashboard_buttons(enabled_only=True, show_on_guest=True)
     pin_error = request.query_params.get("pin_error") == "1"
+    plugin_widgets = get_registry().all_dashboard_widgets("guest_dashboard")
 
     return templates.TemplateResponse(
         request,
@@ -35,6 +37,7 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
             "dashboard_buttons": dashboard_buttons,
             "show_mode": settings.guest_dashboard_show_mode,
             "pin_error": pin_error,
+            "plugin_widgets": plugin_widgets,
         },
     )
 

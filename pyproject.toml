@@ -40,6 +40,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "httpx",
+    "remander-hot-water",
 ]
 
 [build-system]
@@ -60,6 +61,12 @@ quote-style = "double"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.uv.sources]
+remander-hot-water = { workspace = true }
+
+[tool.uv.workspace]
+members = ["plugins/*"]
 
 [tool.aerich]
 tortoise_orm = "remander.db.TORTOISE_ORM"

@@ -20,6 +20,7 @@ from remander.models.enums import (
     Mode,
     PowerDeviceSubtype,
 )
+from remander.models.plugin_data import PluginData
 from remander.models.state import AppState, SavedDeviceState
 from remander.models.tag import Tag
 
@@ -43,6 +44,7 @@ __all__ = [
     "HourBitmask",
     "HourBitmaskSubtype",
     "Mode",
+    "PluginData",
     "PowerDeviceSubtype",
     "SavedDeviceState",
     "Tag",

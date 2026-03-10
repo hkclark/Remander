@@ -7,11 +7,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, FileSystemLoader
 from tortoise import Tortoise
 
 from remander.config import get_settings
 from remander.db import get_tortoise_config
 from remander.logging import setup_logging
+from remander.plugins.registry import PluginRegistry, set_registry
 from remander.worker import create_queue, create_worker, set_queue
 
 logger = logging.getLogger(__name__)
@@ -49,15 +51,46 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if stale:
         logger.warning("Reset %d stale RUNNING command(s) to FAILED on startup", stale)
 
+    # Discover and register plugins
+    registry = PluginRegistry()
+    registry.discover()
+    set_registry(registry)
+
+    for plugin in registry.plugins:
+        plugin.register_routes(app)
+
+    # Build template ChoiceLoader: core templates + plugin template dirs
+    global templates
+    loaders: list[FileSystemLoader] = [FileSystemLoader("src/remander/templates")]
+    for plugin in registry.plugins:
+        tpl_dir = plugin.register_templates()
+        if tpl_dir:
+            loaders.append(FileSystemLoader(tpl_dir))
+    templates = Jinja2Templates(env=templates.env)
+    templates.env.loader = ChoiceLoader(loaders)
+
+    # Collect plugin job handlers for SAQ worker
+    extra_functions = registry.all_job_handlers()
+
     # Initialize SAQ worker
     queue = create_queue(settings.redis_url)
     set_queue(queue)
     await queue.connect()
-    worker = create_worker(queue)
+    worker = create_worker(queue, extra_functions=extra_functions or None)
     worker_task = asyncio.create_task(worker.start())
     logger.info("SAQ worker started")
 
+    # Run plugin startup hooks
+    for plugin in registry.plugins:
+        await plugin.on_startup()
+        logger.info("Plugin '%s' started", plugin.name)
+
     yield
+
+    # Run plugin shutdown hooks
+    for plugin in registry.plugins:
+        await plugin.on_shutdown()
+        logger.info("Plugin '%s' stopped", plugin.name)
 
     # Shutdown SAQ worker
     await worker.stop()
@@ -81,8 +114,8 @@ from remander.routes.bitmasks import router as bitmasks_router  # noqa: E402
 from remander.routes.commands import router as commands_router  # noqa: E402
 from remander.routes.dashboard import router as dashboard_router  # noqa: E402
 from remander.routes.dashboard_buttons import router as dashboard_buttons_router  # noqa: E402
-from remander.routes.guest_dashboard import router as guest_dashboard_router  # noqa: E402
 from remander.routes.devices import router as devices_router  # noqa: E402
+from remander.routes.guest_dashboard import router as guest_dashboard_router  # noqa: E402
 from remander.routes.tags import router as tags_router  # noqa: E402
 
 app.include_router(dashboard_router)

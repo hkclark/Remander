@@ -51,6 +51,12 @@
     </div>
     {% endif %}
 
+    {% if plugin_widgets %}
+    {% for widget in plugin_widgets %}
+    {% include widget.template_name %}
+    {% endfor %}
+    {% endif %}
+
     {% if dashboard_tags %}
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Pause Notifications</h2>

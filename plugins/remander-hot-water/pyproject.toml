@@ -1,0 +1,16 @@
+[project]
+name = "remander-hot-water"
+version = "0.1.0"
+description = "Hot water recirculation pump control plugin for Remander"
+requires-python = ">=3.14"
+dependencies = []  # remander is always present at runtime
+
+[project.entry-points."remander.plugins"]
+hot_water = "remander_hot_water:create_plugin"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/remander_hot_water"]

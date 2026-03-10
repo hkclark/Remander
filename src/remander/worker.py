@@ -1,6 +1,7 @@
 """SAQ worker setup — Redis-backed job queue for command processing."""
 
 import logging
+from collections.abc import Callable
 
 from saq import Queue, Worker
 from saq.types import Context
@@ -45,14 +46,20 @@ async def process_rearm(ctx: Context, command_id: int) -> None:
     await execute_rearm(command_id)
 
 
-def create_worker(queue: Queue) -> EmbeddedWorker:
+def create_worker(
+    queue: Queue,
+    extra_functions: list[tuple[str, Callable]] | None = None,
+) -> EmbeddedWorker:
     """Create a SAQ worker with concurrency=1 (one command at a time)."""
+    functions: list[tuple[str, Callable]] = [
+        ("process_command", process_command),
+        ("process_rearm", process_rearm),
+    ]
+    if extra_functions:
+        functions.extend(extra_functions)
     return EmbeddedWorker(
         queue=queue,
-        functions=[
-            ("process_command", process_command),
-            ("process_rearm", process_rearm),
-        ],
+        functions=functions,
         concurrency=1,
     )
 

@@ -1,0 +1,8 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Hot Water</h2>
+    <div id="hot-water-widget"
+         hx-get="/hot-water/status"
+         hx-trigger="load, every 5s"
+         hx-swap="innerHTML">
+    </div>
+</div>
