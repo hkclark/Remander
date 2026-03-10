@@ -58,6 +58,7 @@ class Settings(BaseSettings):
 
     # Guest dashboard
     guest_dashboard_show_mode: bool = True
+    guest_dashboard_pin: str = "5555"
 
 
 def get_settings() -> Settings:

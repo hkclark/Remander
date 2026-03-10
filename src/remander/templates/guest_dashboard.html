@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <main class="max-w-lg mx-auto px-4 py-8 space-y-6">
+
+    {% if pin_error %}
+    <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 text-sm text-red-700 font-medium">
+        Incorrect PIN — please try again.
+    </div>
+    {% endif %}
 
     {% if show_mode %}
     <div class="flex justify-end">
@@ -23,7 +28,53 @@
     {% if dashboard_buttons %}
     <div class="grid grid-cols-1 gap-4">
         {% for button in dashboard_buttons %}
-        <form action="/commands/execute/button/{{ button.id }}" method="post">
+
+        {% if button.operation_type.value == 'home' %}
+        {# ── Home button: always-visible PIN pad ─────────────────────────── #}
+        <div class="bg-white rounded-xl shadow p-5 space-y-4">
+            <div class="text-center text-base font-semibold text-gray-700">{{ button.name }}</div>
+
+            <form action="/d/execute/button/{{ button.id }}" method="post">
+                <input type="hidden" name="pin" id="pin-input-{{ button.id }}" value="">
+
+                {# PIN display #}
+                <div class="text-center mb-4">
+                    <span id="pin-display-{{ button.id }}"
+                          class="inline-block tracking-[0.5em] text-3xl font-mono text-gray-400 min-w-[6rem]">
+                        ·
+                    </span>
+                </div>
+
+                {# Phone keypad: 1-9 then backspace / 0 / submit #}
+                <div class="grid grid-cols-3 gap-3">
+                    {% for digit in ['1','2','3','4','5','6','7','8','9'] %}
+                    <button type="button"
+                            onclick="appendDigit({{ button.id }}, '{{ digit }}')"
+                            class="py-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-2xl font-semibold text-gray-800 transition-colors">
+                        {{ digit }}
+                    </button>
+                    {% endfor %}
+                    <button type="button"
+                            onclick="pinBackspace({{ button.id }})"
+                            class="py-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-2xl text-gray-600 transition-colors">
+                        ⌫
+                    </button>
+                    <button type="button"
+                            onclick="appendDigit({{ button.id }}, '0')"
+                            class="py-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-2xl font-semibold text-gray-800 transition-colors">
+                        0
+                    </button>
+                    <button type="submit"
+                            class="py-4 bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-lg text-white text-2xl transition-colors">
+                        ✓
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% else %}
+        {# ── Away / Other buttons: direct submit ─────────────────────────── #}
+        <form action="/d/execute/button/{{ button.id }}" method="post">
             <button type="submit"
                     class="w-full py-5 px-6 {{ button.tailwind_classes }} text-white font-semibold rounded-xl shadow text-xl">
                 {{ button.name }}
@@ -32,6 +83,8 @@
                 {% endif %}
             </button>
         </form>
+        {% endif %}
+
         {% endfor %}
     </div>
     {% else %}
@@ -41,5 +94,25 @@
     {% endif %}
 
 </main>
+
+<script>
+function appendDigit(id, digit) {
+    const input = document.getElementById('pin-input-' + id);
+    input.value += digit;
+    updateDisplay(id);
+}
+
+function pinBackspace(id) {
+    const input = document.getElementById('pin-input-' + id);
+    input.value = input.value.slice(0, -1);
+    updateDisplay(id);
+}
+
+function updateDisplay(id) {
+    const input = document.getElementById('pin-input-' + id);
+    const display = document.getElementById('pin-display-' + id);
+    display.textContent = input.value.length > 0 ? '*'.repeat(input.value.length) : '·';
+}
+</script>
 </body>
 </html>

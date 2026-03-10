@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from remander.models.dashboard_button import DashboardButton
 from remander.models.enums import ButtonColor, ButtonOperationType
 from remander.services.bitmask import list_hour_bitmasks
 from remander.services.dashboard_button import (
@@ -51,6 +52,24 @@ async def _form_context(
         "error": error,
         "coverage_warning": coverage_warning or [],
     }
+
+
+async def _check_guest_home_conflict(
+    operation_type: str,
+    show_on_guest: str | None,
+    exclude_id: int | None = None,
+) -> bool:
+    """Return True if adding a guest Home button would violate the one-per-guest-dashboard rule."""
+    if show_on_guest is None or operation_type != "home":
+        return False
+    qs = DashboardButton.filter(
+        show_on_guest=True,
+        operation_type=ButtonOperationType.HOME,
+        is_enabled=True,
+    )
+    if exclude_id is not None:
+        qs = qs.exclude(id=exclude_id)
+    return await qs.exists()
 
 
 def _parse_rules(
@@ -143,6 +162,17 @@ async def button_create(
             coverage_warning=uncovered_names,
         )
         return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
+
+    if await _check_guest_home_conflict(operation_type, show_on_guest):
+        ctx = await _form_context(
+            request,
+            pending_rules=rules,
+            pending_data=submitted,
+            error="Only one Home button can be assigned to the Guest Dashboard.",
+        )
+        return templates.TemplateResponse(
+            request, "dashboard_buttons/form.html", ctx, status_code=422
+        )
 
     btn = await create_dashboard_button(
         name=name,
@@ -250,6 +280,18 @@ async def button_edit(
             coverage_warning=uncovered_names,
         )
         return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
+
+    if await _check_guest_home_conflict(operation_type, show_on_guest, exclude_id=button_id):
+        ctx = await _form_context(
+            request,
+            button=button,
+            pending_rules=rules,
+            pending_data=submitted,
+            error="Only one Home button can be assigned to the Guest Dashboard.",
+        )
+        return templates.TemplateResponse(
+            request, "dashboard_buttons/form.html", ctx, status_code=422
+        )
 
     await update_dashboard_button(
         button_id,
