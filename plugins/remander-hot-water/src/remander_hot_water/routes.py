@@ -16,22 +16,19 @@ async def hot_water_status(request: Request) -> HTMLResponse:
     """Return the current status partial (polled by HTMX)."""
     from remander.main import templates
 
-    status = await get_status()
     settings = HotWaterSettings()
+    sonoff = SonoffClient()
+    status = await get_status(settings=settings, sonoff_client=sonoff)
 
-    if not status["active"]:
-        # 286 tells HTMX to stop polling
-        return templates.TemplateResponse(
-            request,
-            "hot_water/_status_partial.html",
-            {"status": status, "settings": settings},
-            status_code=286,
-        )
+    # Only stop polling when the device is cleanly off with no timer.
+    # Keep polling for unreachable/error/external so the UI self-recovers.
+    idle = not status["active"] and status["device_state"] == "off"
 
     return templates.TemplateResponse(
         request,
         "hot_water/_status_partial.html",
         {"status": status, "settings": settings},
+        status_code=286 if idle else 200,
     )
 
 
@@ -54,7 +51,7 @@ async def hot_water_start(
         duration_minutes=duration_minutes,
     )
 
-    status = await get_status()
+    status = await get_status(settings=settings, sonoff_client=sonoff)
     return templates.TemplateResponse(
         request,
         "hot_water/_status_partial.html",
@@ -77,7 +74,7 @@ async def hot_water_cancel(request: Request) -> HTMLResponse:
         queue=queue,
     )
 
-    status = await get_status()
+    status = await get_status(settings=settings, sonoff_client=sonoff)
     return templates.TemplateResponse(
         request,
         "hot_water/_status_partial.html",

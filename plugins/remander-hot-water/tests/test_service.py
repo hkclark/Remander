@@ -1,5 +1,6 @@
 """Tests for hot water service — TDD red/green approach."""
 
+import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
@@ -22,6 +23,7 @@ def mock_sonoff() -> AsyncMock:
     client = AsyncMock()
     client.turn_on = AsyncMock()
     client.turn_off = AsyncMock()
+    client.is_on = AsyncMock(return_value=False)
     return client
 
 
@@ -74,7 +76,6 @@ class TestStartHotWater:
 
 class TestCancelHotWater:
     async def test_turns_off_sonoff_device(self, settings, mock_sonoff, mock_queue) -> None:
-        # Start first so there's state to cancel
         await start_hot_water(
             settings=settings,
             sonoff_client=mock_sonoff,
@@ -119,35 +120,63 @@ class TestCancelHotWater:
         state = await get_plugin_value("hot_water", "timer_state")
         assert state is None
 
-    async def test_cancel_when_not_active_is_safe(self, settings, mock_sonoff, mock_queue) -> None:
-        """Cancelling when there's no active timer should not raise."""
+    async def test_cancel_without_timer_still_turns_off(
+        self, settings, mock_sonoff, mock_queue
+    ) -> None:
+        """Cancelling without a timer (e.g. externally started) still turns off the device."""
         await cancel_hot_water(
             settings=settings,
             sonoff_client=mock_sonoff,
             queue=mock_queue,
         )
-        mock_sonoff.turn_off.assert_not_awaited()
+        mock_sonoff.turn_off.assert_awaited_once_with("192.168.1.99")
+        mock_queue.abort.assert_not_awaited()
 
 
 class TestGetStatus:
-    async def test_inactive_when_no_timer(self) -> None:
-        status = await get_status()
+    async def test_device_off_no_timer(self, settings, mock_sonoff) -> None:
+        mock_sonoff.is_on.return_value = False
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
         assert status["active"] is False
+        assert status["device_state"] == "off"
 
-    async def test_active_with_remaining_time(self, settings, mock_sonoff, mock_queue) -> None:
+    async def test_active_timer_with_device_on(
+        self, settings, mock_sonoff, mock_queue
+    ) -> None:
+        mock_sonoff.is_on.return_value = True
         await start_hot_water(
             settings=settings,
             sonoff_client=mock_sonoff,
             queue=mock_queue,
             duration_minutes=20,
         )
-        status = await get_status()
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
         assert status["active"] is True
+        assert status["device_state"] == "on"
         assert status["remaining_seconds"] > 0
         assert status["duration_minutes"] == 20
 
-    async def test_expired_timer_returns_inactive(self) -> None:
-        """If the timer has expired (end_time in the past), status should be inactive."""
+    async def test_device_on_externally_no_timer(self, settings, mock_sonoff) -> None:
+        """Device is on but we have no timer — started by another system."""
+        mock_sonoff.is_on.return_value = True
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
+        assert status["active"] is False
+        assert status["device_state"] == "on"
+
+    async def test_device_unreachable(self, settings, mock_sonoff) -> None:
+        mock_sonoff.is_on.side_effect = asyncio.TimeoutError()
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
+        assert status["active"] is False
+        assert status["device_state"] == "unreachable"
+
+    async def test_device_error(self, settings, mock_sonoff) -> None:
+        mock_sonoff.is_on.side_effect = Exception("connection refused")
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
+        assert status["active"] is False
+        assert status["device_state"] == "error"
+
+    async def test_expired_timer_clears_state(self, settings, mock_sonoff) -> None:
+        mock_sonoff.is_on.return_value = False
         from remander.plugins.data import set_plugin_value
 
         past_time = datetime(2020, 1, 1, tzinfo=timezone.utc).isoformat()
@@ -156,5 +185,5 @@ class TestGetStatus:
             "timer_state",
             {"end_time": past_time, "duration_minutes": 20, "job_id": "old"},
         )
-        status = await get_status()
+        status = await get_status(settings=settings, sonoff_client=mock_sonoff)
         assert status["active"] is False
