@@ -203,6 +203,23 @@ class TestButtonCreateRouteWithRules:
         assert response.status_code == 422
         assert "required" in response.text.lower()
 
+    async def test_create_without_rules_preserves_field_values(self, client: AsyncClient) -> None:
+        response = await client.post(
+            "/dashboard-buttons/create",
+            data={
+                "name": "My Preserved Name",
+                "operation_type": "other",
+                "color": "red",
+                "delay_seconds": "30",
+                "sort_order": "7",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "My Preserved Name" in response.text
+        assert 'value="30"' in response.text
+        assert 'value="7"' in response.text
+
     async def test_create_with_overlapping_tags_returns_422_with_device_names(
         self, client: AsyncClient
     ) -> None:
@@ -227,6 +244,33 @@ class TestButtonCreateRouteWithRules:
         )
         assert response.status_code == 422
         assert "Shared Camera" in response.text
+
+    async def test_create_with_overlapping_tags_preserves_field_values(
+        self, client: AsyncClient
+    ) -> None:
+        cam = await create_device(name="Overlap Cam", is_enabled=True)
+        tag1 = await create_tag("ov-tag-a")
+        tag2 = await create_tag("ov-tag-b")
+        await tag1.devices.add(cam)
+        await tag2.devices.add(cam)
+        bm = await _make_bitmask()
+        response = await client.post(
+            "/dashboard-buttons/create",
+            data={
+                "name": "Overlap Preserved",
+                "operation_type": "other",
+                "color": "red",
+                "delay_seconds": "15",
+                "sort_order": "3",
+                "rule_tag_ids": [str(tag1.id), str(tag2.id)],
+                "rule_bitmask_ids": [str(bm.id), str(bm.id)],
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "Overlap Preserved" in response.text
+        assert 'value="15"' in response.text
+        assert 'value="3"' in response.text
 
     async def test_create_with_uncovered_devices_shows_warning(
         self, client: AsyncClient
@@ -333,6 +377,27 @@ class TestButtonEditRouteWithRules:
         )
         assert response.status_code == 422
 
+    async def test_edit_without_rules_preserves_submitted_field_values(
+        self, client: AsyncClient
+    ) -> None:
+        btn = await _make_button("Old Name")
+        response = await client.post(
+            f"/dashboard-buttons/{btn.id}/edit",
+            data={
+                "name": "New Unsaved Name",
+                "operation_type": "other",
+                "color": "red",
+                "delay_seconds": "99",
+                "sort_order": "4",
+                "is_enabled": "1",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "New Unsaved Name" in response.text
+        assert 'value="99"' in response.text
+        assert 'value="4"' in response.text
+
     async def test_edit_with_overlapping_tags_returns_422_with_device_names(
         self, client: AsyncClient
     ) -> None:
@@ -359,6 +424,35 @@ class TestButtonEditRouteWithRules:
         )
         assert response.status_code == 422
         assert "Overlap Device" in response.text
+
+    async def test_edit_with_overlapping_tags_preserves_submitted_field_values(
+        self, client: AsyncClient
+    ) -> None:
+        btn = await _make_button("Old Name")
+        cam = await create_device(name="Edit Overlap Cam", is_enabled=True)
+        tag1 = await create_tag("eo-tag1")
+        tag2 = await create_tag("eo-tag2")
+        await tag1.devices.add(cam)
+        await tag2.devices.add(cam)
+        bm = await _make_bitmask()
+        response = await client.post(
+            f"/dashboard-buttons/{btn.id}/edit",
+            data={
+                "name": "Changed Name",
+                "operation_type": "other",
+                "color": "red",
+                "delay_seconds": "55",
+                "sort_order": "2",
+                "is_enabled": "1",
+                "rule_tag_ids": [str(tag1.id), str(tag2.id)],
+                "rule_bitmask_ids": [str(bm.id), str(bm.id)],
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "Changed Name" in response.text
+        assert 'value="55"' in response.text
+        assert 'value="2"' in response.text
 
     async def test_edit_saves_rules_on_valid_submit(self, client: AsyncClient) -> None:
         from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule

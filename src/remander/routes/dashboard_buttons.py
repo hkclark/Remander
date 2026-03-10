@@ -101,9 +101,22 @@ async def button_create(
     from remander.main import templates
 
     rules = _parse_rules(rule_tag_ids, rule_bitmask_ids)
+    submitted = {
+        "name": name,
+        "operation_type": operation_type,
+        "color": color,
+        "delay_seconds": delay_seconds,
+        "sort_order": sort_order,
+        "show_on_main": show_on_main,
+        "show_on_guest": show_on_guest,
+    }
 
     if not rules:
-        ctx = await _form_context(request, error="At least one tag-bitmask rule is required.")
+        ctx = await _form_context(
+            request,
+            pending_data=submitted,
+            error="At least one tag-bitmask rule is required.",
+        )
         return templates.TemplateResponse(
             request, "dashboard_buttons/form.html", ctx, status_code=422
         )
@@ -115,6 +128,7 @@ async def button_create(
         ctx = await _form_context(
             request,
             pending_rules=rules,
+            pending_data=submitted,
             error=f"These devices appear in multiple tags and would receive conflicting bitmasks: {device_list}",
         )
         return templates.TemplateResponse(
@@ -125,15 +139,7 @@ async def button_create(
         ctx = await _form_context(
             request,
             pending_rules=rules,
-            pending_data={
-                "name": name,
-                "operation_type": operation_type,
-                "color": color,
-                "delay_seconds": delay_seconds,
-                "sort_order": sort_order,
-                "show_on_main": show_on_main,
-                "show_on_guest": show_on_guest,
-            },
+            pending_data=submitted,
             coverage_warning=uncovered_names,
         )
         return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
@@ -187,6 +193,16 @@ async def button_edit(
         return HTMLResponse("Button not found", status_code=404)
 
     rules = _parse_rules(rule_tag_ids, rule_bitmask_ids)
+    submitted = {
+        "name": name,
+        "operation_type": operation_type,
+        "color": color,
+        "delay_seconds": delay_seconds,
+        "sort_order": sort_order,
+        "is_enabled": is_enabled,
+        "show_on_main": show_on_main,
+        "show_on_guest": show_on_guest,
+    }
 
     if not rules:
         existing_rules = await list_rules_for_button(button_id)
@@ -194,6 +210,7 @@ async def button_edit(
             request,
             button=button,
             rules=existing_rules,
+            pending_data=submitted,
             error="At least one tag-bitmask rule is required.",
         )
         return templates.TemplateResponse(
@@ -208,6 +225,7 @@ async def button_edit(
             request,
             button=button,
             pending_rules=rules,
+            pending_data=submitted,
             error=f"These devices appear in multiple tags and would receive conflicting bitmasks: {device_list}",
         )
         return templates.TemplateResponse(
