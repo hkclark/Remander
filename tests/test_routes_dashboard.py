@@ -4,10 +4,15 @@ from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
-from remander.models.enums import CommandStatus, CommandType
+from remander.models.enums import ButtonOperationType, CommandStatus, CommandType
 from remander.models.state import AppState
+from remander.services.dashboard_button import create_dashboard_button
 from remander.services.tag import create_tag
 from tests.factories import create_command
+
+
+async def _make_button(name: str, op_type: ButtonOperationType):
+    return await create_dashboard_button(name, op_type)
 
 
 class TestDashboard:
@@ -36,10 +41,18 @@ class TestDashboard:
         assert response.status_code == 200
         assert "set_away_now" in response.text
 
-    async def test_shows_quick_action_buttons(self, client: AsyncClient) -> None:
+    async def test_shows_configured_buttons(self, client: AsyncClient) -> None:
+        await _make_button("Set Away Now", ButtonOperationType.AWAY)
+        await _make_button("Set Home Now", ButtonOperationType.HOME)
         response = await client.get("/")
         assert "Set Away Now" in response.text
         assert "Set Home Now" in response.text
+
+    async def test_shows_no_buttons_message_when_none_configured(
+        self, client: AsyncClient
+    ) -> None:
+        response = await client.get("/")
+        assert "No dashboard buttons configured" in response.text
 
     async def test_command_progress_partial_no_active(self, client: AsyncClient) -> None:
         response = await client.get("/partials/command-progress")
@@ -47,11 +60,6 @@ class TestDashboard:
 
 
 class TestDashboardAwayButtons:
-    async def test_shows_set_away_delayed_buttons(self, client: AsyncClient) -> None:
-        response = await client.get("/")
-        assert "Set Away in 3 Min" in response.text
-        assert "Set Away in 5 Min" in response.text
-
     async def test_set_away_delayed_posts_delay_minutes(self, client: AsyncClient) -> None:
         response = await client.post(
             "/commands/execute/set-away-delayed",

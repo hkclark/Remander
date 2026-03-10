@@ -3,8 +3,9 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from remander.models.dashboard_button import DashboardButton
 from remander.models.device import Device
-from remander.models.enums import CommandType, Mode
+from remander.models.enums import ButtonOperationType, CommandType, Mode
 from remander.services.bitmask import find_devices_missing_bitmasks
 from remander.services.command import (
     cancel_command,
@@ -168,6 +169,32 @@ async def execute_pause_recording(
         CommandType.PAUSE_RECORDING,
         pause_minutes=int(pause_minutes),
         tag_filter=tag_filter if tag_filter else None,
+        initiated_by_ip=request.client.host if request.client else None,
+        initiated_by_user=request.query_params.get("user"),
+    )
+    await enqueue_command(cmd.id)
+    return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/execute/button/{button_id}")
+async def execute_button(request: Request, button_id: int) -> Response:
+    button = await DashboardButton.get_or_none(id=button_id)
+    if button is None:
+        return HTMLResponse("Button not found", status_code=404)
+
+    # Map operation type to command type
+    match button.operation_type:
+        case ButtonOperationType.AWAY:
+            command_type = CommandType.SET_AWAY_NOW
+        case ButtonOperationType.HOME:
+            command_type = CommandType.SET_HOME_NOW
+        case ButtonOperationType.OTHER:
+            command_type = CommandType.APPLY_BITMASK
+
+    cmd = await create_command(
+        command_type,
+        delay_seconds=button.delay_seconds if button.delay_seconds else None,
+        dashboard_button_id=button.id,
         initiated_by_ip=request.client.host if request.client else None,
         initiated_by_user=request.query_params.get("user"),
     )

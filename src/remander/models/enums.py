@@ -38,12 +38,37 @@ class Mode(StrEnum):
     AWAY = "away"
 
 
+class ButtonOperationType(StrEnum):
+    AWAY = "away"
+    HOME = "home"
+    OTHER = "other"
+
+
+class ButtonColor(StrEnum):
+    BLUE = "blue"
+    INDIGO = "indigo"
+    PURPLE = "purple"
+    PINK = "pink"
+    ROSE = "rose"
+    RED = "red"
+    ORANGE = "orange"
+    AMBER = "amber"
+    YELLOW = "yellow"
+    LIME = "lime"
+    GREEN = "green"
+    TEAL = "teal"
+    CYAN = "cyan"
+    SKY = "sky"
+    GRAY = "gray"
+
+
 class CommandType(StrEnum):
     SET_AWAY_NOW = "set_away_now"
     SET_AWAY_DELAYED = "set_away_delayed"
     SET_HOME_NOW = "set_home_now"
     PAUSE_NOTIFICATIONS = "pause_notifications"
     PAUSE_RECORDING = "pause_recording"
+    APPLY_BITMASK = "apply_bitmask"
 
 
 class CommandStatus(StrEnum):

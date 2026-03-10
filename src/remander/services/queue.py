@@ -118,13 +118,33 @@ async def run_workflow(cmd: Command) -> bool | None:
         longitude=settings.longitude,
     )
 
+    # Build per-device bitmask map when command was triggered by a dashboard button.
+    # Each rule maps tag -> hour_bitmask; we expand to device_id -> hour_bitmask_id
+    # so the workflow node can look up the right bitmask per device without querying tags.
+    override_bitmask_map: dict[int, int] = {}
+    delay_seconds: int | None = cmd.delay_seconds
+    if cmd.dashboard_button_id is not None:
+        from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
+
+        rules = await DashboardButtonBitmaskRule.filter(
+            dashboard_button_id=cmd.dashboard_button_id
+        ).prefetch_related("tag")
+        enabled_device_ids = set(device_ids)
+        for rule in rules:
+            tag_devices = await rule.tag.devices.filter(is_enabled=True)
+            for device in tag_devices:
+                if device.id in enabled_device_ids:
+                    override_bitmask_map[device.id] = rule.hour_bitmask_id
+
     state = WorkflowState(
         command_id=cmd.id,
         command_type=cmd.command_type,
         device_ids=device_ids,
         tag_filter=cmd.tag_filter,
         delay_minutes=cmd.delay_minutes,
+        delay_seconds=delay_seconds,
         pause_minutes=cmd.pause_minutes,
+        override_bitmask_map=override_bitmask_map,
     )
 
     graph, start_node = get_workflow_for_command(cmd.command_type)

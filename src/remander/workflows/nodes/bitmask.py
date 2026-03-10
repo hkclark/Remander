@@ -7,10 +7,12 @@ from dataclasses import dataclass
 
 from pydantic_graph import BaseNode, GraphRunContext
 
+from remander.models.bitmask import HourBitmask
+from remander.models.detection import DeviceDetectionType
 from remander.models.device import Device
 from remander.models.enums import ActivityStatus, Mode
 from remander.services.activity import log_activity
-from remander.services.bitmask import resolve_bitmasks_for_device
+from remander.services.bitmask import resolve_bitmasks_for_device, resolve_hour_bitmask
 from remander.workflows.state import WorkflowDeps, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Apply resolved hour bitmasks to each camera's notification schedule."""
 
     mode: Mode = Mode.AWAY
+    skip_zone_masks: bool = False  # True when used in apply_bitmask_graph (OTHER operation)
 
     async def run(
         self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]
@@ -43,12 +46,40 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 continue
 
             try:
-                resolved = await resolve_bitmasks_for_device(
-                    device_id,
-                    self.mode,
-                    latitude=ctx.deps.latitude,
-                    longitude=ctx.deps.longitude,
-                )
+                if ctx.state.override_bitmask_map:
+                    # Per-tag button override: each device gets the bitmask from its matching rule.
+                    # Devices not in the map are skipped (no bitmask change for them).
+                    bitmask_id = ctx.state.override_bitmask_map.get(device_id)
+                    if bitmask_id is None:
+                        logger.debug(
+                            "[cmd %d] SetNotificationBitmasks: skipping device %d (not covered by any tag rule)",
+                            ctx.state.command_id,
+                            device_id,
+                        )
+                        ctx.state.device_results[device_id] = "skipped"
+                        continue
+                    hb = await HourBitmask.get(id=bitmask_id)
+                    hour_value = await resolve_hour_bitmask(
+                        hb, latitude=ctx.deps.latitude, longitude=ctx.deps.longitude
+                    )
+                    enabled_types = await DeviceDetectionType.filter(
+                        device_id=device_id, is_enabled=True
+                    )
+                    resolved = [
+                        {
+                            "detection_type": dt.detection_type,
+                            "hour_bitmask": hour_value,
+                            "zone_mask": None,
+                        }
+                        for dt in enabled_types
+                    ]
+                else:
+                    resolved = await resolve_bitmasks_for_device(
+                        device_id,
+                        self.mode,
+                        latitude=ctx.deps.latitude,
+                        longitude=ctx.deps.longitude,
+                    )
                 for entry in resolved:
                     logger.info(
                         "[cmd %d] SetNotificationBitmasks: device '%s' ch=%d %s bitmask=%s",
@@ -97,6 +128,10 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.has_errors = True
                 ctx.state.device_results[device_id] = str(e)
 
+        if self.skip_zone_masks:
+            from remander.workflows.nodes.validate import ValidateNode
+
+            return ValidateNode()
         return SetZoneMasksNode(mode=self.mode)
 
 

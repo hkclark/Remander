@@ -21,21 +21,32 @@ class OptionalDelayNode(BaseNode[WorkflowState, WorkflowDeps]):
     """Wait for delay_minutes if set (used by Set Away Delayed)."""
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> NVRLoginNode:
-        delay = ctx.state.delay_minutes
-        logger.info("[cmd %d] OptionalDelay: delay_minutes=%s", ctx.state.command_id, delay)
-        if delay and delay > 0:
-            seconds = delay * 60
+        # delay_seconds (button-driven) takes priority over delay_minutes (legacy)
+        if ctx.state.delay_seconds and ctx.state.delay_seconds > 0:
+            seconds = ctx.state.delay_seconds
+            label = f"{seconds}s"
+        elif ctx.state.delay_minutes and ctx.state.delay_minutes > 0:
+            seconds = ctx.state.delay_minutes * 60
+            label = f"{ctx.state.delay_minutes} minutes"
+        else:
+            seconds = 0
+            label = None
+
+        logger.info(
+            "[cmd %d] OptionalDelay: delay_seconds=%s delay_minutes=%s",
+            ctx.state.command_id,
+            ctx.state.delay_seconds,
+            ctx.state.delay_minutes,
+        )
+        if seconds > 0:
             logger.info(
-                "[cmd %d] OptionalDelay: waiting %d minutes (%ds)",
-                ctx.state.command_id,
-                delay,
-                seconds,
+                "[cmd %d] OptionalDelay: waiting %s (%ds)", ctx.state.command_id, label, seconds
             )
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="optional_delay",
                 status=ActivityStatus.STARTED,
-                detail=f"Waiting {delay} minutes",
+                detail=f"Waiting {label}",
             )
             await asyncio.sleep(seconds)
             await log_activity(

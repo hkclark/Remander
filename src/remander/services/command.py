@@ -40,7 +40,9 @@ async def create_command(
     initiated_by_user: str | None = None,
     tag_filter: str | None = None,
     delay_minutes: int | None = None,
+    delay_seconds: int | None = None,
     pause_minutes: int | None = None,
+    dashboard_button_id: int | None = None,
 ) -> Command:
     """Create a new command with initial PENDING status."""
     return await Command.create(
@@ -50,7 +52,9 @@ async def create_command(
         initiated_by_user=initiated_by_user,
         tag_filter=tag_filter,
         delay_minutes=delay_minutes,
+        delay_seconds=delay_seconds,
         pause_minutes=pause_minutes,
+        dashboard_button_id=dashboard_button_id,
     )
 
 

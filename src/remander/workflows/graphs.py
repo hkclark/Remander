@@ -91,6 +91,19 @@ pause_recording_graph = Graph(
     name="pause_recording",
 )
 
+# Apply Bitmask workflow (OTHER button type): Login -> SetBitmasks -> Validate -> Logout -> Notify
+# No power control, PTZ, zone masks, or mode change.
+apply_bitmask_graph = Graph(
+    nodes=(
+        NVRLoginNode,
+        SetNotificationBitmasksNode,
+        ValidateNode,
+        NVRLogoutNode,
+        NotifyNode,
+    ),
+    name="apply_bitmask",
+)
+
 # Re-Arm workflow: Login -> Restore -> PTZHome -> PowerOff -> Validate -> Logout -> Notify
 rearm_graph = Graph(
     nodes=(
@@ -121,6 +134,8 @@ def get_workflow_for_command(
             return pause_notifications_graph, FilterByTagNode()
         case CommandType.PAUSE_RECORDING:
             return pause_recording_graph, FilterByTagNode()
+        case CommandType.APPLY_BITMASK:
+            return apply_bitmask_graph, NVRLoginNode()
         case "rearm":
             return rearm_graph, NVRLoginNode()
         case _:

@@ -35,6 +35,14 @@ class WorkflowState:
     delay_minutes: int | None = None
     pause_minutes: int | None = None
 
+    # Button-driven delay (seconds) — checked by OptionalDelayNode before delay_minutes
+    delay_seconds: int | None = None
+
+    # Per-device bitmask override built from button tag-rules: device_id -> hour_bitmask_id.
+    # When non-empty, SetNotificationBitmasksNode applies the mapped bitmask per device
+    # instead of the standard per-device lookup; devices absent from the map are skipped.
+    override_bitmask_map: dict[int, int] = field(default_factory=dict)
+
     # Whether this is a re-arm workflow (triggered by timer, not a user command)
     is_rearm: bool = False
 

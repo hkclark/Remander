@@ -11,8 +11,15 @@ class Command(Model):
     command_type = fields.CharEnumField(CommandType)
     status = fields.CharEnumField(CommandStatus, default=CommandStatus.PENDING)
     delay_minutes = fields.IntField(null=True)
+    delay_seconds = fields.IntField(null=True)
     pause_minutes = fields.IntField(null=True)
     tag_filter = fields.CharField(max_length=500, null=True)
+    dashboard_button: fields.ForeignKeyNullableRelation["DashboardButton"] = fields.ForeignKeyField(
+        "models.DashboardButton",
+        related_name="commands",
+        null=True,
+        on_delete=fields.SET_NULL,
+    )
     initiated_by_ip = fields.CharField(max_length=45, null=True)
     initiated_by_user = fields.CharField(max_length=255, null=True)
     saq_job_id = fields.CharField(max_length=255, null=True)
@@ -35,4 +42,5 @@ class Command(Model):
 
 # Import for type hints
 from remander.models.activity import ActivityLog  # noqa: E402, F401
+from remander.models.dashboard_button import DashboardButton  # noqa: E402, F401
 from remander.models.state import SavedDeviceState  # noqa: E402, F401

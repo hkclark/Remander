@@ -29,38 +29,27 @@
     </div>
     {% endif %}
 
-    <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-4">
-            <form action="/commands/execute/set-away-now" method="post">
-                <button type="submit"
-                        class="w-full py-4 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow text-lg">
-                    Set Away Now
-                </button>
-            </form>
-            <form action="/commands/execute/set-home-now" method="post">
-                <button type="submit"
-                        class="w-full py-4 px-6 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow text-lg">
-                    Set Home Now
-                </button>
-            </form>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-            <form action="/commands/execute/set-away-delayed" method="post">
-                <input type="hidden" name="delay_minutes" value="3">
-                <button type="submit"
-                        class="w-full py-3 px-6 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow">
-                    Set Away in 3 Min
-                </button>
-            </form>
-            <form action="/commands/execute/set-away-delayed" method="post">
-                <input type="hidden" name="delay_minutes" value="5">
-                <button type="submit"
-                        class="w-full py-3 px-6 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow">
-                    Set Away in 5 Min
-                </button>
-            </form>
-        </div>
+    {% if dashboard_buttons %}
+    <div class="grid grid-cols-2 gap-4">
+        {% for button in dashboard_buttons %}
+        <form action="/commands/execute/button/{{ button.id }}" method="post">
+            <button type="submit"
+                    class="w-full py-4 px-6 {{ button.tailwind_classes }} text-white font-semibold rounded-lg shadow text-lg">
+                {{ button.name }}
+                {% if button.delay_seconds %}
+                <span class="block text-sm font-normal opacity-80">after {{ button.delay_seconds }}s</span>
+                {% endif %}
+            </button>
+        </form>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+        No dashboard buttons configured.
+        <a href="/dashboard-buttons/create" class="font-medium underline hover:text-yellow-900">Add one</a>
+        to get started.
+    </div>
+    {% endif %}
 
     {% if dashboard_tags %}
     <div class="bg-white rounded-lg shadow p-6">

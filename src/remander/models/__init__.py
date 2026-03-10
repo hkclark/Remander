@@ -3,10 +3,14 @@
 from remander.models.activity import ActivityLog
 from remander.models.bitmask import DeviceBitmaskAssignment, HourBitmask, ZoneMask
 from remander.models.command import Command
+from remander.models.dashboard_button import DashboardButton
+from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
 from remander.models.detection import DeviceDetectionType
 from remander.models.device import Device
 from remander.models.enums import (
     ActivityStatus,
+    ButtonColor,
+    ButtonOperationType,
     CommandStatus,
     CommandType,
     DetectionType,
@@ -23,9 +27,13 @@ __all__ = [
     "ActivityLog",
     "ActivityStatus",
     "AppState",
+    "ButtonColor",
+    "ButtonOperationType",
     "Command",
     "CommandStatus",
     "CommandType",
+    "DashboardButton",
+    "DashboardButtonBitmaskRule",
     "DetectionType",
     "Device",
     "DeviceBitmaskAssignment",
