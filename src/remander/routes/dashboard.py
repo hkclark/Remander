@@ -24,7 +24,7 @@ async def dashboard(request: Request) -> HTMLResponse:
 
     active_command = await get_active_command()
     dashboard_tags = await list_dashboard_tags()
-    dashboard_buttons = await list_dashboard_buttons(enabled_only=True)
+    dashboard_buttons = await list_dashboard_buttons(enabled_only=True, show_on_main=True)
     settings = get_settings()
 
     return templates.TemplateResponse(

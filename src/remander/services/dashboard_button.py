@@ -15,6 +15,8 @@ async def create_dashboard_button(
     delay_seconds: int = 0,
     sort_order: int = 0,
     is_enabled: bool = True,
+    show_on_main: bool = True,
+    show_on_guest: bool = False,
 ) -> DashboardButton:
     """Create a new dashboard button."""
     return await DashboardButton.create(
@@ -24,6 +26,8 @@ async def create_dashboard_button(
         delay_seconds=delay_seconds,
         sort_order=sort_order,
         is_enabled=is_enabled,
+        show_on_main=show_on_main,
+        show_on_guest=show_on_guest,
     )
 
 
@@ -31,10 +35,19 @@ async def get_dashboard_button(button_id: int) -> DashboardButton | None:
     return await DashboardButton.get_or_none(id=button_id)
 
 
-async def list_dashboard_buttons(*, enabled_only: bool = False) -> list[DashboardButton]:
+async def list_dashboard_buttons(
+    *,
+    enabled_only: bool = False,
+    show_on_main: bool | None = None,
+    show_on_guest: bool | None = None,
+) -> list[DashboardButton]:
     qs = DashboardButton.all().order_by("sort_order", "id")
     if enabled_only:
         qs = qs.filter(is_enabled=True)
+    if show_on_main is not None:
+        qs = qs.filter(show_on_main=show_on_main)
+    if show_on_guest is not None:
+        qs = qs.filter(show_on_guest=show_on_guest)
     return await qs
 
 

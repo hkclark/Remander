@@ -81,10 +81,12 @@ from remander.routes.bitmasks import router as bitmasks_router  # noqa: E402
 from remander.routes.commands import router as commands_router  # noqa: E402
 from remander.routes.dashboard import router as dashboard_router  # noqa: E402
 from remander.routes.dashboard_buttons import router as dashboard_buttons_router  # noqa: E402
+from remander.routes.guest_dashboard import router as guest_dashboard_router  # noqa: E402
 from remander.routes.devices import router as devices_router  # noqa: E402
 from remander.routes.tags import router as tags_router  # noqa: E402
 
 app.include_router(dashboard_router)
+app.include_router(guest_dashboard_router)
 app.include_router(devices_router)
 app.include_router(bitmasks_router)
 app.include_router(tags_router)

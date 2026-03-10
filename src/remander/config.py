@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # SAQ job timeout — NVR operations can take many seconds; 10s SAQ default is too short
     job_timeout_seconds: int = 120
 
+    # Guest dashboard
+    guest_dashboard_show_mode: bool = True
+
 
 def get_settings() -> Settings:
     """Create and return a Settings instance."""

@@ -14,6 +14,8 @@ class DashboardButton(Model):
     operation_type = fields.CharEnumField(ButtonOperationType)
     sort_order = fields.IntField(default=0)
     is_enabled = fields.BooleanField(default=True)
+    show_on_main = fields.BooleanField(default=True)
+    show_on_guest = fields.BooleanField(default=False)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
 

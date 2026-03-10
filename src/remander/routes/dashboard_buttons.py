@@ -95,6 +95,8 @@ async def button_create(
     rule_tag_ids: list[str] = Form(default=[]),
     rule_bitmask_ids: list[str] = Form(default=[]),
     force_save: str | None = Form(None),
+    show_on_main: str | None = Form(None),
+    show_on_guest: str | None = Form(None),
 ) -> Response:
     from remander.main import templates
 
@@ -129,6 +131,8 @@ async def button_create(
                 "color": color,
                 "delay_seconds": delay_seconds,
                 "sort_order": sort_order,
+                "show_on_main": show_on_main,
+                "show_on_guest": show_on_guest,
             },
             coverage_warning=uncovered_names,
         )
@@ -140,6 +144,8 @@ async def button_create(
         color=ButtonColor(color),
         delay_seconds=int(delay_seconds),
         sort_order=int(sort_order),
+        show_on_main=show_on_main is not None,
+        show_on_guest=show_on_guest is not None,
     )
     await save_button_rules(btn.id, rules)
     return RedirectResponse(url="/dashboard-buttons", status_code=303)
@@ -171,6 +177,8 @@ async def button_edit(
     rule_tag_ids: list[str] = Form(default=[]),
     rule_bitmask_ids: list[str] = Form(default=[]),
     force_save: str | None = Form(None),
+    show_on_main: str | None = Form(None),
+    show_on_guest: str | None = Form(None),
 ) -> Response:
     from remander.main import templates
 
@@ -218,6 +226,8 @@ async def button_edit(
                 "delay_seconds": delay_seconds,
                 "sort_order": sort_order,
                 "is_enabled": is_enabled,
+                "show_on_main": show_on_main,
+                "show_on_guest": show_on_guest,
             },
             coverage_warning=uncovered_names,
         )
@@ -231,6 +241,8 @@ async def button_edit(
         delay_seconds=int(delay_seconds),
         sort_order=int(sort_order),
         is_enabled=is_enabled is not None,
+        show_on_main=show_on_main is not None,
+        show_on_guest=show_on_guest is not None,
     )
     await save_button_rules(button_id, rules)
     return RedirectResponse(url="/dashboard-buttons", status_code=303)
