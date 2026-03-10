@@ -18,6 +18,34 @@ from remander.services.tag import get_devices_by_tag, list_tags
 router = APIRouter(prefix="/commands")
 
 
+async def _empty_tag_error_response(
+    request: Request,
+    tag_filter: str,
+) -> HTMLResponse | None:
+    """Return an error response if any tags in the filter have no devices assigned.
+
+    Returns None when all tags have at least one device.
+    """
+    from remander.main import templates
+
+    empty_tags = []
+    for tag_name in tag_filter.split(","):
+        tag_name = tag_name.strip()
+        devices = await get_devices_by_tag(tag_name)
+        if not devices:
+            empty_tags.append(tag_name)
+
+    if not empty_tags:
+        return None
+
+    return templates.TemplateResponse(
+        request,
+        "commands/empty_tag_error.html",
+        {"empty_tags": empty_tags},
+        status_code=422,
+    )
+
+
 async def _bitmask_error_response(
     request: Request,
     tag_filter: str | None,
@@ -109,6 +137,9 @@ async def execute_pause_notifications(
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
 ) -> Response:
+    if tag_filter:
+        if error := await _empty_tag_error_response(request, tag_filter):
+            return error
     if error := await _bitmask_error_response(request, tag_filter=tag_filter, mode=Mode.AWAY):
         return error
     cmd = await create_command(
@@ -128,6 +159,9 @@ async def execute_pause_recording(
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
 ) -> Response:
+    if tag_filter:
+        if error := await _empty_tag_error_response(request, tag_filter):
+            return error
     if error := await _bitmask_error_response(request, tag_filter=tag_filter, mode=Mode.AWAY):
         return error
     cmd = await create_command(

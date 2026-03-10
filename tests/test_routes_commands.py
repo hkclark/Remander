@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 
 from remander.models.enums import CommandStatus, CommandType
-from tests.factories import create_command
+from tests.factories import create_command, create_tag
 
 
 class TestCommandExecutePage:
@@ -84,6 +84,32 @@ class TestCommandExecution:
             follow_redirects=False,
         )
         assert response.status_code == 303
+
+
+class TestEmptyTagValidation:
+    async def test_pause_notifications_empty_tag_returns_422(
+        self, client: AsyncClient
+    ) -> None:
+        await create_tag(name="empty-tag")
+        response = await client.post(
+            "/commands/execute/pause-notifications",
+            data={"pause_minutes": "30", "tag_filter": "empty-tag"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "empty-tag" in response.text
+
+    async def test_pause_recording_empty_tag_returns_422(
+        self, client: AsyncClient
+    ) -> None:
+        await create_tag(name="empty-tag")
+        response = await client.post(
+            "/commands/execute/pause-recording",
+            data={"pause_minutes": "60", "tag_filter": "empty-tag"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 422
+        assert "empty-tag" in response.text
 
 
 class TestCommandCancel:
