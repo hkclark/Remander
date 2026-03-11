@@ -107,7 +107,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
     async def run(
         self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
-        from remander.workflows.nodes.ptz import PTZCalibrateNode
+        from remander.workflows.nodes.save_restore import SaveBitmasksNode
 
         # Only wait for cameras with power devices
         cameras_to_wait = []
@@ -120,7 +120,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             logger.info(
                 "[cmd %d] WaitForPowerOn: no cameras need power-on wait", ctx.state.command_id
             )
-            return PTZCalibrateNode()
+            return SaveBitmasksNode()
 
         logger.info(
             "[cmd %d] WaitForPowerOn: waiting for %d cameras (timeout=%ds): %s",
@@ -182,7 +182,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             ctx.state.has_errors = True
             ctx.state.device_results[device_id] = f"Timeout after {self.timeout_seconds}s"
 
-        return PTZCalibrateNode()
+        return SaveBitmasksNode()
 
 
 @dataclass

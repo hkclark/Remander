@@ -34,7 +34,6 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
     async def run(
         self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
-        from remander.workflows.nodes.power import PowerOnNode
 
         logger.info(
             "[cmd %d] SaveBitmasks: saving state for %d devices",
@@ -119,23 +118,26 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
         from remander.models.enums import CommandType
         from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
 
-        # Pause commands go straight to zeroing bitmasks; Set Away does power-on first
+        # Pause commands go straight to zeroing bitmasks (cameras already on in Away mode)
         if ctx.state.command_type in (
             CommandType.PAUSE_NOTIFICATIONS,
             CommandType.PAUSE_RECORDING,
         ):
             logger.debug(
-                "[cmd %d] SaveBitmasks: command_type=%s → SetNotificationBitmasks (skipping PowerOn)",
+                "[cmd %d] SaveBitmasks: command_type=%s → SetNotificationBitmasks",
                 ctx.state.command_id,
                 ctx.state.command_type,
             )
             return SetNotificationBitmasksNode(mode=Mode.AWAY)
+        # Set Away: cameras were powered on and waited on before Save, now go to PTZ calibration
+        from remander.workflows.nodes.ptz import PTZCalibrateNode
+
         logger.debug(
-            "[cmd %d] SaveBitmasks: command_type=%s → PowerOn",
+            "[cmd %d] SaveBitmasks: command_type=%s → PTZCalibrate",
             ctx.state.command_id,
             ctx.state.command_type,
         )
-        return PowerOnNode()
+        return PTZCalibrateNode()
 
 
 @dataclass

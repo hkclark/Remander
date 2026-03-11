@@ -65,7 +65,17 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.is_rearm,
             )
             return RestoreBitmasksNode()
-        # Set Away and Pause commands all start with SaveBitmasks
+        if ctx.state.command_type in (CommandType.SET_AWAY_NOW, CommandType.SET_AWAY_DELAYED):
+            # Power on cameras before querying the NVR — the NVR returns no data for offline cameras
+            logger.debug(
+                "[cmd %d] NVRLogin: command_type=%s → PowerOn",
+                ctx.state.command_id,
+                ctx.state.command_type,
+            )
+            from remander.workflows.nodes.power import PowerOnNode
+
+            return PowerOnNode()
+        # Pause commands start with SaveBitmasks (cameras already on while in Away mode)
         logger.debug(
             "[cmd %d] NVRLogin: command_type=%s → SaveBitmasks",
             ctx.state.command_id,

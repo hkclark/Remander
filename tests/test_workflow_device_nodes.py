@@ -13,7 +13,7 @@ from remander.models.state import SavedDeviceState
 from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode, SetZoneMasksNode
 from remander.workflows.nodes.power import PowerOffNode, PowerOnNode, WaitForPowerOnNode
 from remander.workflows.nodes.ptz import PTZCalibrateNode, SetPTZHomeNode, SetPTZPresetNode
-from remander.workflows.nodes.save_restore import RestoreBitmasksNode, SaveBitmasksNode
+from remander.workflows.nodes.save_restore import SaveBitmasksNode, RestoreBitmasksNode
 from remander.workflows.state import WorkflowDeps, WorkflowState
 from tests.factories import create_camera, create_command, create_power_device
 
@@ -135,6 +135,89 @@ class TestPowerOnNode:
 
         deps.tapo_client.turn_on.assert_not_called()
         deps.sonoff_client.turn_on.assert_not_called()
+
+
+class TestWaitForPowerOnNodeRouting:
+    """WaitForPowerOnNode must route to SaveBitmasksNode (not PTZCalibrateNode)."""
+
+    async def test_routes_to_save_bitmasks_when_no_power_cameras(self) -> None:
+        """Cameras without power devices skip the wait — next node must be SaveBitmasks."""
+        cmd = await create_command()
+        camera = await create_camera(name="No Power Routing Cam")  # no power_device_id
+
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = WaitForPowerOnNode()
+        with patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, SaveBitmasksNode)
+
+    async def test_routes_to_save_bitmasks_after_power_on(self) -> None:
+        """Once a camera comes online, next node must be SaveBitmasks."""
+        cmd = await create_command()
+        power = await create_power_device(name="Routing Plug")
+        camera = await create_camera(name="Power Routing Cam", channel=0, power_device_id=power.id)
+
+        deps = _make_deps()
+        deps.nvr_client.is_channel_online.return_value = True  # immediately online
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = WaitForPowerOnNode()
+        with (
+            patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock),
+            patch("remander.workflows.nodes.power.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await node.run(ctx)
+
+        assert isinstance(result, SaveBitmasksNode)
+
+
+class TestSaveBitmasksNodeRouting:
+    """SaveBitmasksNode must route SET_AWAY to PTZCalibrateNode, pause to SetNotificationBitmasks."""
+
+    async def test_set_away_routes_to_ptz_calibrate(self) -> None:
+        cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
+        camera = await create_camera(name="Route Save Cam", channel=0)
+
+        from remander.models.detection import DeviceDetectionType
+
+        await DeviceDetectionType.create(
+            device=camera, detection_type=DetectionType.MOTION, is_enabled=True
+        )
+
+        deps = _make_deps()
+        deps.nvr_client.get_alarm_schedule.return_value = "0" * 24
+        state = _make_state(
+            command_id=cmd.id, command_type=CommandType.SET_AWAY_NOW, device_ids=[camera.id]
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = SaveBitmasksNode()
+        with patch("remander.workflows.nodes.save_restore.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, PTZCalibrateNode)
+
+    async def test_pause_routes_to_set_notification_bitmasks(self) -> None:
+        cmd = await create_command(command_type=CommandType.PAUSE_NOTIFICATIONS)
+        camera = await create_camera(name="Route Pause Cam", channel=0)
+
+        deps = _make_deps()
+        deps.nvr_client.get_alarm_schedule.return_value = "0" * 24
+        state = _make_state(
+            command_id=cmd.id, command_type=CommandType.PAUSE_NOTIFICATIONS, device_ids=[camera.id]
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = SaveBitmasksNode()
+        with patch("remander.workflows.nodes.save_restore.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, SetNotificationBitmasksNode)
 
 
 class TestWaitForPowerOnNode:

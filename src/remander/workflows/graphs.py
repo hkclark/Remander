@@ -16,8 +16,9 @@ from remander.workflows.nodes.save_restore import RestoreBitmasksNode, SaveBitma
 from remander.workflows.nodes.schedule import ScheduleReArmNode
 from remander.workflows.nodes.validate import ValidateNode
 
-# Set Away workflow: Delay -> Login -> Save -> PowerOn -> Wait -> Calibrate ->
+# Set Away workflow: Delay -> Login -> PowerOn -> Wait -> Save -> Calibrate ->
 #   PTZPreset -> SetBitmasks -> SetZones -> Validate -> Logout -> Notify
+# PowerOn/Wait come before Save because the NVR returns no data for offline cameras.
 set_away_graph = Graph(
     nodes=(
         OptionalDelayNode,

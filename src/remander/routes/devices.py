@@ -10,6 +10,7 @@ from remander.services.device import (
     delete_device,
     get_device,
     list_devices,
+    set_power_device,
     update_device,
 )
 from remander.services.tag import list_tags
@@ -84,6 +85,7 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
     enabled_detection_types = {
         dt.detection_type for dt in await get_enabled_detection_types(device_id)
     }
+    power_devices = await list_devices(device_type=DeviceType.POWER)
 
     return templates.TemplateResponse(
         request,
@@ -95,6 +97,7 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
             "available_tags": available_tags,
             "all_detection_types": list(DetectionType),
             "enabled_detection_types": enabled_detection_types,
+            "power_devices": power_devices,
             "zone_mask_error": None,
             "zone_masks_enabled_form": None,
             "zone_mask_away_form": None,
@@ -118,6 +121,7 @@ async def device_edit(
     channel: str | None = Form(None),
     ip_address: str | None = Form(None),
     is_enabled: str | None = Form(None),
+    power_device_id: str | None = Form(None),
 ) -> RedirectResponse:
     kwargs: dict[str, object] = {
         "name": name,
@@ -131,6 +135,13 @@ async def device_edit(
         kwargs["ip_address"] = ip_address
 
     await update_device(device_id, **kwargs)
+
+    # Set/clear power device association
+    if device_type == DeviceType.CAMERA:
+        await set_power_device(
+            device_id, int(power_device_id) if power_device_id else None
+        )
+
     return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
 
 

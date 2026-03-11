@@ -10,6 +10,8 @@ from remander.workflows.nodes.delay import OptionalDelayNode
 from remander.workflows.nodes.filter import FilterByTagNode
 from remander.workflows.nodes.notify import NotifyNode
 from remander.workflows.nodes.nvr import NVRLoginNode, NVRLogoutNode
+from remander.workflows.nodes.power import PowerOnNode
+from remander.workflows.nodes.save_restore import RestoreBitmasksNode, SaveBitmasksNode
 from remander.workflows.nodes.validate import ValidateNode
 from remander.workflows.state import WorkflowDeps, WorkflowState
 from tests.factories import create_camera, create_command
@@ -87,6 +89,58 @@ class TestNVRLoginNode:
         with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
             with pytest.raises(Exception, match="Connection refused"):
                 await node.run(ctx)
+
+
+class TestNVRLoginNodeRouting:
+    """NVRLoginNode must route SET_AWAY to PowerOn, pause to SaveBitmasks, home to RestoreBitmasks."""
+
+    async def test_set_away_routes_to_power_on(self) -> None:
+        cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, command_type=CommandType.SET_AWAY_NOW)
+        ctx = _make_ctx(state, deps)
+
+        node = NVRLoginNode()
+        with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, PowerOnNode)
+
+    async def test_set_away_delayed_routes_to_power_on(self) -> None:
+        cmd = await create_command(command_type=CommandType.SET_AWAY_DELAYED)
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, command_type=CommandType.SET_AWAY_DELAYED)
+        ctx = _make_ctx(state, deps)
+
+        node = NVRLoginNode()
+        with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, PowerOnNode)
+
+    async def test_pause_notifications_routes_to_save_bitmasks(self) -> None:
+        cmd = await create_command(command_type=CommandType.PAUSE_NOTIFICATIONS)
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, command_type=CommandType.PAUSE_NOTIFICATIONS)
+        ctx = _make_ctx(state, deps)
+
+        node = NVRLoginNode()
+        with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, SaveBitmasksNode)
+
+    async def test_set_home_routes_to_restore_bitmasks(self) -> None:
+        cmd = await create_command(command_type=CommandType.SET_HOME_NOW)
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, command_type=CommandType.SET_HOME_NOW)
+        ctx = _make_ctx(state, deps)
+
+        node = NVRLoginNode()
+        with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, RestoreBitmasksNode)
 
 
 class TestNVRLogoutNode:

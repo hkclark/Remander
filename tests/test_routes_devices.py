@@ -3,7 +3,7 @@
 from httpx import AsyncClient
 
 from remander.models.enums import DeviceBrand
-from tests.factories import create_camera, create_tag
+from tests.factories import create_camera, create_power_device, create_tag
 
 
 class TestDeviceList:
@@ -75,6 +75,67 @@ class TestDeviceDetailTags:
         # Count occurrences — it should appear once (in the tags list), not in the select
         text = response.text
         assert text.count("assigned-tag") >= 1
+
+
+class TestPowerDeviceAssociation:
+    async def test_device_detail_shows_power_device_dropdown(self, logged_in_client: AsyncClient) -> None:
+        """Camera detail page must include a power device selector with available power devices."""
+        power = await create_power_device(name="Tapo Plug")
+        cam = await create_camera(name="Cam With Power")
+
+        response = await logged_in_client.get(f"/devices/{cam.id}")
+        assert response.status_code == 200
+        assert "Power Device" in response.text
+        assert "Tapo Plug" in response.text
+
+    async def test_device_detail_shows_current_power_device_selected(self, logged_in_client: AsyncClient) -> None:
+        """When a camera already has a power_device, that option is pre-selected."""
+        power = await create_power_device(name="Selected Plug")
+        cam = await create_camera(name="Cam Pre-Linked", power_device_id=power.id)
+
+        response = await logged_in_client.get(f"/devices/{cam.id}")
+        assert response.status_code == 200
+        assert "Selected Plug" in response.text
+
+    async def test_post_edit_sets_power_device(self, logged_in_client: AsyncClient) -> None:
+        """POSTing power_device_id must persist the association."""
+        power = await create_power_device(name="Link Plug")
+        cam = await create_camera(name="Cam To Link")
+
+        response = await logged_in_client.post(
+            f"/devices/{cam.id}/edit",
+            data={
+                "name": "Cam To Link",
+                "device_type": "camera",
+                "brand": "reolink",
+                "power_device_id": str(power.id),
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+        await cam.refresh_from_db()
+        assert cam.power_device_id == power.id
+
+    async def test_post_edit_clears_power_device(self, logged_in_client: AsyncClient) -> None:
+        """POSTing an empty power_device_id must clear the association."""
+        power = await create_power_device(name="Clear Plug")
+        cam = await create_camera(name="Cam To Clear", power_device_id=power.id)
+
+        response = await logged_in_client.post(
+            f"/devices/{cam.id}/edit",
+            data={
+                "name": "Cam To Clear",
+                "device_type": "camera",
+                "brand": "reolink",
+                "power_device_id": "",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+        await cam.refresh_from_db()
+        assert cam.power_device_id is None
 
 
 class TestDeviceCreate:
