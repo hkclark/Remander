@@ -137,6 +137,13 @@ class ReolinkNVRClient:
         elapsed = time.monotonic() - t0
         logger.info("NVR PTZ move completed in %.1fs", elapsed)
 
+    def get_ptz_presets(self, channel: int) -> dict[str, int]:
+        """Return available PTZ presets for a channel as {name: preset_id}.
+
+        Populated during login() via get_host_data(). Synchronous — reads in-memory NVR data.
+        """
+        return self._nvr.ptz_presets(channel)
+
     async def get_push_schedules(self) -> list[dict]:
         """Fetch push notification schedule tables for all channels.
 

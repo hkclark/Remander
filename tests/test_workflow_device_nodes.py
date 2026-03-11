@@ -121,6 +121,23 @@ class TestPowerOnNode:
 
         deps.tapo_client.turn_on.assert_called_once_with("192.168.1.10")
 
+    async def test_passes_timeout_from_deps_to_wait_node(self) -> None:
+        """PowerOnNode must instantiate WaitForPowerOnNode with timeout values from WorkflowDeps."""
+        cmd = await create_command()
+        camera = await create_camera(name="Timeout Deps Cam")
+
+        deps = _make_deps(power_on_timeout_seconds=75, power_on_poll_interval_seconds=5)
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = PowerOnNode()
+        with patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, WaitForPowerOnNode)
+        assert result.timeout_seconds == 75
+        assert result.poll_interval_seconds == 5
+
     async def test_skips_cameras_without_power_devices(self) -> None:
         cmd = await create_command()
         camera = await create_camera(name="No Power Cam")
@@ -283,6 +300,43 @@ class TestPowerOffNode:
 
 
 class TestPTZNodes:
+    async def test_calibrate_skips_devices_with_prior_errors(self) -> None:
+        """PTZCalibrateNode must not attempt PTZ on cameras that failed power-on."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="Failed Power Cam", channel=2, has_ptz=True, ptz_away_preset=1, ptz_speed=30
+        )
+
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        # Simulate power-on timeout recorded by WaitForPowerOnNode
+        state.device_results[camera.id] = "Timeout after 120s"
+        ctx = _make_ctx(state, deps)
+
+        node = PTZCalibrateNode()
+        with patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock):
+            await node.run(ctx)
+
+        deps.nvr_client.move_to_preset.assert_not_called()
+
+    async def test_set_ptz_preset_skips_devices_with_prior_errors(self) -> None:
+        """SetPTZPresetNode must not attempt PTZ on cameras that failed power-on."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="Failed Power Preset Cam", channel=3, has_ptz=True, ptz_away_preset=2, ptz_speed=30
+        )
+
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        state.device_results[camera.id] = "Timeout after 120s"
+        ctx = _make_ctx(state, deps)
+
+        node = SetPTZPresetNode()
+        with patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock):
+            await node.run(ctx)
+
+        deps.nvr_client.move_to_preset.assert_not_called()
+
     async def test_set_ptz_preset_away(self) -> None:
         cmd = await create_command()
         camera = await create_camera(
@@ -322,6 +376,27 @@ class TestPTZNodes:
             await node.run(ctx)
 
         deps.nvr_client.move_to_preset.assert_called_once_with(1, 1, 20)
+
+    async def test_set_ptz_home_waits_for_settle_before_power_off(self) -> None:
+        """SetPTZHomeNode must sleep ptz_settle_seconds after the move so the camera
+        physically reaches the home position before being powered off."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="PTZ Settle Cam", channel=2, has_ptz=True, ptz_home_preset=1, ptz_speed=30
+        )
+
+        deps = _make_deps(ptz_settle_seconds=7)
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = SetPTZHomeNode()
+        with (
+            patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock),
+            patch("remander.workflows.nodes.ptz.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            await node.run(ctx)
+
+        mock_sleep.assert_awaited_once_with(7)
 
     async def test_calibrate_ptz(self) -> None:
         cmd = await create_command()

@@ -1,0 +1,16 @@
+{% if error %}
+<span class="inline-flex items-center gap-1.5 text-sm text-gray-400">
+    <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+    Unavailable
+</span>
+{% elif is_on %}
+<span class="inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
+    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+    On
+</span>
+{% else %}
+<span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500">
+    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+    Off
+</span>
+{% endif %}

@@ -19,7 +19,10 @@ async def enqueue_command(command_id: int) -> None:
     await transition_status(command_id, CommandStatus.QUEUED)
     queue = get_queue()
     if queue is not None:
-        timeout = get_settings().job_timeout_seconds
+        settings = get_settings()
+        # Total timeout = power-on wait budget + overhead for all other workflow steps
+        # (NVR login, PTZ, bitmask ops, validation, logout, etc.)
+        timeout = settings.power_on_timeout_seconds + settings.job_timeout_seconds
         await queue.enqueue("process_command", command_id=command_id, timeout=timeout)
         logger.info("[cmd %d] Command enqueued successfully", command_id)
 
@@ -116,6 +119,9 @@ async def run_workflow(cmd: Command) -> bool | None:
         notification_sender=notification_sender,
         latitude=settings.latitude,
         longitude=settings.longitude,
+        power_on_timeout_seconds=settings.power_on_timeout_seconds,
+        power_on_poll_interval_seconds=settings.power_on_poll_interval_seconds,
+        ptz_settle_seconds=settings.ptz_settle_seconds,
     )
 
     # Build per-device bitmask map when command was triggered by a dashboard button.

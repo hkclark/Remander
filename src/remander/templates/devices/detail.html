@@ -149,6 +149,96 @@
         </form>
     </div>
 
+    <!-- Power Control -->
+    {% if device.device_type.value == "power" or current_power_device %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold text-gray-900">Power Control</h2>
+            <div hx-get="/devices/{{ device.id }}/power/status"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <span class="inline-flex items-center gap-1.5 text-sm text-gray-400">
+                    <span class="w-2 h-2 rounded-full bg-gray-200 animate-pulse"></span>
+                    Checking…
+                </span>
+            </div>
+        </div>
+        {% if current_power_device and device.device_type.value != "power" %}
+        <p class="text-sm text-gray-500 mb-4">Controls: {{ current_power_device.name }}</p>
+        {% endif %}
+        <div class="flex gap-3">
+            <form method="post" action="/devices/{{ device.id }}/power/on">
+                <button type="submit"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow text-sm font-medium">
+                    Power On
+                </button>
+            </form>
+            <form method="post" action="/devices/{{ device.id }}/power/off">
+                <button type="submit"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow text-sm font-medium">
+                    Power Off
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- PTZ Settings -->
+    {% if device.device_type.value == "camera" %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">PTZ</h2>
+        <form method="post" action="/devices/{{ device.id }}/ptz-settings" class="space-y-4">
+            <label class="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                <input type="checkbox" name="has_ptz" id="has_ptz"
+                       {% if device.has_ptz %}checked{% endif %}
+                       class="rounded border-gray-300 text-blue-600"
+                       onchange="document.getElementById('ptz_fields').classList.toggle('hidden', !this.checked)">
+                This camera supports PTZ
+            </label>
+            <div id="ptz_fields" class="space-y-4 {% if not device.has_ptz %}hidden{% endif %}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Speed (1–64)</label>
+                    <input type="number" name="ptz_speed" min="1" max="64"
+                           value="{{ device.ptz_speed if device.ptz_speed is not none else '' }}"
+                           class="w-32 rounded border-gray-300 shadow-sm text-sm">
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700 mb-2">Preset IDs</p>
+                    <div id="ptz_preset_selects" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Away Preset ID</label>
+                                <input type="number" name="ptz_away_preset"
+                                       value="{{ device.ptz_away_preset if device.ptz_away_preset is not none else '' }}"
+                                       class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Home Preset ID</label>
+                                <input type="number" name="ptz_home_preset"
+                                       value="{{ device.ptz_home_preset if device.ptz_home_preset is not none else '' }}"
+                                       class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button"
+                            hx-post="/devices/{{ device.id }}/query-ptz-presets"
+                            hx-target="#ptz_preset_selects"
+                            hx-swap="innerHTML"
+                            class="mt-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+                        Fetch Presets from NVR
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                    Save PTZ Settings
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- Tags -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>

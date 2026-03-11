@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 
@@ -27,6 +28,14 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
         )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
+            if device_id in ctx.state.device_results:
+                logger.debug(
+                    "[cmd %d] PTZCalibrate: skipping device '%s' (prior error: %s)",
+                    ctx.state.command_id,
+                    device.name,
+                    ctx.state.device_results[device_id],
+                )
+                continue
             if not device.has_ptz or device.channel is None:
                 logger.debug(
                     "[cmd %d] PTZCalibrate: skipping device '%s' (has_ptz=%s, channel=%s)",
@@ -41,7 +50,7 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
                 # Calibrate by moving to preset 0 and back
                 if device.ptz_away_preset is not None:
                     logger.info(
-                        "[cmd %d] PTZCalibrate: device '%s' ch=%d preset=%d speed=%d",
+                        "[cmd %d] PTZCalibrate: device '%s' ch=%d preset=%d speed=%s",
                         ctx.state.command_id,
                         device.name,
                         device.channel,
@@ -91,6 +100,14 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
         )
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
+            if device_id in ctx.state.device_results:
+                logger.debug(
+                    "[cmd %d] SetPTZPreset: skipping device '%s' (prior error: %s)",
+                    ctx.state.command_id,
+                    device.name,
+                    ctx.state.device_results[device_id],
+                )
+                continue
             if not device.has_ptz or device.channel is None:
                 logger.debug(
                     "[cmd %d] SetPTZPreset: skipping device '%s' (has_ptz=%s, channel=%s)",
@@ -110,7 +127,7 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
 
             try:
                 logger.info(
-                    "[cmd %d] SetPTZPreset: device '%s' ch=%d preset=%d speed=%d",
+                    "[cmd %d] SetPTZPreset: device '%s' ch=%d preset=%d speed=%s",
                     ctx.state.command_id,
                     device.name,
                     device.channel,
@@ -158,6 +175,7 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
             ctx.state.command_id,
             len(ctx.state.device_ids),
         )
+        any_ptz_moved = False
         for device_id in ctx.state.device_ids:
             device = await Device.get(id=device_id)
             if not device.has_ptz or device.channel is None:
@@ -179,7 +197,7 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
 
             try:
                 logger.info(
-                    "[cmd %d] SetPTZHome: device '%s' ch=%d preset=%d speed=%d",
+                    "[cmd %d] SetPTZHome: device '%s' ch=%d preset=%d speed=%s",
                     ctx.state.command_id,
                     device.name,
                     device.channel,
@@ -189,6 +207,7 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                 await ctx.deps.nvr_client.move_to_preset(
                     device.channel, device.ptz_home_preset, device.ptz_speed
                 )
+                any_ptz_moved = True
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,
@@ -206,5 +225,13 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                     status=ActivityStatus.FAILED,
                     detail=str(e),
                 )
+
+        if any_ptz_moved:
+            logger.info(
+                "[cmd %d] SetPTZHome: waiting %ds for camera(s) to reach home position",
+                ctx.state.command_id,
+                ctx.deps.ptz_settle_seconds,
+            )
+            await asyncio.sleep(ctx.deps.ptz_settle_seconds)
 
         return PowerOffNode()

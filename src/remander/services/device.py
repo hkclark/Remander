@@ -4,6 +4,13 @@ from remander.models.device import Device
 from remander.models.enums import DeviceType
 
 
+def _device_sort_key(device: Device) -> tuple:
+    """Sort key: device type (cameras first), channel (nulls last), name case-insensitive."""
+    type_order = 0 if device.device_type == DeviceType.CAMERA else 1
+    channel = device.channel if device.channel is not None else float("inf")
+    return (type_order, channel, device.name.lower())
+
+
 async def create_device(**kwargs: object) -> Device:
     """Create a new device (camera or power device)."""
     return await Device.create(**kwargs)
@@ -22,8 +29,12 @@ async def list_devices(
     device_type: DeviceType | None = None,
     is_enabled: bool | None = None,
     prefetch: list[str] | None = None,
+    sorted_for_display: bool = False,
 ) -> list[Device]:
-    """List devices with optional filters."""
+    """List devices with optional filters.
+
+    Pass sorted_for_display=True to sort by type (cameras first), channel, then name.
+    """
     qs = Device.all()
     if device_type is not None:
         qs = qs.filter(device_type=device_type)
@@ -31,7 +42,10 @@ async def list_devices(
         qs = qs.filter(is_enabled=is_enabled)
     if prefetch:
         qs = qs.prefetch_related(*prefetch)
-    return await qs
+    devices = await qs
+    if sorted_for_display:
+        devices = sorted(devices, key=_device_sort_key)
+    return devices
 
 
 async def update_device(device_id: int, **kwargs: object) -> Device | None:

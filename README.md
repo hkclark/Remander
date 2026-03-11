@@ -69,42 +69,97 @@ The main dashboard (`/`) accepts an optional `?token=` query parameter. This all
 
 Most settings are managed through the admin UI at **Admin → Settings** (`/admin/settings`) — no `.env` editing needed after initial setup.
 
+### How it works
+
+At startup the app:
+1. Reads `Settings` from `.env` / env vars via pydantic-settings
+2. Loads any overrides stored in the `app_config` database table
+3. Merges the DB values on top, caches the result as the live `Settings` instance
+4. `get_settings()` everywhere in the app returns this cached instance
+
+When a value is saved via the admin UI, the DB row is updated and the cache is rebuilt — the new value is immediately live. `log_level` requires a restart (shown with a ⟳ badge in the UI).
+
+**Secret fields** (passwords, PINs) are shown as `••••••` on the settings page. Submitting the form with an empty password field does **not** overwrite the stored value.
+
+---
+
 ### Bootstrap settings (`.env` only)
 
-Two settings must remain in `.env` because the app needs them before the database is available:
+These must be in `.env` because the app needs them before the database is available. They are shown read-only on the Settings page.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `sqlite:////app/data/remander.db` | SQLite path (or PostgreSQL URL) |
-| `REDIS_URL` | `redis://redis:6379/0` | Redis connection URL for the job queue |
+| `DATABASE_URL` | `sqlite:////app/data/remander.db` | SQLite path or PostgreSQL URL |
+| `REDIS_URL` | `redis://redis:6379/0` | Redis connection URL for the SAQ job queue |
+| `SESSION_SECRET_KEY` | *(required, no default)* | Secret used to sign browser session cookies — generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `PUID` | `1000` | User ID the Docker container runs as |
+| `PGID` | `1000` | Group ID the Docker container runs as |
 
-These are shown read-only on the Settings page but cannot be changed there.
+---
 
-### Web UI settings
+### NVR
 
-Everything else — NVR credentials, SMTP settings, guest dashboard PIN, plugin settings — is configurable via the Settings page. Changes take effect immediately in the running process (no restart required), except for `log_level` which shows a "restart required" badge.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NVR_HOST` | `""` | IP address or hostname of the Reolink NVR |
+| `NVR_PORT` | `80` | HTTP port of the NVR |
+| `NVR_USERNAME` | `""` | NVR login username |
+| `NVR_PASSWORD` | `""` | NVR login password |
+| `NVR_USE_HTTPS` | `false` | Use HTTPS for NVR API calls |
+| `NVR_TIMEOUT` | `15` | Per-request NVR timeout in seconds |
+| `NVR_DEBUG` | `"false"` | Enable reolink-aio verbose logging (`.env` only, read-only in UI) |
+| `NVR_DEBUG_MAX_LENGTH` | `0` | Max characters logged per NVR response; `0` = unlimited (`.env` only) |
 
-**How it works:**
+---
 
-At startup the app:
-1. Reads `Settings` from `.env` / env vars as usual (pydantic-settings)
-2. Loads any overrides stored in the `app_config` database table
-3. Merges the DB values on top, caches the result as the live settings instance
-4. `get_settings()` everywhere in the app returns this cached instance
+### Email Notifications
 
-When a value is saved via the admin UI, the DB row is updated and the cache is rebuilt — the new value is immediately live.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SMTP_HOST` | `""` | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_USERNAME` | `""` | SMTP authentication username |
+| `SMTP_PASSWORD` | `""` | SMTP authentication password |
+| `SMTP_FROM` | `""` | From address used in notification emails |
+| `SMTP_TO` | `""` | Recipient address for notification emails |
+| `SMTP_USE_TLS` | `true` | Use STARTTLS for SMTP connection |
 
-**Secret fields** (passwords, PINs) are shown as `••••••` on the settings page. Submitting the form with an empty password field does **not** overwrite the stored value — only a non-empty submission updates it.
+---
 
-### Settings groups
+### Location
 
-| Group | Configurable fields |
-|-------|---------------------|
-| NVR | host, port, username, password, HTTPS, timeout |
-| Email Notifications | SMTP host/port/credentials, from/to addresses, TLS |
-| Location | latitude, longitude (used for sunrise/sunset bitmasks) |
-| Guest Dashboard | show-mode toggle, PIN |
-| Advanced | debug, log level ⟳, power-on timing, job timeout |
+Used to calculate sunrise/sunset times for dynamic hour bitmasks.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LATITUDE` | `0.0` | Decimal latitude of the property |
+| `LONGITUDE` | `0.0` | Decimal longitude of the property |
+
+---
+
+### Guest Dashboard
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GUEST_DASHBOARD_SHOW_MODE` | `true` | Show current Home/Away mode on the guest dashboard |
+| `GUEST_DASHBOARD_PIN` | `5555` | PIN required to press the Home button on the guest dashboard |
+
+---
+
+### Advanced
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEBUG` | `false` | Enable FastAPI debug mode |
+| `LOG_LEVEL` | `INFO` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). ⟳ Requires restart |
+| `LOG_DIR` | `./logs` | Directory for log files (`.env` only) |
+| `WORKFLOW_DEBUG` | `false` | Log detailed pydantic-graph workflow execution (`.env` only) |
+| `POWER_ON_TIMEOUT_SECONDS` | `120` | How long `WaitForPowerOnNode` polls the NVR waiting for a powered-on camera to come online |
+| `POWER_ON_POLL_INTERVAL_SECONDS` | `10` | How often (seconds) `WaitForPowerOnNode` checks camera online status |
+| `JOB_TIMEOUT_SECONDS` | `120` | Overhead time budget (seconds) for all workflow steps *excluding* the power-on wait. The actual SAQ job timeout is `POWER_ON_TIMEOUT_SECONDS + JOB_TIMEOUT_SECONDS` |
+| `PTZ_SETTLE_SECONDS` | `10` | Seconds to wait after sending a PTZ home preset command before powering off the camera. The NVR acknowledges the command immediately but the camera takes time to physically rotate |
+| `PASSWORD_RESET_EXPIRY_SECONDS` | `3600` | How long a password reset link is valid (`.env` only) |
+| `INVITATION_EXPIRY_SECONDS` | `604800` | How long a user invitation link is valid — 7 days (`.env` only) |
 
 `⟳` = requires restart
 

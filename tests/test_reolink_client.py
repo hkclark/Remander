@@ -224,6 +224,21 @@ class TestPTZ:
         await client.move_to_preset(0, preset_index=1, speed=50)
         mock_host.set_ptz_command.assert_awaited_once_with(0, preset=1, speed=50)
 
+    def test_get_ptz_presets_returns_name_to_id_dict(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.ptz_presets.return_value = {"Back Yard": 1, "Gate": 2, "Driveway": 3}
+        result = client.get_ptz_presets(0)
+        assert result == {"Back Yard": 1, "Gate": 2, "Driveway": 3}
+        mock_host.ptz_presets.assert_called_once_with(0)
+
+    def test_get_ptz_presets_returns_empty_dict_when_no_presets(
+        self, client: ReolinkNVRClient, mock_host: MagicMock
+    ) -> None:
+        mock_host.ptz_presets.return_value = {}
+        result = client.get_ptz_presets(0)
+        assert result == {}
+
 
 class TestChannelOnline:
     async def test_is_channel_online_true(

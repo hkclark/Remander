@@ -113,7 +113,8 @@ CORE_SETTINGS_GROUPS: list[SettingsGroup] = [
                 "Power-on poll interval (s)",
                 field_type="int",
             ),
-            SettingsField("job_timeout_seconds", "Job timeout (s)", field_type="int"),
+            SettingsField("job_timeout_seconds", "Job timeout overhead (s)", field_type="int"),
+            SettingsField("ptz_settle_seconds", "PTZ settle time (s)", field_type="int"),
         ],
     ),
 ]

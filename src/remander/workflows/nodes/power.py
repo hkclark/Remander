@@ -94,7 +94,10 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.has_errors = True
                 ctx.state.device_results[device_id] = str(e)
 
-        return WaitForPowerOnNode()
+        return WaitForPowerOnNode(
+            timeout_seconds=ctx.deps.power_on_timeout_seconds,
+            poll_interval_seconds=ctx.deps.power_on_poll_interval_seconds,
+        )
 
 
 @dataclass

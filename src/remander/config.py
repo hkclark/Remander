@@ -53,7 +53,13 @@ class Settings(BaseSettings):
     power_on_timeout_seconds: int = 120
     power_on_poll_interval_seconds: int = 10
 
-    # SAQ job timeout — NVR operations can take many seconds; 10s SAQ default is too short
+    # PTZ settle time — seconds to wait after sending a PTZ home command before powering off.
+    # The NVR acknowledges the command immediately but the camera takes time to physically move.
+    ptz_settle_seconds: int = 10
+
+    # SAQ job overhead timeout — time budget for all workflow steps *excluding* the power-on wait.
+    # The actual SAQ job timeout is power_on_timeout_seconds + job_timeout_seconds so that the
+    # job is never cancelled while WaitForPowerOnNode is still polling.
     job_timeout_seconds: int = 120
 
     # Guest dashboard
