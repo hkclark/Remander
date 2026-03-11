@@ -65,5 +65,54 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Bulk Tag / Untag -->
+    {% if tags %}
+    <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">Bulk Tag / Untag</h2>
+        <form hx-post="/tags/bulk-preview"
+              hx-target="#bulk-preview-result"
+              hx-swap="innerHTML"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Tag</label>
+                <select name="tag_id" required
+                        class="w-full rounded border-gray-300 shadow-sm text-sm">
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Operation</label>
+                <select name="operation"
+                        class="w-full rounded border-gray-300 shadow-sm text-sm">
+                    <option value="tag">Tag</option>
+                    <option value="untag">Untag</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Name wildcard</label>
+                <input type="text" name="name_pattern" placeholder="e.g. front* or *back*"
+                       class="w-full rounded border-gray-300 shadow-sm text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                    Channels
+                    <span class="text-gray-400 font-normal">(cameras only)</span>
+                </label>
+                <input type="text" name="channel_spec" placeholder="e.g. 1-4, 6, 8-9"
+                       class="w-full rounded border-gray-300 shadow-sm text-sm">
+            </div>
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow text-sm font-medium">
+                    Preview
+                </button>
+            </div>
+        </form>
+        <div id="bulk-preview-result"></div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
