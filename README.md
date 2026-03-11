@@ -2,7 +2,7 @@
 
 A home automation app that configures Reolink security cameras for different behavior when "at home" vs "away from home" using the Reolink NVR API. Also controls Tapo smart plugs and Sonoff Mini R2 switches.
 
-See `spec.md` for the full project specification.
+See `spec.md` for the full project specification. Detailed design docs live in `docs/`.
 
 ## Quick Start
 
@@ -19,6 +19,51 @@ make migrate
 # Run the app with auto-reload
 make run-dev
 ```
+
+## Configuration
+
+Most settings are managed through the admin UI at **Admin → Settings** (`/admin/settings`) — no `.env` editing needed after initial setup.
+
+### Bootstrap settings (`.env` only)
+
+Two settings must remain in `.env` because the app needs them before the database is available:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite:////app/data/remander.db` | SQLite path (or PostgreSQL URL) |
+| `REDIS_URL` | `redis://redis:6379/0` | Redis connection URL for the job queue |
+
+These are shown read-only on the Settings page but cannot be changed there.
+
+### Web UI settings
+
+Everything else — NVR credentials, SMTP settings, guest dashboard PIN, plugin settings — is configurable via the Settings page. Changes take effect immediately in the running process (no restart required), except for `log_level` which shows a "restart required" badge.
+
+**How it works:**
+
+At startup the app:
+1. Reads `Settings` from `.env` / env vars as usual (pydantic-settings)
+2. Loads any overrides stored in the `app_config` database table
+3. Merges the DB values on top, caches the result as the live settings instance
+4. `get_settings()` everywhere in the app returns this cached instance
+
+When a value is saved via the admin UI, the DB row is updated and the cache is rebuilt — the new value is immediately live.
+
+**Secret fields** (passwords, PINs) are shown as `••••••` on the settings page. Submitting the form with an empty password field does **not** overwrite the stored value — only a non-empty submission updates it.
+
+### Settings groups
+
+| Group | Configurable fields |
+|-------|---------------------|
+| NVR | host, port, username, password, HTTPS, timeout |
+| Email Notifications | SMTP host/port/credentials, from/to addresses, TLS |
+| Location | latitude, longitude (used for sunrise/sunset bitmasks) |
+| Guest Dashboard | show-mode toggle, PIN |
+| Advanced | debug, log level ⟳, power-on timing, job timeout |
+
+`⟳` = requires restart
+
+---
 
 ## Reolink API
 
@@ -103,7 +148,22 @@ Every plugin must satisfy the `RemandPlugin` protocol (defined in `src/remander/
 | `register_templates()` | Return absolute path to a template directory (or `None`) |
 | `register_jobs()` | Return `(name, handler)` tuples for SAQ job registration |
 | `dashboard_widgets()` | Return `DashboardWidget` descriptors for dashboard/guest dashboard |
+| `settings_fields()` | Return `SettingField` descriptors so the admin UI can render a settings form for this plugin |
 | `on_startup()` / `on_shutdown()` | Async lifecycle hooks |
+
+`SettingField` is an attrs class that declares a single configurable value:
+
+```python
+@attrs.define
+class SettingField:
+    key: str               # field name, e.g. "sonoff_ip"
+    label: str             # human-readable, e.g. "Sonoff Switch IP Address"
+    description: str = ""
+    field_type: str = "string"  # "string" | "int" | "bool" | "float" | "list_int"
+    default: Any = None
+    secret: bool = False          # renders as a password input with reveal toggle
+    restart_required: bool = False
+```
 
 ### Plugin Data Storage
 
@@ -117,11 +177,27 @@ value = await get_plugin_value("my_plugin", "some_key")  # {"count": 42}
 await delete_plugin_value("my_plugin", "some_key")
 ```
 
+### Plugin Settings
+
+Plugin settings are stored in the `app_config` database table (see **Configuration** below) under the namespace `plugin.{plugin_name}.{key}`. At runtime, plugins read their live values via:
+
+```python
+from remander.services.app_config import get_plugin_setting, set_plugin_setting
+
+# Sync read from in-memory cache (populated at startup)
+ip = get_plugin_setting("my_plugin", "device_ip", default="192.168.1.10")
+
+# Async write — persists to DB and refreshes the cache
+await set_plugin_setting("my_plugin", "device_ip", "10.0.0.5")
+```
+
+The admin UI at `/admin/settings` automatically renders a settings form for each plugin that declares `settings_fields()`.
+
 ### Creating a Plugin
 
 1. Create a package with a `[project.entry-points."remander.plugins"]` entry in `pyproject.toml`
 2. The entry point value should be a factory function that returns a `RemandPlugin`-compatible object
-3. Use attrs for the plugin class, pydantic-settings for configuration
+3. Use attrs for the plugin class; declare settings via `settings_fields()` rather than pydantic-settings
 4. Place templates in a subdirectory named after your plugin (e.g. `templates/my_plugin/`)
 5. For development, add the plugin as a uv workspace member
 
@@ -162,13 +238,15 @@ The **remander-hot-water** plugin controls a whole-home hot water recirculation 
 
 ### Configuration
 
-Set these environment variables (all prefixed with `PLUGIN_HOT_WATER_`):
+Hot water settings are managed through the admin UI at **Admin → Settings → Hot Water Plugin**. No `.env` changes are needed.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PLUGIN_HOT_WATER_SONOFF_IP` | `192.168.1.50` | IP address of the Sonoff Mini R2 switch |
-| `PLUGIN_HOT_WATER_DEFAULT_DURATION_MINUTES` | `20` | Default timer duration |
-| `PLUGIN_HOT_WATER_AVAILABLE_DURATIONS` | `[15, 20, 30]` | Duration options shown as buttons |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Sonoff Switch IP Address | `192.168.1.50` | IP of the Sonoff Mini R2 switch |
+| Default Duration (minutes) | `20` | Timer duration pre-selected in the widget |
+| Available Durations | `15, 20, 30` | Duration buttons shown in the widget |
+
+Changes take effect immediately — no restart required.
 
 ### Routes
 
@@ -198,6 +276,15 @@ plugins/remander-hot-water/
     ├── test_service.py
     └── test_routes.py
 ```
+
+---
+
+## Design Docs
+
+| File | What it covers |
+|------|---------------|
+| [`docs/plugin-architecture.md`](docs/plugin-architecture.md) | Plugin discovery, `RemandPlugin` protocol, `DashboardWidget`, `SettingField`, `PluginRegistry`, template namespacing, `plugin_data` storage |
+| [`docs/configuration.md`](docs/configuration.md) | `AppConfig` table, settings cache overlay, plugin config cache, admin UI design, secret field UX |
 
 ---
 

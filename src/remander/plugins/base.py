@@ -1,7 +1,7 @@
 """Plugin protocol and widget descriptor for the Remander plugin system."""
 
 from collections.abc import Callable
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import attrs
 from fastapi import FastAPI
@@ -15,6 +15,19 @@ class DashboardWidget:
     template_name: str  # e.g. "hot_water/_widget.html"
     target: str  # "dashboard" or "guest_dashboard"
     sort_order: int = 100
+
+
+@attrs.define
+class SettingField:
+    """Declares a single configurable field that a plugin exposes to the admin UI."""
+
+    key: str  # field name, e.g. "sonoff_ip"
+    label: str  # human-readable label, e.g. "Sonoff Switch IP Address"
+    description: str = ""
+    field_type: str = "string"  # "string" | "int" | "bool" | "float" | "list_int"
+    default: Any = None
+    secret: bool = False  # renders as password input
+    restart_required: bool = False  # shows a "restart required" badge
 
 
 @runtime_checkable
@@ -31,6 +44,8 @@ class RemandPlugin(Protocol):
     def register_jobs(self) -> list[tuple[str, Callable]]: ...
 
     def dashboard_widgets(self) -> list[DashboardWidget]: ...
+
+    def settings_fields(self) -> list[SettingField]: ...
 
     async def on_startup(self) -> None: ...
 

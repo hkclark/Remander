@@ -1,5 +1,6 @@
 """Tortoise ORM models for Remander."""
 
+from remander.models.app_config import AppConfig
 from remander.models.activity import ActivityLog
 from remander.models.bitmask import DeviceBitmaskAssignment, HourBitmask, ZoneMask
 from remander.models.command import Command
@@ -25,6 +26,7 @@ from remander.models.state import AppState, SavedDeviceState
 from remander.models.tag import Tag
 
 __all__ = [
+    "AppConfig",
     "ActivityLog",
     "ActivityStatus",
     "AppState",

@@ -4,11 +4,27 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 
 from remander.clients.sonoff import SonoffClient
+from remander.services.app_config import get_plugin_setting
 from remander.worker import get_queue
 from remander_hot_water.service import cancel_hot_water, get_status, start_hot_water
 from remander_hot_water.settings import HotWaterSettings
 
 router = APIRouter(prefix="/hot-water", tags=["hot-water"])
+
+PLUGIN_NAME = "hot_water"
+
+
+def _get_settings() -> HotWaterSettings:
+    """Build HotWaterSettings from the plugin config cache (DB-backed, env fallback)."""
+    return HotWaterSettings(
+        sonoff_ip=get_plugin_setting(PLUGIN_NAME, "sonoff_ip", default="192.168.1.50"),
+        default_duration_minutes=get_plugin_setting(
+            PLUGIN_NAME, "default_duration_minutes", default=20
+        ),
+        available_durations=get_plugin_setting(
+            PLUGIN_NAME, "available_durations", default=[15, 20, 30]
+        ),
+    )
 
 
 @router.get("/status", response_class=HTMLResponse)
@@ -16,7 +32,7 @@ async def hot_water_status(request: Request) -> HTMLResponse:
     """Return the current status partial (polled by HTMX)."""
     from remander.main import templates
 
-    settings = HotWaterSettings()
+    settings = _get_settings()
     sonoff = SonoffClient()
     status = await get_status(settings=settings, sonoff_client=sonoff)
 
@@ -40,7 +56,7 @@ async def hot_water_start(
     """Start the hot water pump for the specified duration."""
     from remander.main import templates
 
-    settings = HotWaterSettings()
+    settings = _get_settings()
     queue = get_queue()
     sonoff = SonoffClient()
 
@@ -64,7 +80,7 @@ async def hot_water_cancel(request: Request) -> HTMLResponse:
     """Cancel the hot water timer and turn off the pump."""
     from remander.main import templates
 
-    settings = HotWaterSettings()
+    settings = _get_settings()
     queue = get_queue()
     sonoff = SonoffClient()
 

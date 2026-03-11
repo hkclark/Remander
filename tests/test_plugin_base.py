@@ -51,6 +51,9 @@ class TestRemandPlugin:
             def dashboard_widgets(self):
                 return []
 
+            def settings_fields(self):
+                return []
+
             async def on_startup(self):
                 pass
 

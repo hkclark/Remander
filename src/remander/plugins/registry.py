@@ -6,7 +6,7 @@ from importlib.metadata import entry_points
 
 import attrs
 
-from remander.plugins.base import DashboardWidget, RemandPlugin
+from remander.plugins.base import DashboardWidget, RemandPlugin, SettingField
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,14 @@ class PluginRegistry:
                 if widget.target == target:
                     widgets.append(widget)
         return sorted(widgets, key=lambda w: w.sort_order)
+
+    def all_settings_fields(self) -> dict[str, list[SettingField]]:
+        """Return a mapping of plugin_name → settings fields for the admin UI."""
+        return {
+            plugin.name: plugin.settings_fields()
+            for plugin in self._plugins
+            if plugin.settings_fields()
+        }
 
     def all_job_handlers(self) -> list[tuple[str, Callable]]:
         """Collect all SAQ job handlers from all plugins."""

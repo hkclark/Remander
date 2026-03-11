@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Settings - Remander{% endblock %}
+{% block nav_admin %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/admin" class="text-sm text-blue-600 hover:underline">&larr; Admin</a>
+        <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+    </div>
+
+    {# ── Core settings groups ───────────────────────────────────────────── #}
+    {% for gv in groups_with_values %}
+    {% set group = gv.group %}
+    {% set values = gv.current_values %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ group.title }}</h2>
+        <form hx-post="/admin/settings/core/{{ group.id }}"
+              hx-target="this"
+              hx-swap="none"
+              class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for field in group.fields %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ field.label }}
+                    {% if field.restart_required %}
+                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">restart</span>
+                    {% endif %}
+                </label>
+                {% if field.field_type == "bool" %}
+                <select name="{{ field.key }}"
+                        class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="true" {% if values[field.key] %}selected{% endif %}>Yes</option>
+                    <option value="false" {% if not values[field.key] %}selected{% endif %}>No</option>
+                </select>
+                {% elif field.field_type == "password" %}
+                <div class="flex">
+                    <input type="password" name="{{ field.key }}" value="{{ values[field.key] }}"
+                           placeholder="leave blank to keep current"
+                           class="flex-1 rounded-l-md border border-gray-300 py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <button type="button"
+                            onclick="var i=this.previousElementSibling; i.type=i.type==='password'?'text':'password'"
+                            class="px-3 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100 text-xs">👁</button>
+                </div>
+                {% else %}
+                <input type="{{ 'number' if field.field_type in ('int','float') else 'text' }}"
+                       name="{{ field.key }}"
+                       value="{{ values[field.key] }}"
+                       {% if field.field_type == 'float' %}step="any"{% endif %}
+                       class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                {% endif %}
+            </div>
+            {% endfor %}
+            </div>
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow">
+                    Save {{ group.title }}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
+    {# ── Plugin settings sections ────────────────────────────────────────── #}
+    {% for section in plugin_sections %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-1">
+            {{ section.plugin_name | replace("_", " ") | title }} Plugin
+        </h2>
+        <form hx-post="/admin/settings/plugin/{{ section.plugin_name }}"
+              hx-target="this"
+              hx-swap="none"
+              class="space-y-4 mt-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for field in section.fields %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                {% if field.secret %}
+                <div class="flex">
+                    <input type="password" name="{{ field.key }}" value="{{ section.values[field.key] }}"
+                           placeholder="leave blank to keep current"
+                           class="flex-1 rounded-l-md border border-gray-300 py-2 px-3 text-sm shadow-sm">
+                    <button type="button"
+                            onclick="var i=this.previousElementSibling; i.type=i.type==='password'?'text':'password'"
+                            class="px-3 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100 text-xs">👁</button>
+                </div>
+                {% elif field.field_type == "list_int" %}
+                <input type="text" name="{{ field.key }}"
+                       value="{{ section.values[field.key] | join(',') if section.values[field.key] is iterable and section.values[field.key] is not string else section.values[field.key] }}"
+                       placeholder="e.g. 15,20,30"
+                       class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm">
+                {% elif field.field_type == "bool" %}
+                <select name="{{ field.key }}"
+                        class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm">
+                    <option value="true" {% if section.values[field.key] %}selected{% endif %}>Yes</option>
+                    <option value="false" {% if not section.values[field.key] %}selected{% endif %}>No</option>
+                </select>
+                {% else %}
+                <input type="{{ 'number' if field.field_type in ('int','float') else 'text' }}"
+                       name="{{ field.key }}"
+                       value="{{ section.values[field.key] }}"
+                       class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm">
+                {% endif %}
+                {% if field.description %}
+                <p class="mt-1 text-xs text-gray-400">{{ field.description }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            </div>
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow">
+                    Save {{ section.plugin_name | replace("_", " ") | title }}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
+    {# ── Read-only (bootstrap) settings ─────────────────────────────────── #}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-1">Read-only (from .env)</h2>
+        <p class="text-xs text-gray-500 mb-4">These settings must be changed in your <code>.env</code> file and require a restart.</p>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {% for key, value in read_only_values.items() %}
+        <div>
+            <dt class="text-xs font-medium text-gray-500">{{ key }}</dt>
+            <dd class="mt-0.5 text-sm font-mono text-gray-800 truncate" title="{{ value }}">{{ value }}</dd>
+        </div>
+        {% endfor %}
+        </dl>
+    </div>
+</div>
+{% endblock %}

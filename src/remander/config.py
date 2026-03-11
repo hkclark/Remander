@@ -8,11 +8,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Reolink NVR
-    nvr_host: str
+    # Reolink NVR — no defaults required; can be configured via Admin → Settings
+    nvr_host: str = ""
     nvr_port: int = 80
-    nvr_username: str
-    nvr_password: SecretStr
+    nvr_username: str = ""
+    nvr_password: SecretStr = SecretStr("")
     nvr_use_https: bool = False
     nvr_timeout: int = 15
     nvr_debug: str = "false"
@@ -61,6 +61,18 @@ class Settings(BaseSettings):
     guest_dashboard_pin: str = "5555"
 
 
+_cached_settings: Settings | None = None
+
+
 def get_settings() -> Settings:
-    """Create and return a Settings instance."""
-    return Settings()  # type: ignore[call-arg]
+    """Return the cached Settings instance, creating it fresh if not yet cached."""
+    global _cached_settings
+    if _cached_settings is None:
+        _cached_settings = Settings()  # type: ignore[call-arg]
+    return _cached_settings
+
+
+def set_settings(settings: Settings) -> None:
+    """Replace the cached Settings instance (used by lifespan and tests)."""
+    global _cached_settings
+    _cached_settings = settings

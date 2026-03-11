@@ -14,6 +14,7 @@ from remander.config import get_settings
 from remander.db import get_tortoise_config
 from remander.logging import setup_logging
 from remander.plugins.registry import PluginRegistry, set_registry
+from remander.services.app_config import load_core_config, load_plugin_config
 from remander.worker import create_queue, create_worker, set_queue
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan — initialize and tear down resources."""
     settings = get_settings()
 
-    # Configure logging
+    # Configure logging from .env defaults (DB not yet available)
     setup_logging(
         log_dir=settings.log_dir,
         log_level=settings.log_level,
@@ -32,14 +33,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         nvr_debug_max_length=settings.nvr_debug_max_length,
         workflow_debug=settings.workflow_debug,
     )
-    logger.info("Starting Remander — current settings:")
-    for key, value in sorted(settings.model_dump().items()):
-        logger.info("  %s = %r", key, value)
+    logger.info("Starting Remander")
 
     # Initialize Tortoise ORM
     config = get_tortoise_config()
     await Tortoise.init(config=config)
     logger.info("Database initialized")
+
+    # Load settings from DB (overrides .env defaults) and build plugin config cache
+    await load_core_config()
+    await load_plugin_config()
 
     # Reset any commands stuck in RUNNING state from a previous crash or timeout
     from remander.models.command import Command
