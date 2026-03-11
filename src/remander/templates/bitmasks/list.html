@@ -37,7 +37,12 @@
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ bm.subtype }}</td>
                         <td class="px-4 py-3 font-mono text-xs text-gray-600">
-                            {{ bm.static_value if bm.static_value else 'dynamic' }}
+                            {% if bm.subtype == 'static' %}
+                                {{ bm.static_value }}
+                            {% else %}
+                                {{ dynamic_computed[bm.id] }}
+                                <span class="font-sans text-gray-400 not-mono">(today)</span>
+                            {% endif %}
                         </td>
                         <td class="px-4 py-3 text-right text-sm">
                             <a href="/bitmasks/hour/{{ bm.id }}/edit" class="text-blue-600 hover:underline mr-3">Edit</a>

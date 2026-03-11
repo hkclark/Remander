@@ -4,6 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from remander.models.enums import HourBitmaskSubtype
+from remander.models.bitmask import HourBitmask
 from remander.services.bitmask import (
     create_hour_bitmask,
     create_zone_mask,
@@ -13,6 +14,7 @@ from remander.services.bitmask import (
     get_zone_mask,
     list_hour_bitmasks,
     list_zone_masks,
+    resolve_hour_bitmask,
     update_hour_bitmask,
 )
 
@@ -21,14 +23,28 @@ router = APIRouter(prefix="/bitmasks")
 
 @router.get("", response_class=HTMLResponse)
 async def bitmask_list(request: Request) -> HTMLResponse:
+    from remander.config import get_settings
     from remander.main import templates
 
     hour_bitmasks = await list_hour_bitmasks()
     zone_masks = await list_zone_masks()
+
+    settings = get_settings()
+    dynamic_computed: dict[int, str] = {}
+    for bm in hour_bitmasks:
+        if bm.subtype == HourBitmaskSubtype.DYNAMIC:
+            dynamic_computed[bm.id] = await resolve_hour_bitmask(
+                bm, latitude=settings.latitude, longitude=settings.longitude
+            )
+
     return templates.TemplateResponse(
         request,
         "bitmasks/list.html",
-        {"hour_bitmasks": hour_bitmasks, "zone_masks": zone_masks},
+        {
+            "hour_bitmasks": hour_bitmasks,
+            "zone_masks": zone_masks,
+            "dynamic_computed": dynamic_computed,
+        },
     )
 
 

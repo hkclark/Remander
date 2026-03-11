@@ -6,6 +6,9 @@ from remander.models.enums import HourBitmaskSubtype
 from remander.services.bitmask import create_hour_bitmask, create_zone_mask
 
 
+import re
+
+
 class TestBitmaskList:
     async def test_get_bitmasks_returns_200(self, logged_in_client: AsyncClient) -> None:
         response = await logged_in_client.get("/bitmasks")
@@ -23,6 +26,34 @@ class TestBitmaskList:
         await create_zone_mask(name="Full Zone", mask_value="1" * 4800)
         response = await logged_in_client.get("/bitmasks")
         assert "Full Zone" in response.text
+
+    async def test_dynamic_bitmask_shows_computed_mask(self, logged_in_client: AsyncClient) -> None:
+        await create_hour_bitmask(
+            name="Sun Hours",
+            subtype=HourBitmaskSubtype.DYNAMIC,
+            sunrise_offset_minutes=0,
+            sunset_offset_minutes=0,
+            fill_value="1",
+        )
+        response = await logged_in_client.get("/bitmasks")
+        # Computed value should be a 24-char binary string, not the literal word "dynamic"
+        assert re.search(r"[01]{24}", response.text), "Expected 24-char computed mask"
+
+    async def test_dynamic_bitmask_shows_today_label(self, logged_in_client: AsyncClient) -> None:
+        await create_hour_bitmask(
+            name="Sun Hours 2",
+            subtype=HourBitmaskSubtype.DYNAMIC,
+            sunrise_offset_minutes=0,
+            sunset_offset_minutes=0,
+            fill_value="1",
+        )
+        response = await logged_in_client.get("/bitmasks")
+        assert "today" in response.text.lower()
+
+    async def test_form_includes_subtype_toggle_script(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/bitmasks/hour/create")
+        assert "static-fields" in response.text
+        assert "dynamic-fields" in response.text
 
 
 class TestHourBitmaskDetail:
