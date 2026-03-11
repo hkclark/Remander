@@ -6,6 +6,9 @@ from remander.services.detection import (
     disable_detection_type,
     enable_detection_type,
     get_enabled_detection_types,
+    has_ai,
+    has_ai_and_md,
+    has_md,
     set_detection_types,
 )
 from tests.factories import create_camera
@@ -114,3 +117,58 @@ class TestGetEnabledDetectionTypes:
         camera = await create_camera(name="No Detection Cam")
         enabled = await get_enabled_detection_types(camera.id)
         assert enabled == []
+
+
+class TestHasAiAndMd:
+    def test_true_when_motion_and_ai_present(self) -> None:
+        types = {DetectionType.MOTION, DetectionType.PERSON}
+        assert has_ai_and_md(types) is True
+
+    def test_true_with_multiple_ai_types(self) -> None:
+        types = {DetectionType.MOTION, DetectionType.PERSON, DetectionType.VEHICLE}
+        assert has_ai_and_md(types) is True
+
+    def test_false_when_only_ai_no_motion(self) -> None:
+        types = {DetectionType.PERSON, DetectionType.VEHICLE}
+        assert has_ai_and_md(types) is False
+
+    def test_false_when_only_motion_no_ai(self) -> None:
+        types = {DetectionType.MOTION}
+        assert has_ai_and_md(types) is False
+
+    def test_false_when_empty(self) -> None:
+        assert has_ai_and_md(set()) is False
+
+
+class TestHasAi:
+    def test_true_when_only_ai_types(self) -> None:
+        types = {DetectionType.PERSON, DetectionType.ANIMAL}
+        assert has_ai(types) is True
+
+    def test_false_when_ai_and_motion_both_present(self) -> None:
+        types = {DetectionType.MOTION, DetectionType.PERSON}
+        assert has_ai(types) is False
+
+    def test_false_when_only_motion(self) -> None:
+        types = {DetectionType.MOTION}
+        assert has_ai(types) is False
+
+    def test_false_when_empty(self) -> None:
+        assert has_ai(set()) is False
+
+
+class TestHasMd:
+    def test_true_when_only_motion(self) -> None:
+        types = {DetectionType.MOTION}
+        assert has_md(types) is True
+
+    def test_false_when_motion_and_ai_both_present(self) -> None:
+        types = {DetectionType.MOTION, DetectionType.VEHICLE}
+        assert has_md(types) is False
+
+    def test_false_when_only_ai_types(self) -> None:
+        types = {DetectionType.FACE, DetectionType.PACKAGE}
+        assert has_md(types) is False
+
+    def test_false_when_empty(self) -> None:
+        assert has_md(set()) is False

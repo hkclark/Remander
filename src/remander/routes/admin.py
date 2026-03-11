@@ -12,8 +12,10 @@ from tortoise.exceptions import IntegrityError
 
 from remander.clients.reolink import ReolinkNVRClient
 from remander.models.device import Device
-from remander.models.enums import DeviceBrand, DeviceType
+from remander.models.enums import DeviceBrand, DetectionType, DeviceType
 from remander.services.command import list_commands
+from remander.services.detection import get_enabled_detection_types, has_ai, has_ai_and_md, has_md
+from remander.services.device import list_devices
 from remander.services.nvr_sync import (
     ChannelSyncResult,
     compare_channels,
@@ -23,6 +25,60 @@ from remander.services.nvr_sync import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Ordered AI types for choosing the representative summary key
+_AI_DT_ORDER: list[DetectionType] = [
+    DetectionType.PERSON,
+    DetectionType.VEHICLE,
+    DetectionType.ANIMAL,
+    DetectionType.FACE,
+    DetectionType.PACKAGE,
+]
+_DT_TO_NVR_KEY: dict[DetectionType, str] = {
+    DetectionType.MOTION: "MD",
+    DetectionType.PERSON: "AI_PEOPLE",
+    DetectionType.VEHICLE: "AI_VEHICLE",
+    DetectionType.ANIMAL: "AI_DOG_CAT",
+    DetectionType.FACE: "AI_FACE",
+    DetectionType.PACKAGE: "AI_PACKAGE",
+}
+
+
+def _push_schedule_summary_keys(
+    table: dict[str, str],
+    enabled_types: set[DetectionType],
+) -> list[str]:
+    """Return the NVR table keys to display in the push schedule summary view.
+
+    - has_ai_and_md: MD + all configured AI keys present in the table
+    - has_ai:        first configured AI key present in the table
+    - has_md:        MD only
+    - otherwise:     all keys (no summarisation possible)
+    """
+    if has_ai_and_md(enabled_types):
+        keys = ["MD"]
+        for dt in _AI_DT_ORDER:
+            key = _DT_TO_NVR_KEY[dt]
+            if dt in enabled_types and key in table:
+                keys.append(key)
+        return keys
+    if has_ai(enabled_types):
+        for dt in _AI_DT_ORDER:
+            key = _DT_TO_NVR_KEY[dt]
+            if dt in enabled_types and key in table:
+                return [key]
+        return list(table.keys())[:1]
+    if has_md(enabled_types):
+        return ["MD"] if "MD" in table else list(table.keys())[:1]
+    # No configured detection types — default to first AI key in the table (more informative
+    # than MD since AI masks show scheduled detection, not just raw motion).
+    # Fall back to MD if no AI keys are present, or the first available key.
+    for dt in _AI_DT_ORDER:
+        key = _DT_TO_NVR_KEY[dt]
+        if key in table:
+            return [key]
+    return ["MD"] if "MD" in table else list(table.keys())[:1]
+
 
 router = APIRouter(prefix="/admin")
 
@@ -419,6 +475,18 @@ async def query_push_schedules(request: Request) -> HTMLResponse:
         )
 
     logger.info("Push schedule query returned %d channels", len(schedules))
+
+    # Enrich each schedule with summary_keys based on the device's configured detection types
+    devices = await list_devices()
+    channel_to_types: dict[int, set[DetectionType]] = {}
+    for device in devices:
+        if device.channel is not None:
+            enabled = await get_enabled_detection_types(device.id)
+            channel_to_types[device.channel] = {dt.detection_type for dt in enabled}
+    for sched in schedules:
+        enabled_types = channel_to_types.get(sched["channel"], set())
+        sched["summary_keys"] = _push_schedule_summary_keys(sched["table"], enabled_types)
+
     return templates.TemplateResponse(
         request,
         "admin/_push_schedules.html",

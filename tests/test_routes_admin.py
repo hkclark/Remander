@@ -7,7 +7,8 @@ from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 
 from remander.models.device import Device
-from remander.models.enums import CommandStatus, CommandType
+from remander.models.enums import CommandStatus, CommandType, DetectionType
+from remander.services.detection import set_detection_types
 from tests.factories import create_camera, create_command
 
 
@@ -205,7 +206,7 @@ class TestQueryPushSchedules:
         response = await logged_in_client.post("/admin/query-push-schedules")
         assert response.status_code == 200
         assert "Front" in response.text
-        assert "MD" in response.text
+        assert "Motion Detection" in response.text
 
     @patch("remander.routes.admin.ReolinkNVRClient")
     async def test_query_schedules_shows_detection_types(
@@ -226,8 +227,108 @@ class TestQueryPushSchedules:
         mock_nvr_cls.return_value = mock_client
 
         response = await logged_in_client.post("/admin/query-push-schedules")
-        assert "AI_PEOPLE" in response.text
-        assert "AI_VEHICLE" in response.text
+        assert "Person (AI)" in response.text
+        assert "Vehicle (AI)" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_friendly_label_for_md(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {"channel": 0, "name": "Front", "table": {"MD": "1" * 168}},
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Motion Detection" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_no_toggle_when_table_fully_shown(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        """Single-key table → summary equals full table → no toggle needed."""
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {"channel": 0, "name": "Front", "table": {"MD": "1" * 168}},
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Show all" not in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_toggle_appears_for_unconfigured_camera_with_ai_keys(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        """Camera with no detection types configured → defaults to first AI key → toggle shown."""
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {"channel": 0, "name": "Front", "table": {"MD": "1" * 168, "AI_PEOPLE": "0" * 168}},
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Person (AI)" in response.text
+        assert "Show all" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_toggle_shown_when_device_has_fewer_summary_keys(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        """Device with MOTION only → summary shows MD; NVR also has AI_PEOPLE → toggle shown."""
+        camera = await create_camera(channel=0)
+        await set_detection_types(camera.id, [DetectionType.MOTION])
+
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {"channel": 0, "name": "Front", "table": {"MD": "1" * 168, "AI_PEOPLE": "0" * 168}},
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Show all" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_ai_only_device_shows_ai_label_in_summary(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        """Device with PERSON only → summary key is AI_PEOPLE → 'Person (AI)' shown, toggle present."""
+        camera = await create_camera(channel=0)
+        await set_detection_types(camera.id, [DetectionType.PERSON])
+
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {"channel": 0, "name": "Front", "table": {"AI_PEOPLE": "0" * 168, "MD": "1" * 168}},
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Person (AI)" in response.text
+        assert "Show all" in response.text
+
+    @patch("remander.routes.admin.ReolinkNVRClient")
+    async def test_ai_and_md_device_shows_both_in_summary(
+        self, mock_nvr_cls: AsyncMock, logged_in_client: AsyncClient
+    ) -> None:
+        """Device with MOTION + PERSON → summary has both MD and AI_PEOPLE keys."""
+        camera = await create_camera(channel=0)
+        await set_detection_types(camera.id, [DetectionType.MOTION, DetectionType.PERSON])
+
+        mock_client = AsyncMock()
+        mock_client.get_push_schedules.return_value = [
+            {
+                "channel": 0,
+                "name": "Front",
+                "table": {"MD": "1" * 168, "AI_PEOPLE": "0" * 168, "AI_VEHICLE": "0" * 168},
+            },
+        ]
+        mock_nvr_cls.return_value = mock_client
+
+        response = await logged_in_client.post("/admin/query-push-schedules")
+        assert "Motion Detection" in response.text
+        assert "Person (AI)" in response.text
+        assert "Show all" in response.text
 
     @patch("remander.routes.admin.ReolinkNVRClient")
     async def test_query_schedules_timeout(

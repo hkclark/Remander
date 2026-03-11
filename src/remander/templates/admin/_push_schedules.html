@@ -1,49 +1,113 @@
+{% set key_labels = {
+    "MD": "Motion Detection",
+    "AI_PEOPLE": "Person (AI)",
+    "AI_VEHICLE": "Vehicle (AI)",
+    "AI_DOG_CAT": "Animal (AI)",
+    "AI_FACE": "Face (AI)",
+    "AI_PACKAGE": "Package (AI)"
+} %}
+
 {% if error %}
 <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
     {{ error }}
 </div>
 {% elif schedules %}
+{% set ns = namespace(has_any_detail=false) %}
+{% for sched in schedules %}{% if sched.summary_keys | length < sched.table | length %}{% set ns.has_any_detail = true %}{% endif %}{% endfor %}
 <div class="space-y-6">
     {% for sched in schedules %}
+    {% set has_detail = sched.summary_keys | length < sched.table | length %}
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="px-4 py-3 bg-gray-50 border-b">
-            <span class="font-semibold text-gray-900">Ch {{ sched.channel }}</span>
-            <span class="text-gray-600">— {{ sched.name }}</span>
+        <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+            <div>
+                <span class="font-semibold text-gray-900">Ch {{ sched.channel }}</span>
+                <span class="text-gray-600">— {{ sched.name }}</span>
+            </div>
+            {% if has_detail %}
+            <button onclick="togglePushDetail('{{ loop.index }}')"
+                    id="push-toggle-{{ loop.index }}"
+                    class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                Show all
+            </button>
+            {% endif %}
         </div>
         {% if sched.table %}
-        <div class="p-4 space-y-4 overflow-x-auto">
-            {% for det_type, bitmask in sched.table.items() %}
-            <div>
-                <h4 class="text-sm font-medium text-gray-700 mb-1">{{ det_type }}</h4>
-                <table class="border-collapse text-xs font-mono">
-                    <thead>
-                        <tr>
-                            <th class="px-1 py-0.5 text-gray-400 text-right w-12"></th>
-                            {% for h in range(24) %}
-                            <th class="px-0 py-0.5 text-gray-400 w-4 text-center">{{ h }}</th>
+        <div class="p-4 overflow-x-auto">
+            {# Summary section — only the configured detection types #}
+            <div id="push-summary-{{ loop.index }}" class="space-y-4">
+                {% for key in sched.summary_keys %}
+                {% if key in sched.table %}
+                <div>
+                    <h4 class="text-sm font-medium text-gray-700 mb-1">{{ key_labels.get(key, key) }}</h4>
+                    <table class="border-collapse text-xs font-mono">
+                        <thead>
+                            <tr>
+                                <th class="px-1 py-0.5 text-gray-400 text-right w-12"></th>
+                                {% for h in range(24) %}
+                                <th class="px-0 py-0.5 text-gray-400 w-4 text-center">{{ h }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+                            {% set bitmask = sched.table[key] %}
+                            {% for d in range(7) %}
+                            <tr>
+                                <td class="px-1 py-0.5 text-gray-500 text-right">{{ days[d] }}</td>
+                                {% for h in range(24) %}
+                                {% set idx = d * 24 + h %}
+                                {% if idx < bitmask|length %}
+                                <td class="w-4 h-4 {{ 'bg-green-500' if bitmask[idx] == '1' else 'bg-gray-200' }}"
+                                    title="{{ days[d] }} {{ '%02d'|format(h) }}:00 — {{ 'ON' if bitmask[idx] == '1' else 'OFF' }}"></td>
+                                {% else %}
+                                <td class="w-4 h-4 bg-gray-100"></td>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
                             {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
-                        {% for d in range(7) %}
-                        <tr>
-                            <td class="px-1 py-0.5 text-gray-500 text-right">{{ days[d] }}</td>
-                            {% for h in range(24) %}
-                            {% set idx = d * 24 + h %}
-                            {% if idx < bitmask|length %}
-                            <td class="w-4 h-4 {{ 'bg-green-500' if bitmask[idx] == '1' else 'bg-gray-200' }}"
-                                title="{{ days[d] }} {{ '%02d'|format(h) }}:00 — {{ 'ON' if bitmask[idx] == '1' else 'OFF' }}"></td>
-                            {% else %}
-                            <td class="w-4 h-4 bg-gray-100"></td>
-                            {% endif %}
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
+            {# Detail section — all detection types from NVR, hidden by default #}
+            {% if has_detail %}
+            <div id="push-detail-{{ loop.index }}" class="hidden space-y-4">
+                {% for key, bitmask in sched.table.items() %}
+                <div>
+                    <h4 class="text-sm font-medium text-gray-700 mb-1">{{ key_labels.get(key, key) }}</h4>
+                    <table class="border-collapse text-xs font-mono">
+                        <thead>
+                            <tr>
+                                <th class="px-1 py-0.5 text-gray-400 text-right w-12"></th>
+                                {% for h in range(24) %}
+                                <th class="px-0 py-0.5 text-gray-400 w-4 text-center">{{ h }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+                            {% for d in range(7) %}
+                            <tr>
+                                <td class="px-1 py-0.5 text-gray-500 text-right">{{ days[d] }}</td>
+                                {% for h in range(24) %}
+                                {% set idx = d * 24 + h %}
+                                {% if idx < bitmask|length %}
+                                <td class="w-4 h-4 {{ 'bg-green-500' if bitmask[idx] == '1' else 'bg-gray-200' }}"
+                                    title="{{ days[d] }} {{ '%02d'|format(h) }}:00 — {{ 'ON' if bitmask[idx] == '1' else 'OFF' }}"></td>
+                                {% else %}
+                                <td class="w-4 h-4 bg-gray-100"></td>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
         {% else %}
         <div class="p-4 text-sm text-gray-500">No schedule data available.</div>
@@ -51,6 +115,19 @@
     </div>
     {% endfor %}
 </div>
+{% if ns.has_any_detail %}
+<script>
+function togglePushDetail(idx) {
+    const summary = document.getElementById('push-summary-' + idx);
+    const detail = document.getElementById('push-detail-' + idx);
+    const btn = document.getElementById('push-toggle-' + idx);
+    const showingDetail = detail.classList.contains('hidden');
+    summary.classList.toggle('hidden', showingDetail);
+    detail.classList.toggle('hidden', !showingDetail);
+    btn.textContent = showingDetail ? 'Show summary' : 'Show all';
+}
+</script>
+{% endif %}
 {% else %}
 <div class="text-sm text-gray-500">No channels found.</div>
 {% endif %}
