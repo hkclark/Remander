@@ -32,6 +32,8 @@ dependencies = [
     "astral",
     "aiosmtplib",
     "attrs",
+    "passlib[bcrypt]>=1.7.4",
+    "itsdangerous>=2.2.0",
 ]
 
 [dependency-groups]

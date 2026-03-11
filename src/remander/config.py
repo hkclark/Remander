@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     guest_dashboard_show_mode: bool = True
     guest_dashboard_pin: str = "5555"
 
+    # Authentication
+    session_secret_key: str = ""
+    password_reset_expiry_seconds: int = 3600
+    invitation_expiry_seconds: int = 604800
+
 
 _cached_settings: Settings | None = None
 

@@ -5,11 +5,19 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from jinja2 import ChoiceLoader, FileSystemLoader
+from starlette.middleware.sessions import SessionMiddleware
 from tortoise import Tortoise
 
+from remander.auth import (
+    RequiresLoginException,
+    get_current_user,
+    get_current_user_optional,
+    require_admin,
+    requires_login_handler,
+)
 from remander.config import get_settings
 from remander.db import get_tortoise_config
 from remander.logging import setup_logging
@@ -24,6 +32,13 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan — initialize and tear down resources."""
     settings = get_settings()
+
+    # Assert session secret is configured
+    if not settings.session_secret_key:
+        raise RuntimeError(
+            "SESSION_SECRET_KEY must be set in .env — "
+            "generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
 
     # Configure logging from .env defaults (DB not yet available)
     setup_logging(
@@ -108,11 +123,34 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Remander", version="0.1.0", lifespan=lifespan)
 
+
+# Inject current_user into request.state so all templates can read it via request.state.current_user.
+# Registered BEFORE SessionMiddleware so it ends up as an inner middleware (runs after the session
+# cookie is decoded).
+@app.middleware("http")
+async def inject_current_user(request: Request, call_next):
+    request.state.current_user = await get_current_user_optional(request)
+    return await call_next(request)
+
+
+# Session middleware — must be added before routers are included
+# Secret key is validated in lifespan; use a placeholder here for pre-lifespan imports
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=get_settings().session_secret_key or "placeholder-replaced-at-startup",
+    session_cookie="remander_session",
+    https_only=False,
+)
+
+# Register the RequiresLoginException handler
+app.add_exception_handler(RequiresLoginException, requires_login_handler)  # type: ignore[arg-type]
+
 templates = Jinja2Templates(directory="src/remander/templates")
 
 # Register routers
 from remander.routes.activity import router as activity_router  # noqa: E402
 from remander.routes.admin import router as admin_router  # noqa: E402
+from remander.routes.auth import router as auth_router  # noqa: E402
 from remander.routes.bitmasks import router as bitmasks_router  # noqa: E402
 from remander.routes.commands import router as commands_router  # noqa: E402
 from remander.routes.dashboard import router as dashboard_router  # noqa: E402
@@ -120,16 +158,24 @@ from remander.routes.dashboard_buttons import router as dashboard_buttons_router
 from remander.routes.devices import router as devices_router  # noqa: E402
 from remander.routes.guest_dashboard import router as guest_dashboard_router  # noqa: E402
 from remander.routes.tags import router as tags_router  # noqa: E402
+from remander.routes.users import router as users_router  # noqa: E402
 
+# Public routes — no auth required
 app.include_router(dashboard_router)
 app.include_router(guest_dashboard_router)
-app.include_router(devices_router)
-app.include_router(bitmasks_router)
-app.include_router(tags_router)
-app.include_router(commands_router)
-app.include_router(dashboard_buttons_router)
-app.include_router(activity_router)
-app.include_router(admin_router)
+app.include_router(auth_router)
+
+# Protected routes — valid session required
+app.include_router(devices_router,            dependencies=[Depends(get_current_user)])
+app.include_router(bitmasks_router,           dependencies=[Depends(get_current_user)])
+app.include_router(tags_router,               dependencies=[Depends(get_current_user)])
+app.include_router(commands_router,           dependencies=[Depends(get_current_user)])
+app.include_router(dashboard_buttons_router,  dependencies=[Depends(get_current_user)])
+app.include_router(activity_router,           dependencies=[Depends(get_current_user)])
+app.include_router(admin_router,              dependencies=[Depends(get_current_user)])
+
+# Admin-only routes
+app.include_router(users_router,              dependencies=[Depends(require_admin)])
 
 
 @app.get("/health")

@@ -93,15 +93,15 @@ class TestMainDashboardFiltersShowOnMain:
 
 
 class TestDashboardButtonFormShowsCheckboxes:
-    async def test_create_form_has_show_on_main_checkbox(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/create")
+    async def test_create_form_has_show_on_main_checkbox(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/create")
         assert "show_on_main" in response.text
 
-    async def test_create_form_has_show_on_guest_checkbox(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/create")
+    async def test_create_form_has_show_on_guest_checkbox(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/create")
         assert "show_on_guest" in response.text
 
-    async def test_create_saves_show_on_guest_flag(self, client: AsyncClient) -> None:
+    async def test_create_saves_show_on_guest_flag(self, logged_in_client: AsyncClient) -> None:
         from remander.models.dashboard_button import DashboardButton
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
@@ -109,7 +109,7 @@ class TestDashboardButtonFormShowsCheckboxes:
 
         tag = await create_tag("g-tag")
         bm = await create_hour_bitmask("G Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        await client.post(
+        await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Guest Save Test",
@@ -128,7 +128,7 @@ class TestDashboardButtonFormShowsCheckboxes:
         assert btn is not None
         assert btn.show_on_guest is True
 
-    async def test_create_show_on_main_defaults_true(self, client: AsyncClient) -> None:
+    async def test_create_show_on_main_defaults_true(self, logged_in_client: AsyncClient) -> None:
         from remander.models.dashboard_button import DashboardButton
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
@@ -136,7 +136,7 @@ class TestDashboardButtonFormShowsCheckboxes:
 
         tag = await create_tag("m-tag")
         bm = await create_hour_bitmask("M Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        await client.post(
+        await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Main Default Test",
@@ -155,36 +155,36 @@ class TestDashboardButtonFormShowsCheckboxes:
         assert btn is not None
         assert btn.show_on_main is False  # unchecked = False
 
-    async def test_edit_form_preserves_show_on_guest(self, client: AsyncClient) -> None:
+    async def test_edit_form_preserves_show_on_guest(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("Guest Btn", show_on_guest=True)
-        response = await client.get(f"/dashboard-buttons/{btn.id}/edit")
+        response = await logged_in_client.get(f"/dashboard-buttons/{btn.id}/edit")
         assert response.status_code == 200
         # The checkbox should be checked
         assert 'checked' in response.text
 
 
 class TestGuestHomePinPad:
-    async def test_home_button_on_guest_dashboard_shows_pin_pad(self, client: AsyncClient) -> None:
+    async def test_home_button_on_guest_dashboard_shows_pin_pad(self, logged_in_client: AsyncClient) -> None:
         await _make_button("Go Home", ButtonOperationType.HOME, show_on_guest=True)
-        response = await client.get("/d")
+        response = await logged_in_client.get("/d")
         assert 'name="pin"' in response.text
 
-    async def test_away_button_on_guest_dashboard_has_no_pin_pad(self, client: AsyncClient) -> None:
+    async def test_away_button_on_guest_dashboard_has_no_pin_pad(self, logged_in_client: AsyncClient) -> None:
         await _make_button("Go Away", ButtonOperationType.AWAY, show_on_guest=True)
-        response = await client.get("/d")
+        response = await logged_in_client.get("/d")
         assert 'name="pin"' not in response.text
 
-    async def test_home_button_uses_guest_execute_route(self, client: AsyncClient) -> None:
+    async def test_home_button_uses_guest_execute_route(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("Go Home", ButtonOperationType.HOME, show_on_guest=True)
-        response = await client.get("/d")
+        response = await logged_in_client.get("/d")
         assert f"/d/execute/button/{btn.id}" in response.text
 
     @patch("remander.routes.guest_dashboard.enqueue_command", new_callable=AsyncMock)
     async def test_execute_home_with_correct_pin_redirects(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Go Home", ButtonOperationType.HOME, show_on_guest=True)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/d/execute/button/{btn.id}",
             data={"pin": "5555"},
             follow_redirects=False,
@@ -195,10 +195,10 @@ class TestGuestHomePinPad:
 
     @patch("remander.routes.guest_dashboard.enqueue_command", new_callable=AsyncMock)
     async def test_execute_home_with_wrong_pin_redirects_with_error(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Go Home", ButtonOperationType.HOME, show_on_guest=True)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/d/execute/button/{btn.id}",
             data={"pin": "1234"},
             follow_redirects=False,
@@ -207,16 +207,16 @@ class TestGuestHomePinPad:
         assert "pin_error=1" in response.headers["location"]
         mock_enqueue.assert_not_called()
 
-    async def test_guest_dashboard_shows_pin_error_banner(self, client: AsyncClient) -> None:
-        response = await client.get("/d?pin_error=1")
+    async def test_guest_dashboard_shows_pin_error_banner(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/d?pin_error=1")
         assert "incorrect" in response.text.lower()
 
     @patch("remander.routes.guest_dashboard.enqueue_command", new_callable=AsyncMock)
     async def test_execute_away_button_needs_no_pin(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Go Away", ButtonOperationType.AWAY, show_on_guest=True)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/d/execute/button/{btn.id}",
             data={},
             follow_redirects=False,
@@ -225,18 +225,18 @@ class TestGuestHomePinPad:
         assert response.headers["location"] == "/d"
         mock_enqueue.assert_called_once()
 
-    async def test_pin_pad_shows_digit_buttons(self, client: AsyncClient) -> None:
+    async def test_pin_pad_shows_digit_buttons(self, logged_in_client: AsyncClient) -> None:
         await _make_button("Go Home", ButtonOperationType.HOME, show_on_guest=True)
-        response = await client.get("/d")
+        response = await logged_in_client.get("/d")
         # Phone keypad digits 0-9 should all be present
         for digit in "0123456789":
             assert digit in response.text
 
     @patch("remander.routes.guest_dashboard.enqueue_command", new_callable=AsyncMock)
     async def test_execute_missing_button_returns_404(
-        self, _mock: AsyncMock, client: AsyncClient
+        self, _mock: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
-        response = await client.post(
+        response = await logged_in_client.post(
             "/d/execute/button/9999",
             data={"pin": "5555"},
             follow_redirects=False,
@@ -245,14 +245,14 @@ class TestGuestHomePinPad:
 
 
 class TestSingleGuestHomeButtonEnforcement:
-    async def test_can_create_first_guest_home_button(self, client: AsyncClient) -> None:
+    async def test_can_create_first_guest_home_button(self, logged_in_client: AsyncClient) -> None:
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
         from remander.services.tag import create_tag
 
         tag = await create_tag("home-tag")
         bm = await create_hour_bitmask("Home Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Go Home",
@@ -269,7 +269,7 @@ class TestSingleGuestHomeButtonEnforcement:
         )
         assert response.status_code == 303
 
-    async def test_create_second_guest_home_button_returns_422(self, client: AsyncClient) -> None:
+    async def test_create_second_guest_home_button_returns_422(self, logged_in_client: AsyncClient) -> None:
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
         from remander.services.tag import create_tag
@@ -279,7 +279,7 @@ class TestSingleGuestHomeButtonEnforcement:
 
         tag = await create_tag("home-tag2")
         bm = await create_hour_bitmask("Home Mask2", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Second Home",
@@ -297,7 +297,7 @@ class TestSingleGuestHomeButtonEnforcement:
         assert response.status_code == 422
         assert "one" in response.text.lower() or "guest" in response.text.lower()
 
-    async def test_can_create_multiple_guest_away_buttons(self, client: AsyncClient) -> None:
+    async def test_can_create_multiple_guest_away_buttons(self, logged_in_client: AsyncClient) -> None:
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
         from remander.services.tag import create_tag
@@ -306,7 +306,7 @@ class TestSingleGuestHomeButtonEnforcement:
 
         tag = await create_tag("away-tag2")
         bm = await create_hour_bitmask("Away Mask2", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Away 2",
@@ -323,7 +323,7 @@ class TestSingleGuestHomeButtonEnforcement:
         )
         assert response.status_code == 303
 
-    async def test_edit_to_add_second_guest_home_returns_422(self, client: AsyncClient) -> None:
+    async def test_edit_to_add_second_guest_home_returns_422(self, logged_in_client: AsyncClient) -> None:
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
         from remander.services.tag import create_tag
@@ -337,7 +337,7 @@ class TestSingleGuestHomeButtonEnforcement:
         tag = await create_tag("edit-home-tag")
         bm = await create_hour_bitmask("Edit Home Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
         await save_button_rules(btn2.id, [(tag.id, bm.id)])
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn2.id}/edit",
             data={
                 "name": "Now Home",
@@ -355,7 +355,7 @@ class TestSingleGuestHomeButtonEnforcement:
         )
         assert response.status_code == 422
 
-    async def test_edit_existing_guest_home_button_allowed(self, client: AsyncClient) -> None:
+    async def test_edit_existing_guest_home_button_allowed(self, logged_in_client: AsyncClient) -> None:
         from remander.services.bitmask import create_hour_bitmask
         from remander.models.enums import HourBitmaskSubtype
         from remander.services.tag import create_tag
@@ -365,7 +365,7 @@ class TestSingleGuestHomeButtonEnforcement:
         tag = await create_tag("gh-tag")
         bm = await create_hour_bitmask("GH Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
         await save_button_rules(btn.id, [(tag.id, bm.id)])
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "Go Home Renamed",

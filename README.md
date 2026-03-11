@@ -20,6 +20,51 @@ make migrate
 make run-dev
 ```
 
+## Authentication & First-Run Setup
+
+### Required: session secret key
+
+Before starting the app you must set `SESSION_SECRET_KEY` in `.env`. The app refuses to start without it.
+
+```bash
+# Generate a secure random key
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Add it to `.env`:
+
+```env
+SESSION_SECRET_KEY=<the generated value>
+```
+
+### First-run setup (`/setup`)
+
+On a fresh install with no users, visiting `/login` automatically redirects to `/setup`. This is a one-time bootstrap page for creating the first administrator account.
+
+1. Navigate to `http://localhost:8000/setup` (or `/login` — it redirects there automatically)
+2. Enter an email address, an optional display name, and a password (minimum 8 characters)
+3. Click **Create Admin Account**
+4. You're redirected to `/login` — sign in with the credentials you just created
+
+Once any user exists, `/setup` returns **404** permanently. It is not possible to accidentally re-run setup on a populated database.
+
+### User management
+
+After the first admin account exists, additional users are managed at **Admin → Users** (`/admin/users`):
+
+- **Invite a user** — enter their email address; they receive a time-limited invitation link (valid 7 days) to set their own password
+- **Toggle active/admin** — activate/deactivate accounts and grant or revoke admin privileges
+- **Resend invite** — if the invitation link has expired, generate a new one
+- **View history** — see a log of login events (method, IP address, timestamp) for each user
+
+Password reset is available to all users via `/forgot-password` — they receive an email with a reset link (valid 1 hour).
+
+### Token-based dashboard access
+
+The main dashboard (`/`) accepts an optional `?token=` query parameter. This allows embedding a direct link in a home automation system (e.g., Home Assistant) that pre-authenticates a specific user without requiring a browser session. Token values are managed per-user in Admin → Users.
+
+---
+
 ## Configuration
 
 Most settings are managed through the admin UI at **Admin → Settings** (`/admin/settings`) — no `.env` editing needed after initial setup.
@@ -285,6 +330,7 @@ plugins/remander-hot-water/
 |------|---------------|
 | [`docs/plugin-architecture.md`](docs/plugin-architecture.md) | Plugin discovery, `RemandPlugin` protocol, `DashboardWidget`, `SettingField`, `PluginRegistry`, template namespacing, `plugin_data` storage |
 | [`docs/configuration.md`](docs/configuration.md) | `AppConfig` table, settings cache overlay, plugin config cache, admin UI design, secret field UX |
+| [`docs/authentication.md`](docs/authentication.md) | Session auth, password reset, user invitations, token-based dashboard access, command attribution, access history |
 
 ---
 

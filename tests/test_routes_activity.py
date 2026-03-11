@@ -8,12 +8,12 @@ from tests.factories import create_camera, create_command
 
 
 class TestActivityLog:
-    async def test_get_activity_returns_200(self, client: AsyncClient) -> None:
-        response = await client.get("/activity")
+    async def test_get_activity_returns_200(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/activity")
         assert response.status_code == 200
         assert "Activity" in response.text
 
-    async def test_shows_activity_entries(self, client: AsyncClient) -> None:
+    async def test_shows_activity_entries(self, logged_in_client: AsyncClient) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
             status=CommandStatus.SUCCEEDED,
@@ -23,10 +23,10 @@ class TestActivityLog:
             step_name="NVRLoginNode",
             status=ActivityStatus.SUCCEEDED,
         )
-        response = await client.get("/activity")
+        response = await logged_in_client.get("/activity")
         assert "NVRLoginNode" in response.text
 
-    async def test_filter_by_command_id(self, client: AsyncClient) -> None:
+    async def test_filter_by_command_id(self, logged_in_client: AsyncClient) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
             status=CommandStatus.SUCCEEDED,
@@ -36,11 +36,11 @@ class TestActivityLog:
             step_name="FilterNode",
             status=ActivityStatus.SUCCEEDED,
         )
-        response = await client.get(f"/activity?command_id={cmd.id}")
+        response = await logged_in_client.get(f"/activity?command_id={cmd.id}")
         assert response.status_code == 200
         assert "FilterNode" in response.text
 
-    async def test_filter_by_device_id(self, client: AsyncClient) -> None:
+    async def test_filter_by_device_id(self, logged_in_client: AsyncClient) -> None:
         cam = await create_camera(name="Log Cam")
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
@@ -52,11 +52,11 @@ class TestActivityLog:
             status=ActivityStatus.SUCCEEDED,
             device_id=cam.id,
         )
-        response = await client.get(f"/activity?device_id={cam.id}")
+        response = await logged_in_client.get(f"/activity?device_id={cam.id}")
         assert response.status_code == 200
         assert "SetBitmask" in response.text
 
-    async def test_filter_by_status(self, client: AsyncClient) -> None:
+    async def test_filter_by_status(self, logged_in_client: AsyncClient) -> None:
         cmd = await create_command(
             command_type=CommandType.SET_AWAY_NOW,
             status=CommandStatus.FAILED,
@@ -66,6 +66,6 @@ class TestActivityLog:
             step_name="FailedStep",
             status=ActivityStatus.FAILED,
         )
-        response = await client.get("/activity?status=failed")
+        response = await logged_in_client.get("/activity?status=failed")
         assert response.status_code == 200
         assert "FailedStep" in response.text

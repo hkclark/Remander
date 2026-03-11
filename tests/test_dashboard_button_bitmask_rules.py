@@ -170,10 +170,10 @@ class TestListRulesForButton:
 
 
 class TestButtonCreateRouteWithRules:
-    async def test_create_with_rules_redirects(self, client: AsyncClient) -> None:
+    async def test_create_with_rules_redirects(self, logged_in_client: AsyncClient) -> None:
         tag = await create_tag("my-tag")
         bm = await _make_bitmask("My Mask")
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Test Button",
@@ -188,8 +188,8 @@ class TestButtonCreateRouteWithRules:
         )
         assert response.status_code == 303
 
-    async def test_create_without_rules_returns_422(self, client: AsyncClient) -> None:
-        response = await client.post(
+    async def test_create_without_rules_returns_422(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Test Button",
@@ -203,8 +203,8 @@ class TestButtonCreateRouteWithRules:
         assert response.status_code == 422
         assert "required" in response.text.lower()
 
-    async def test_create_without_rules_preserves_field_values(self, client: AsyncClient) -> None:
-        response = await client.post(
+    async def test_create_without_rules_preserves_field_values(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "My Preserved Name",
@@ -221,7 +221,7 @@ class TestButtonCreateRouteWithRules:
         assert 'value="7"' in response.text
 
     async def test_create_with_overlapping_tags_returns_422_with_device_names(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         cam = await create_device(name="Shared Camera", is_enabled=True)
         tag1 = await create_tag("tag-one")
@@ -229,7 +229,7 @@ class TestButtonCreateRouteWithRules:
         await tag1.devices.add(cam)
         await tag2.devices.add(cam)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Test Button",
@@ -246,7 +246,7 @@ class TestButtonCreateRouteWithRules:
         assert "Shared Camera" in response.text
 
     async def test_create_with_overlapping_tags_preserves_field_values(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         cam = await create_device(name="Overlap Cam", is_enabled=True)
         tag1 = await create_tag("ov-tag-a")
@@ -254,7 +254,7 @@ class TestButtonCreateRouteWithRules:
         await tag1.devices.add(cam)
         await tag2.devices.add(cam)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Overlap Preserved",
@@ -273,14 +273,14 @@ class TestButtonCreateRouteWithRules:
         assert 'value="3"' in response.text
 
     async def test_create_with_uncovered_devices_shows_warning(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         cam_tagged = await create_device(name="Tagged Cam", is_enabled=True)
         await create_device(name="Uncovered Cam", is_enabled=True)
         tag = await create_tag("partial-tag")
         await tag.devices.add(cam_tagged)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Test Button",
@@ -297,7 +297,7 @@ class TestButtonCreateRouteWithRules:
         assert "Uncovered Cam" in response.text
 
     async def test_create_warning_preserves_submitted_field_values(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         """Field values (name, color, delay, sort) must survive the coverage-warning re-render."""
         cam_tagged = await create_device(name="Tagged Cam", is_enabled=True)
@@ -305,7 +305,7 @@ class TestButtonCreateRouteWithRules:
         tag = await create_tag("partial-tag-2")
         await tag.devices.add(cam_tagged)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "My Special Button",
@@ -324,14 +324,14 @@ class TestButtonCreateRouteWithRules:
         assert 'value="5"' in response.text
 
     async def test_create_with_force_save_saves_despite_uncovered(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         cam_tagged = await create_device(name="Tagged Cam", is_enabled=True)
         await create_device(name="Uncovered Cam", is_enabled=True)
         tag = await create_tag("partial-tag")
         await tag.devices.add(cam_tagged)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Force Save Button",
@@ -349,21 +349,21 @@ class TestButtonCreateRouteWithRules:
 
 
 class TestButtonEditRouteWithRules:
-    async def test_edit_form_shows_existing_rules(self, client: AsyncClient) -> None:
+    async def test_edit_form_shows_existing_rules(self, logged_in_client: AsyncClient) -> None:
         from remander.services.dashboard_button import save_button_rules
 
         btn = await _make_button("My Button")
         tag = await create_tag("edit-tag")
         bm = await _make_bitmask("Edit Mask")
         await save_button_rules(btn.id, [(tag.id, bm.id)])
-        response = await client.get(f"/dashboard-buttons/{btn.id}/edit")
+        response = await logged_in_client.get(f"/dashboard-buttons/{btn.id}/edit")
         assert response.status_code == 200
         assert "edit-tag" in response.text
         assert "Edit Mask" in response.text
 
-    async def test_edit_without_rules_returns_422(self, client: AsyncClient) -> None:
+    async def test_edit_without_rules_returns_422(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("My Button")
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "My Button",
@@ -378,10 +378,10 @@ class TestButtonEditRouteWithRules:
         assert response.status_code == 422
 
     async def test_edit_without_rules_preserves_submitted_field_values(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Old Name")
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "New Unsaved Name",
@@ -399,7 +399,7 @@ class TestButtonEditRouteWithRules:
         assert 'value="4"' in response.text
 
     async def test_edit_with_overlapping_tags_returns_422_with_device_names(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("My Button")
         cam = await create_device(name="Overlap Device", is_enabled=True)
@@ -408,7 +408,7 @@ class TestButtonEditRouteWithRules:
         await tag1.devices.add(cam)
         await tag2.devices.add(cam)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "My Button",
@@ -426,7 +426,7 @@ class TestButtonEditRouteWithRules:
         assert "Overlap Device" in response.text
 
     async def test_edit_with_overlapping_tags_preserves_submitted_field_values(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Old Name")
         cam = await create_device(name="Edit Overlap Cam", is_enabled=True)
@@ -435,7 +435,7 @@ class TestButtonEditRouteWithRules:
         await tag1.devices.add(cam)
         await tag2.devices.add(cam)
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "Changed Name",
@@ -454,13 +454,13 @@ class TestButtonEditRouteWithRules:
         assert 'value="55"' in response.text
         assert 'value="2"' in response.text
 
-    async def test_edit_saves_rules_on_valid_submit(self, client: AsyncClient) -> None:
+    async def test_edit_saves_rules_on_valid_submit(self, logged_in_client: AsyncClient) -> None:
         from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
 
         btn = await _make_button("My Button")
         tag = await create_tag("new-tag")
         bm = await _make_bitmask()
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "My Button",

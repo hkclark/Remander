@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Access History - Remander{% endblock %}
+{% block nav_admin %}bg-gray-900{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/admin/users" class="text-sm text-blue-600 hover:underline">&larr; Users</a>
+        <h1 class="text-2xl font-bold text-gray-900">
+            Access History — {{ subject_user.display_name or subject_user.email }}
+        </h1>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Path</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            {% for log in logs %}
+            <tr>
+                <td class="px-4 py-3 text-sm font-mono text-gray-700">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td class="px-4 py-3">
+                    {% if log.method == 'password' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">password</span>
+                    {% elif log.method == 'token' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">token</span>
+                    {% elif log.method == 'password_reset' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">password reset</span>
+                    {% elif log.method == 'invitation' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">invitation</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">{{ log.method }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ log.ip_address or '—' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">{{ log.path or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">No access history.</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

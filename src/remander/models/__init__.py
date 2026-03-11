@@ -24,6 +24,8 @@ from remander.models.enums import (
 from remander.models.plugin_data import PluginData
 from remander.models.state import AppState, SavedDeviceState
 from remander.models.tag import Tag
+from remander.models.user import User
+from remander.models.user_access_log import UserAccessLog
 
 __all__ = [
     "AppConfig",
@@ -50,5 +52,7 @@ __all__ = [
     "PowerDeviceSubtype",
     "SavedDeviceState",
     "Tag",
+    "User",
+    "UserAccessLog",
     "ZoneMask",
 ]

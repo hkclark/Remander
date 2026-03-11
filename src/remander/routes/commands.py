@@ -1,11 +1,13 @@
 """Command route handlers — execution, history, detail, cancellation."""
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from remander.auth import get_current_user
 from remander.models.dashboard_button import DashboardButton
 from remander.models.device import Device
 from remander.models.enums import ButtonOperationType, CommandType, Mode
+from remander.models.user import User
 from remander.services.bitmask import find_devices_missing_bitmasks
 from remander.services.command import (
     cancel_command,
@@ -79,6 +81,10 @@ async def _bitmask_error_response(
     )
 
 
+def _user_label(user: User) -> str:
+    return user.display_name or user.email
+
+
 @router.get("/execute", response_class=HTMLResponse)
 async def command_execute_page(request: Request) -> HTMLResponse:
     from remander.main import templates
@@ -92,13 +98,16 @@ async def command_execute_page(request: Request) -> HTMLResponse:
 
 
 @router.post("/execute/set-away-now")
-async def execute_set_away_now(request: Request, user: str | None = None) -> Response:
+async def execute_set_away_now(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> Response:
     if error := await _bitmask_error_response(request, tag_filter=None, mode=Mode.AWAY):
         return error
     cmd = await create_command(
         CommandType.SET_AWAY_NOW,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)
@@ -108,6 +117,7 @@ async def execute_set_away_now(request: Request, user: str | None = None) -> Res
 async def execute_set_away_delayed(
     request: Request,
     delay_minutes: str = Form(...),
+    current_user: User = Depends(get_current_user),
 ) -> Response:
     if error := await _bitmask_error_response(request, tag_filter=None, mode=Mode.AWAY):
         return error
@@ -115,18 +125,21 @@ async def execute_set_away_delayed(
         CommandType.SET_AWAY_DELAYED,
         delay_minutes=int(delay_minutes),
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)
 
 
 @router.post("/execute/set-home-now")
-async def execute_set_home_now(request: Request) -> RedirectResponse:
+async def execute_set_home_now(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> RedirectResponse:
     cmd = await create_command(
         CommandType.SET_HOME_NOW,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)
@@ -137,6 +150,7 @@ async def execute_pause_notifications(
     request: Request,
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
+    current_user: User = Depends(get_current_user),
 ) -> Response:
     if tag_filter:
         if error := await _empty_tag_error_response(request, tag_filter):
@@ -148,7 +162,7 @@ async def execute_pause_notifications(
         pause_minutes=int(pause_minutes),
         tag_filter=tag_filter if tag_filter else None,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)
@@ -159,6 +173,7 @@ async def execute_pause_recording(
     request: Request,
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
+    current_user: User = Depends(get_current_user),
 ) -> Response:
     if tag_filter:
         if error := await _empty_tag_error_response(request, tag_filter):
@@ -170,19 +185,22 @@ async def execute_pause_recording(
         pause_minutes=int(pause_minutes),
         tag_filter=tag_filter if tag_filter else None,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)
 
 
 @router.post("/execute/button/{button_id}")
-async def execute_button(request: Request, button_id: int) -> Response:
+async def execute_button(
+    request: Request,
+    button_id: int,
+    current_user: User = Depends(get_current_user),
+) -> Response:
     button = await DashboardButton.get_or_none(id=button_id)
     if button is None:
         return HTMLResponse("Button not found", status_code=404)
 
-    # Map operation type to command type
     match button.operation_type:
         case ButtonOperationType.AWAY:
             command_type = CommandType.SET_AWAY_NOW
@@ -196,7 +214,7 @@ async def execute_button(request: Request, button_id: int) -> Response:
         delay_seconds=button.delay_seconds if button.delay_seconds else None,
         dashboard_button_id=button.id,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=request.query_params.get("user"),
+        initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
     return RedirectResponse(url="/", status_code=303)

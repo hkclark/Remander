@@ -127,6 +127,9 @@ READ_ONLY_SETTINGS = [
     "nvr_debug",
     "nvr_debug_max_length",
     "workflow_debug",
+    "session_secret_key",
+    "password_reset_expiry_seconds",
+    "invitation_expiry_seconds",
 ]
 
 _GROUP_BY_ID = {g.id: g for g in CORE_SETTINGS_GROUPS}
@@ -145,18 +148,23 @@ def _coerce_value(raw: str, field_type: str) -> Any:
 
 @router.get("", response_class=HTMLResponse)
 async def admin_index(request: Request) -> HTMLResponse:
+    from remander.auth import get_current_user_optional
     from remander.main import templates
 
-    return templates.TemplateResponse(request, "admin/index.html", {})
+    current_user = await get_current_user_optional(request)
+    return templates.TemplateResponse(request, "admin/index.html", {"current_user": current_user})
 
 
 @router.get("/settings", response_class=HTMLResponse)
 async def admin_settings(request: Request) -> HTMLResponse:
     """Settings page — shows all configurable fields grouped by section."""
+    from remander.auth import get_current_user_optional
     from remander.config import get_settings
     from remander.main import templates
     from remander.plugins.registry import get_registry
     from remander.services.app_config import get_all_config
+
+    current_user = await get_current_user_optional(request)
 
     settings = get_settings()
     settings_dict = settings.model_dump()
@@ -207,6 +215,7 @@ async def admin_settings(request: Request) -> HTMLResponse:
             "groups_with_values": groups_with_values,
             "read_only_values": read_only_values,
             "plugin_sections": plugin_sections,
+            "current_user": current_user,
         },
     )
 

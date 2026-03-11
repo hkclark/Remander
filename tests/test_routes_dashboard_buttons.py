@@ -28,41 +28,41 @@ async def _make_button_with_rule(name: str, op_type: ButtonOperationType, **kwar
 
 
 class TestButtonList:
-    async def test_get_list_returns_200(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons")
+    async def test_get_list_returns_200(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons")
         assert response.status_code == 200
 
-    async def test_shows_button_in_list(self, client: AsyncClient) -> None:
+    async def test_shows_button_in_list(self, logged_in_client: AsyncClient) -> None:
         await _make_button("Go Away", ButtonOperationType.AWAY)
-        response = await client.get("/dashboard-buttons")
+        response = await logged_in_client.get("/dashboard-buttons")
         assert "Go Away" in response.text
 
-    async def test_shows_empty_message_when_no_buttons(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons")
+    async def test_shows_empty_message_when_no_buttons(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons")
         assert "No buttons configured" in response.text
 
 
 class TestButtonCreate:
-    async def test_get_create_form_returns_200(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/create")
+    async def test_get_create_form_returns_200(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/create")
         assert response.status_code == 200
         assert "form" in response.text.lower()
 
-    async def test_create_form_shows_operation_types(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/create")
+    async def test_create_form_shows_operation_types(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/create")
         assert "away" in response.text.lower()
         assert "home" in response.text.lower()
         assert "other" in response.text.lower()
 
-    async def test_create_form_shows_color_options(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/create")
+    async def test_create_form_shows_color_options(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/create")
         assert "blue" in response.text.lower()
         assert "red" in response.text.lower()
 
-    async def test_post_create_redirects(self, client: AsyncClient) -> None:
+    async def test_post_create_redirects(self, logged_in_client: AsyncClient) -> None:
         tag = await create_tag("away-tag")
         bm = await create_hour_bitmask("Away Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        response = await client.post(
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Set Away",
@@ -79,8 +79,8 @@ class TestButtonCreate:
         assert response.status_code == 303
         assert "/dashboard-buttons" in response.headers["location"]
 
-    async def test_post_create_without_rules_returns_422(self, client: AsyncClient) -> None:
-        response = await client.post(
+    async def test_post_create_without_rules_returns_422(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Set Away",
@@ -94,10 +94,10 @@ class TestButtonCreate:
         assert response.status_code == 422
         assert "required" in response.text.lower()
 
-    async def test_post_create_stores_delay_seconds(self, client: AsyncClient) -> None:
+    async def test_post_create_stores_delay_seconds(self, logged_in_client: AsyncClient) -> None:
         tag = await create_tag("delay-tag")
         bm = await create_hour_bitmask("Delay Mask", HourBitmaskSubtype.STATIC, static_value="1" * 24)
-        await client.post(
+        await logged_in_client.post(
             "/dashboard-buttons/create",
             data={
                 "name": "Delayed Away",
@@ -111,24 +111,24 @@ class TestButtonCreate:
             },
             follow_redirects=True,
         )
-        response = await client.get("/dashboard-buttons")
+        response = await logged_in_client.get("/dashboard-buttons")
         assert "45" in response.text
 
 
 class TestButtonEdit:
-    async def test_get_edit_form_returns_200(self, client: AsyncClient) -> None:
+    async def test_get_edit_form_returns_200(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("Edit Me", ButtonOperationType.HOME)
-        response = await client.get(f"/dashboard-buttons/{btn.id}/edit")
+        response = await logged_in_client.get(f"/dashboard-buttons/{btn.id}/edit")
         assert response.status_code == 200
         assert "Edit Me" in response.text
 
-    async def test_get_edit_form_404_for_missing(self, client: AsyncClient) -> None:
-        response = await client.get("/dashboard-buttons/9999/edit")
+    async def test_get_edit_form_404_for_missing(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/dashboard-buttons/9999/edit")
         assert response.status_code == 404
 
-    async def test_post_edit_updates_name(self, client: AsyncClient) -> None:
+    async def test_post_edit_updates_name(self, logged_in_client: AsyncClient) -> None:
         btn, tag, bm = await _make_button_with_rule("Old Name", ButtonOperationType.AWAY)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "New Name",
@@ -147,9 +147,9 @@ class TestButtonEdit:
         await btn.refresh_from_db()
         assert btn.name == "New Name"
 
-    async def test_post_edit_without_rules_returns_422(self, client: AsyncClient) -> None:
+    async def test_post_edit_without_rules_returns_422(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("No Rules", ButtonOperationType.AWAY)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "No Rules",
@@ -162,9 +162,9 @@ class TestButtonEdit:
         )
         assert response.status_code == 422
 
-    async def test_post_edit_can_disable(self, client: AsyncClient) -> None:
+    async def test_post_edit_can_disable(self, logged_in_client: AsyncClient) -> None:
         btn, tag, bm = await _make_button_with_rule("Active", ButtonOperationType.AWAY, is_enabled=True)
-        await client.post(
+        await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/edit",
             data={
                 "name": "Active",
@@ -184,28 +184,28 @@ class TestButtonEdit:
 
 
 class TestButtonDelete:
-    async def test_post_delete_redirects(self, client: AsyncClient) -> None:
+    async def test_post_delete_redirects(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("Delete Me", ButtonOperationType.HOME)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/dashboard-buttons/{btn.id}/delete",
             follow_redirects=False,
         )
         assert response.status_code == 303
 
-    async def test_post_delete_removes_button(self, client: AsyncClient) -> None:
+    async def test_post_delete_removes_button(self, logged_in_client: AsyncClient) -> None:
         btn = await _make_button("Gone", ButtonOperationType.AWAY)
-        await client.post(f"/dashboard-buttons/{btn.id}/delete", follow_redirects=False)
-        response = await client.get("/dashboard-buttons")
+        await logged_in_client.post(f"/dashboard-buttons/{btn.id}/delete", follow_redirects=False)
+        response = await logged_in_client.get("/dashboard-buttons")
         assert "Gone" not in response.text
 
 
 class TestExecuteButton:
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_execute_away_button(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Away", ButtonOperationType.AWAY)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/commands/execute/button/{btn.id}", follow_redirects=False
         )
         assert response.status_code == 303
@@ -213,10 +213,10 @@ class TestExecuteButton:
 
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_execute_home_button(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Home", ButtonOperationType.HOME)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/commands/execute/button/{btn.id}", follow_redirects=False
         )
         assert response.status_code == 303
@@ -224,66 +224,66 @@ class TestExecuteButton:
 
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_execute_other_button(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Custom", ButtonOperationType.OTHER)
-        response = await client.post(
+        response = await logged_in_client.post(
             f"/commands/execute/button/{btn.id}", follow_redirects=False
         )
         assert response.status_code == 303
         mock_enqueue.assert_called_once()
 
-    async def test_execute_missing_button_returns_404(self, client: AsyncClient) -> None:
-        response = await client.post(
+    async def test_execute_missing_button_returns_404(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.post(
             "/commands/execute/button/9999", follow_redirects=False
         )
         assert response.status_code == 404
 
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_away_button_creates_set_away_now_command(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Away", ButtonOperationType.AWAY)
-        await client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
+        await logged_in_client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
         cmd = await Command.filter(command_type=CommandType.SET_AWAY_NOW).first()
         assert cmd is not None
         assert cmd.dashboard_button_id == btn.id
 
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_other_button_creates_apply_bitmask_command(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button("Custom", ButtonOperationType.OTHER)
-        await client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
+        await logged_in_client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
         cmd = await Command.filter(command_type=CommandType.APPLY_BITMASK).first()
         assert cmd is not None
 
     @patch("remander.routes.commands.enqueue_command", new_callable=AsyncMock)
     async def test_button_with_delay_stores_delay_seconds(
-        self, mock_enqueue: AsyncMock, client: AsyncClient
+        self, mock_enqueue: AsyncMock, logged_in_client: AsyncClient
     ) -> None:
         btn = await _make_button(
             "Delayed", ButtonOperationType.AWAY, delay_seconds=30
         )
-        await client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
+        await logged_in_client.post(f"/commands/execute/button/{btn.id}", follow_redirects=False)
         cmd = await Command.filter(dashboard_button_id=btn.id).first()
         assert cmd is not None
         assert cmd.delay_seconds == 30
 
 
 class TestDashboardShowsButtons:
-    async def test_dashboard_shows_configured_buttons(self, client: AsyncClient) -> None:
+    async def test_dashboard_shows_configured_buttons(self, logged_in_client: AsyncClient) -> None:
         await _make_button("My Away Button", ButtonOperationType.AWAY)
-        response = await client.get("/")
+        response = await logged_in_client.get("/")
         assert "My Away Button" in response.text
 
-    async def test_dashboard_excludes_disabled_buttons(self, client: AsyncClient) -> None:
+    async def test_dashboard_excludes_disabled_buttons(self, logged_in_client: AsyncClient) -> None:
         await _make_button("Invisible", ButtonOperationType.AWAY, is_enabled=False)
-        response = await client.get("/")
+        response = await logged_in_client.get("/")
         assert "Invisible" not in response.text
 
     async def test_dashboard_shows_empty_message_with_no_buttons(
-        self, client: AsyncClient
+        self, logged_in_client: AsyncClient
     ) -> None:
-        response = await client.get("/")
+        response = await logged_in_client.get("/")
         assert "No dashboard buttons configured" in response.text
