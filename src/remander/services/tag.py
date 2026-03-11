@@ -16,6 +16,11 @@ async def list_tags() -> list[Tag]:
     return await Tag.all().annotate(device_count=Count("devices"))
 
 
+async def get_tag_with_device_count(tag_id: int) -> Tag | None:
+    """Fetch a single tag annotated with its device count. Returns None if not found."""
+    return await Tag.filter(id=tag_id).annotate(device_count=Count("devices")).first()
+
+
 async def update_tag(
     tag_id: int,
     *,

@@ -1,0 +1,27 @@
+<tr id="tag-row-{{ tag.id }}" class="bg-amber-50">
+    <td colspan="4" class="px-4 py-3">
+        <div class="flex items-center justify-between gap-4">
+            <span class="text-sm text-amber-800">
+                <strong>Delete "{{ tag.name }}"?</strong>
+                &ensp;This tag is assigned to
+                <strong>{{ tag.device_count }} device{{ 's' if tag.device_count != 1 else '' }}</strong>.
+                The tag and its assignments will be removed — the devices themselves will not be affected.
+            </span>
+            <div class="flex items-center gap-2 shrink-0">
+                <form action="/tags/{{ tag.id }}/delete" method="post" class="inline">
+                    <button type="submit"
+                            class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded shadow">
+                        Delete
+                    </button>
+                </form>
+                <button type="button"
+                        hx-get="/tags/{{ tag.id }}/row"
+                        hx-target="#tag-row-{{ tag.id }}"
+                        hx-swap="outerHTML"
+                        class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </td>
+</tr>

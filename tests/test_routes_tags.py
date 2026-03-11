@@ -85,6 +85,53 @@ class TestTagDelete:
         assert "/tags" in response.headers["location"]
 
 
+class TestTagDeleteConfirm:
+    async def test_confirm_shows_device_count(self, logged_in_client: AsyncClient) -> None:
+        tag = await create_tag(name="busy-tag")
+        cam1 = await create_camera(name="Cam A")
+        cam2 = await create_camera(name="Cam B")
+        await cam1.tags.add(tag)
+        await cam2.tags.add(tag)
+
+        response = await logged_in_client.get(f"/tags/{tag.id}/delete-confirm")
+        assert response.status_code == 200
+        assert "2" in response.text
+        assert "busy-tag" in response.text
+
+    async def test_confirm_nonexistent_tag_returns_404(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/tags/99999/delete-confirm")
+        assert response.status_code == 404
+
+    async def test_row_endpoint_returns_tag_name(self, logged_in_client: AsyncClient) -> None:
+        tag = await create_tag(name="row-tag")
+        response = await logged_in_client.get(f"/tags/{tag.id}/row")
+        assert response.status_code == 200
+        assert "row-tag" in response.text
+
+    async def test_row_endpoint_nonexistent_returns_404(self, logged_in_client: AsyncClient) -> None:
+        response = await logged_in_client.get("/tags/99999/row")
+        assert response.status_code == 404
+
+    async def test_tag_list_uses_htmx_confirm_for_tagged_items(
+        self, logged_in_client: AsyncClient
+    ) -> None:
+        tag = await create_tag(name="has-devices")
+        cam = await create_camera(name="Cam C")
+        await cam.tags.add(tag)
+
+        response = await logged_in_client.get("/tags")
+        # Should use hx-get to load the confirmation, not a direct form post
+        assert "delete-confirm" in response.text
+
+    async def test_tag_list_uses_simple_confirm_for_untagged_items(
+        self, logged_in_client: AsyncClient
+    ) -> None:
+        await create_tag(name="no-devices")
+        response = await logged_in_client.get("/tags")
+        # Simple hx-confirm dialog for tags with no devices
+        assert "hx-confirm" in response.text
+
+
 class TestTagEdit:
     async def test_get_edit_form(self, logged_in_client: AsyncClient) -> None:
         tag = await create_tag(name="editable")

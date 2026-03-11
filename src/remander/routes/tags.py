@@ -15,6 +15,7 @@ from remander.services.tag import (
     add_tag_to_device,
     create_tag,
     delete_tag,
+    get_tag_with_device_count,
     list_tags,
     remove_tag_from_device,
     update_tag,
@@ -82,6 +83,26 @@ async def tag_edit(
     if not result:
         return HTMLResponse(status_code=404, content="Tag not found")
     return RedirectResponse(url="/tags", status_code=303)
+
+
+@router.get("/tags/{tag_id}/delete-confirm", response_class=HTMLResponse)
+async def tag_delete_confirm(request: Request, tag_id: int) -> HTMLResponse:
+    from remander.main import templates
+
+    tag = await get_tag_with_device_count(tag_id)
+    if not tag:
+        return HTMLResponse(status_code=404, content="Tag not found")
+    return templates.TemplateResponse(request, "tags/_delete_confirm_row.html", {"tag": tag})
+
+
+@router.get("/tags/{tag_id}/row", response_class=HTMLResponse)
+async def tag_row(request: Request, tag_id: int) -> HTMLResponse:
+    from remander.main import templates
+
+    tag = await get_tag_with_device_count(tag_id)
+    if not tag:
+        return HTMLResponse(status_code=404, content="Tag not found")
+    return templates.TemplateResponse(request, "tags/_tag_row.html", {"tag": tag})
 
 
 @router.post("/tags/{tag_id}/delete")

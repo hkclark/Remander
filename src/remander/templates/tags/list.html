@@ -44,30 +44,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {% for tag in tags %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3">
-                        <span class="inline-flex items-center gap-1.5 font-medium text-gray-900">
-                            <span class="inline-block w-3 h-3 rounded-full {{ tag_badge_classes(tag.color) }}"></span>
-                            {{ tag.name }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ tag.device_count }}</td>
-                    <td class="px-4 py-3 text-center">
-                        <form action="/tags/{{ tag.id }}/toggle-dashboard" method="post" class="inline">
-                            <button type="submit" title="Toggle dashboard visibility"
-                                    class="text-lg {% if tag.show_on_dashboard %}text-amber-500{% else %}text-gray-300 hover:text-gray-400{% endif %}">
-                                {% if tag.show_on_dashboard %}&#9733;{% else %}&#9734;{% endif %}
-                            </button>
-                        </form>
-                    </td>
-                    <td class="px-4 py-3 text-right space-x-2">
-                        <a href="/tags/{{ tag.id }}/edit" class="text-blue-600 hover:underline text-sm">Edit</a>
-                        <form action="/tags/{{ tag.id }}/delete" method="post" class="inline"
-                              hx-confirm="Delete tag '{{ tag.name }}'?">
-                            <button type="submit" class="text-red-600 hover:underline text-sm">Delete</button>
-                        </form>
-                    </td>
-                </tr>
+                {% include "tags/_tag_row.html" %}
                 {% else %}
                 <tr>
                     <td colspan="4" class="px-4 py-8 text-center text-gray-500">No tags created yet.</td>
