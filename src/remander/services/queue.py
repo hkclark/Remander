@@ -119,6 +119,7 @@ async def run_workflow(cmd: Command) -> bool | None:
         notification_sender=notification_sender,
         latitude=settings.latitude,
         longitude=settings.longitude,
+        timezone=settings.timezone,
         power_on_timeout_seconds=settings.power_on_timeout_seconds,
         power_on_poll_interval_seconds=settings.power_on_poll_interval_seconds,
         ptz_settle_seconds=settings.ptz_settle_seconds,
@@ -215,6 +216,7 @@ async def execute_rearm(command_id: int) -> None:
         notification_sender=notification_sender,
         latitude=settings.latitude,
         longitude=settings.longitude,
+        timezone=settings.timezone,
     )
 
     state = WorkflowState(

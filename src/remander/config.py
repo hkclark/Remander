@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Location (sunrise/sunset)
     latitude: float = 0.0
     longitude: float = 0.0
+    timezone: str = "UTC"
 
     # Debug mode
     debug: bool = False

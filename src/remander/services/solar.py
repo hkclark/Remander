@@ -1,6 +1,7 @@
 """Solar service — sunrise/sunset calculation and dynamic bitmask generation."""
 
 import datetime as dt
+import zoneinfo
 
 from astral import LocationInfo
 from astral.sun import sun
@@ -9,18 +10,21 @@ from astral.sun import sun
 async def get_sunrise_sunset(
     latitude: float,
     longitude: float,
+    timezone: str = "UTC",
     date: dt.date | None = None,
 ) -> tuple[dt.datetime, dt.datetime]:
-    """Return (sunrise, sunset) datetimes in UTC for the given location and date.
+    """Return (sunrise, sunset) datetimes in local time for the given location and date.
 
-    Defaults to today if no date is provided.
+    The `timezone` parameter controls the local timezone for the returned datetimes.
+    Defaults to UTC if not provided. Defaults to today if no date is provided.
     """
     if date is None:
         date = dt.date.today()
 
     location = LocationInfo(latitude=latitude, longitude=longitude)
     s = sun(location.observer, date=date)
-    return s["sunrise"], s["sunset"]
+    tz = zoneinfo.ZoneInfo(timezone)
+    return s["sunrise"].astimezone(tz), s["sunset"].astimezone(tz)
 
 
 def _round_to_hour(time: dt.datetime) -> int:

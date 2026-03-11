@@ -34,7 +34,10 @@ async def bitmask_list(request: Request) -> HTMLResponse:
     for bm in hour_bitmasks:
         if bm.subtype == HourBitmaskSubtype.DYNAMIC:
             dynamic_computed[bm.id] = await resolve_hour_bitmask(
-                bm, latitude=settings.latitude, longitude=settings.longitude
+                bm,
+                latitude=settings.latitude,
+                longitude=settings.longitude,
+                timezone=settings.timezone,
             )
 
     return templates.TemplateResponse(

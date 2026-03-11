@@ -60,7 +60,10 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         continue
                     hb = await HourBitmask.get(id=bitmask_id)
                     hour_value = await resolve_hour_bitmask(
-                        hb, latitude=ctx.deps.latitude, longitude=ctx.deps.longitude
+                        hb,
+                        latitude=ctx.deps.latitude,
+                        longitude=ctx.deps.longitude,
+                        timezone=ctx.deps.timezone,
                     )
                     enabled_types = await DeviceDetectionType.filter(
                         device_id=device_id, is_enabled=True
@@ -79,6 +82,7 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                         self.mode,
                         latitude=ctx.deps.latitude,
                         longitude=ctx.deps.longitude,
+                        timezone=ctx.deps.timezone,
                     )
                 for entry in resolved:
                     logger.info(
@@ -163,6 +167,7 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     self.mode,
                     latitude=ctx.deps.latitude,
                     longitude=ctx.deps.longitude,
+                    timezone=ctx.deps.timezone,
                 )
                 for entry in resolved:
                     if entry["zone_mask"]:

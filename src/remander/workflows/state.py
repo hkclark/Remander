@@ -65,6 +65,7 @@ class WorkflowDeps:
     notification_sender: NotificationSender
     latitude: float = 0.0
     longitude: float = 0.0
+    timezone: str = "UTC"
     power_on_timeout_seconds: int = 120
     power_on_poll_interval_seconds: int = 10
     ptz_settle_seconds: int = 10

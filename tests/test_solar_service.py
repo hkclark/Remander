@@ -23,6 +23,30 @@ class TestGetSunriseSunset:
         assert sunrise is not None
         assert sunset is not None
 
+    async def test_local_timezone_returns_local_hours(self) -> None:
+        """With timezone='America/New_York', returned hours should be local (EDT = UTC-4 in June)."""
+        from datetime import date
+
+        sunrise, sunset = await get_sunrise_sunset(
+            40.7128, -74.0060, timezone="America/New_York", date=date(2026, 6, 21)
+        )
+        # NYC EDT sunrise in June is around 5:00-6:00 AM local time
+        assert 5 <= sunrise.hour <= 6
+        # NYC EDT sunset in June is around 8:00-9:00 PM (20:00-21:00) local time
+        assert 20 <= sunset.hour <= 21
+
+    async def test_utc_timezone_matches_default(self) -> None:
+        """timezone='UTC' should produce the same result as no timezone argument."""
+        from datetime import date
+
+        test_date = date(2026, 6, 21)
+        sunrise_default, sunset_default = await get_sunrise_sunset(40.7128, -74.0060, date=test_date)
+        sunrise_utc, sunset_utc = await get_sunrise_sunset(
+            40.7128, -74.0060, timezone="UTC", date=test_date
+        )
+        assert sunrise_default.hour == sunrise_utc.hour
+        assert sunset_default.hour == sunset_utc.hour
+
 
 class TestComputeDynamicBitmask:
     def test_basic_daytime_bitmask(self) -> None:

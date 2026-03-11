@@ -154,16 +154,17 @@ async def resolve_hour_bitmask(
     *,
     latitude: float = 0.0,
     longitude: float = 0.0,
+    timezone: str = "UTC",
 ) -> str:
     """Resolve an hour bitmask to its 24-char value.
 
     Static: returns static_value directly.
-    Dynamic: calculates from sunrise/sunset using the configured location.
+    Dynamic: calculates from sunrise/sunset using the configured location and timezone.
     """
     if hour_bitmask.subtype == HourBitmaskSubtype.STATIC:
         return hour_bitmask.static_value or "0" * 24
 
-    sunrise, sunset = await get_sunrise_sunset(latitude, longitude)
+    sunrise, sunset = await get_sunrise_sunset(latitude, longitude, timezone=timezone)
     return compute_dynamic_bitmask(
         sunrise,
         sunset,
@@ -179,6 +180,7 @@ async def resolve_bitmasks_for_device(
     *,
     latitude: float = 0.0,
     longitude: float = 0.0,
+    timezone: str = "UTC",
 ) -> list[dict]:
     """Resolve hour bitmask + zone mask per enabled detection type for a device in a given mode.
 
@@ -209,7 +211,9 @@ async def resolve_bitmasks_for_device(
 
         if assignment is not None and assignment.hour_bitmask_id is not None:
             hb = await HourBitmask.get(id=assignment.hour_bitmask_id)
-            hour_value = await resolve_hour_bitmask(hb, latitude=latitude, longitude=longitude)
+            hour_value = await resolve_hour_bitmask(
+                hb, latitude=latitude, longitude=longitude, timezone=timezone
+            )
         else:
             hour_value = "0" * 24
 

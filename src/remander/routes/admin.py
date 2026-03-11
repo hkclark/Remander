@@ -141,6 +141,7 @@ CORE_SETTINGS_GROUPS: list[SettingsGroup] = [
         fields=[
             SettingsField("latitude", "Latitude", field_type="float"),
             SettingsField("longitude", "Longitude", field_type="float"),
+            SettingsField("timezone", "Timezone", field_type="str"),
         ],
     ),
     SettingsGroup(
@@ -295,7 +296,11 @@ async def save_core_settings(
     form_data = await request.form()
 
     for field in group.fields:
-        raw = form_data.get(field.key, "")
+        raw = form_data.get(field.key)
+
+        if raw is None:
+            # Field not present in form at all — leave existing value unchanged
+            continue
 
         if field.secret and not raw:
             # Empty secret field — do not overwrite stored value
