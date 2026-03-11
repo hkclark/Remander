@@ -205,7 +205,7 @@ async def admin_settings(request: Request) -> HTMLResponse:
                     db_plugin_values[db_key] if db_key in db_plugin_values else f.default
                 )
         plugin_sections.append(
-            {"plugin_name": plugin_name, "fields": fields, "values": field_values}
+            {"plugin_name": plugin_name, "fields": fields, "current_values": field_values}
         )
 
     return templates.TemplateResponse(

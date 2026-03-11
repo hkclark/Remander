@@ -111,6 +111,13 @@ async def load_plugin_config() -> None:
             _, plugin_name, field = parts
             new_cache.setdefault(plugin_name, {})[field] = value
     _plugin_config = new_cache
+    if new_cache:
+        logger.info("Plugin settings reloaded:")
+        for plugin_name, settings in sorted(new_cache.items()):
+            for key, value in sorted(settings.items()):
+                logger.info("  plugin.%s.%s = %r", plugin_name, key, value)
+    else:
+        logger.info("Plugin settings reloaded: (none in DB)")
 
 
 def get_plugin_setting(plugin_name: str, key: str, *, default: Any = None) -> Any:

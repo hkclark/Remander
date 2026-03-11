@@ -35,6 +35,20 @@ class TestSettingsPage:
         response = await logged_in_client.get("/admin/settings")
         assert "database_url" in response.text or "Database URL" in response.text
 
+    async def test_settings_page_shows_saved_plugin_values(self, logged_in_client: AsyncClient) -> None:
+        """Saved plugin settings must appear as field values on the settings page."""
+        from remander.services.app_config import set_plugin_setting
+
+        await set_plugin_setting("hot_water", "sonoff_ip", "10.20.30.40")
+        await set_plugin_setting("hot_water", "default_duration_minutes", 35)
+        await set_plugin_setting("hot_water", "available_durations", [5, 10, 35])
+
+        response = await logged_in_client.get("/admin/settings")
+        assert response.status_code == 200
+        assert "10.20.30.40" in response.text
+        assert 'value="35"' in response.text
+        assert "5,10,35" in response.text
+
 
 class TestSaveCoreSettings:
     async def test_save_nvr_group_persists_values(self, logged_in_client: AsyncClient) -> None:
