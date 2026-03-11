@@ -157,6 +157,7 @@ templates.env.globals["TAG_COLOR_LABELS"] = TAG_COLOR_LABELS
 from remander.routes.activity import router as activity_router  # noqa: E402
 from remander.routes.admin import router as admin_router  # noqa: E402
 from remander.routes.auth import router as auth_router  # noqa: E402
+from remander.routes.data import router as data_router  # noqa: E402
 from remander.routes.bitmasks import router as bitmasks_router  # noqa: E402
 from remander.routes.commands import router as commands_router  # noqa: E402
 from remander.routes.dashboard import router as dashboard_router  # noqa: E402
@@ -182,6 +183,7 @@ app.include_router(admin_router,              dependencies=[Depends(get_current_
 
 # Admin-only routes
 app.include_router(users_router,              dependencies=[Depends(require_admin)])
+app.include_router(data_router,               dependencies=[Depends(require_admin)])
 
 
 @app.get("/health")

@@ -214,6 +214,10 @@ DATABASE_URL="sqlite:////tmp/remander_migration/remander.db" uv run aerich upgra
 tooling. Always use `aerich migrate` (or `aerich migrate --empty`) to get the correct MODELS_STATE,
 then add SQL if needed. Manually writing or splitting the MODELS_STATE string corrupts it.
 
+**After adding a migration that changes a table included in the export** (devices, tags, bitmasks,
+zone masks, bitmask assignments, detection types, dashboard buttons, app config, plugin data,
+app state, users), also update the export format version — see [Export / Import](#export--import) below.
+
 ### Applying migrations to an existing system
 
 When pulling code that includes new migration files:
@@ -223,6 +227,66 @@ make migrate
 ```
 
 This applies any unapplied migrations to the database.
+
+## Export / Import
+
+The admin UI at **Admin → Export / Import** (`/admin/import`) provides a full backup and restore capability.
+
+### Exporting
+
+`GET /admin/export` downloads a JSON file named `remander-backup-YYYYMMDD-HHMMSS.json` containing:
+
+- Devices (cameras and power devices), including PTZ settings and zone masks
+- Tags (with colors and dashboard flags) and all device–tag assignments
+- Hour bitmasks, zone masks, and device bitmask assignments
+- Detection type settings per device
+- Dashboard buttons and their bitmask rules
+- App config (all settings stored in the database)
+- Plugin data
+- App state (current home/away mode, etc.)
+- User accounts (email, display name, bcrypt password hash, admin flag)
+
+Activity logs, command history, and session data are intentionally excluded — they are ephemeral.
+
+### Importing
+
+Upload a backup file via the admin UI.  The import flow is two-step: a **preview** shows exactly how many records will be restored, and a separate **Confirm restore** button triggers the actual write.  The restore runs inside a database transaction — if anything fails the database is left unchanged.
+
+**Import wipes all current data** before restoring.  Export first if you want a safety copy of the current state.
+
+### Export format versioning
+
+The JSON file includes an `export_format_version` integer.  When an aerich migration adds,
+removes, or renames a table that is part of the export, this version must be bumped so that older
+backup files can be automatically upgraded on import.
+
+**Checklist when adding an aerich migration that affects exportable data:**
+
+1. Increment `CURRENT_FORMAT_VERSION` in both `services/data_export.py` **and** `services/data_import.py` (they must match).
+2. Update the relevant `_export_*` helper in `data_export.py` to include the new field/table.
+3. Add a migration function to `_MIGRATIONS` in `data_import.py` keyed by the **old** version number.  The function receives the raw export dict and must return an upgraded dict.  Use `data.setdefault("new_table", [])` to add missing collections.
+
+Example — aerich migration 10 adds a `schedule` table:
+
+```python
+# data_import.py
+
+def _upgrade_v1_to_v2(data: dict) -> dict:
+    data.setdefault("schedules", [])
+    return data
+
+_MIGRATIONS: dict[int, Callable[[dict], dict]] = {1: _upgrade_v1_to_v2}
+CURRENT_FORMAT_VERSION = 2
+```
+
+```python
+# data_export.py
+CURRENT_FORMAT_VERSION = 2  # bump to match
+```
+
+Migrations chain automatically — a v1 backup imported against a v3 codebase will run v1→v2 then v2→v3 before restoring.
+
+---
 
 ## Plugin System
 

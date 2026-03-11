@@ -1,0 +1,59 @@
+{% if error %}
+<div class="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+    <strong>Error:</strong> {{ error }}
+</div>
+
+{% elif success_message %}
+<div class="mt-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+    <strong>Import complete.</strong> {{ success_message }}
+</div>
+
+{% elif counts %}
+<div class="mt-4 bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-4 py-3 bg-gray-50 border-b">
+        <span class="font-medium text-gray-900">Preview — records to restore</span>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <tbody class="divide-y divide-gray-100">
+            {% set rows = [
+                ("Devices",                  counts.device_count),
+                ("Tags",                     counts.tag_count),
+                ("Device–tag links",         counts.device_tag_count),
+                ("Detection type settings",  counts.device_detection_type_count),
+                ("Bitmask assignments",      counts.device_bitmask_assignment_count),
+                ("Hour bitmasks",            counts.hour_bitmask_count),
+                ("Zone masks",               counts.zone_mask_count),
+                ("Dashboard buttons",        counts.dashboard_button_count),
+                ("Button bitmask rules",     counts.dashboard_button_rule_count),
+                ("App config entries",       counts.app_config_count),
+                ("Plugin data entries",      counts.plugin_data_count),
+                ("Users",                    counts.user_count),
+            ] %}
+            {% for label, count in rows %}
+            {% if count %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2 text-gray-700">{{ label }}</td>
+                <td class="px-4 py-2 text-right font-medium text-gray-900">{{ count }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="px-4 py-3 bg-gray-50 border-t flex items-center gap-3">
+        <form hx-post="/admin/import/apply"
+              hx-target="#import-result"
+              hx-swap="innerHTML">
+            <input type="hidden" name="export_json" value="{{ export_json | e }}">
+            <button type="submit"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow text-sm font-medium">
+                Confirm restore
+            </button>
+        </form>
+        <button type="button"
+                onclick="document.getElementById('import-result').innerHTML = ''"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+            Cancel
+        </button>
+    </div>
+</div>
+{% endif %}
