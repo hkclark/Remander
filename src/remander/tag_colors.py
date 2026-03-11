@@ -1,29 +1,42 @@
 """Tag color palette and badge class helper for Jinja2 templates."""
 
 _BADGE_CLASSES: dict[str, str] = {
-    "blue":    "bg-blue-200 text-blue-800",
-    "sky":     "bg-sky-200 text-sky-800",
-    "cyan":    "bg-cyan-200 text-cyan-800",
-    "teal":    "bg-teal-200 text-teal-800",
-    "emerald": "bg-emerald-200 text-emerald-800",
-    "green":   "bg-green-200 text-green-800",
-    "lime":    "bg-lime-200 text-lime-800",
-    "yellow":  "bg-yellow-200 text-yellow-800",
-    "amber":   "bg-amber-200 text-amber-800",
-    "orange":  "bg-orange-200 text-orange-800",
-    "rose":    "bg-rose-200 text-rose-800",
-    "red":     "bg-red-200 text-red-800",
-    "pink":    "bg-pink-200 text-pink-800",
-    "fuchsia": "bg-fuchsia-200 text-fuchsia-800",
-    "purple":  "bg-purple-200 text-purple-800",
-    "violet":  "bg-violet-200 text-violet-800",
-    "indigo":  "bg-indigo-200 text-indigo-800",
-    "slate":   "bg-slate-200 text-slate-800",
-    "gray":    "bg-gray-200 text-gray-800",
-    "zinc":    "bg-zinc-200 text-zinc-800",
+    # — Standard palette (vibrant background, very dark text) —
+    "blue":    "bg-blue-300 text-blue-900",
+    "sky":     "bg-sky-300 text-sky-900",
+    "cyan":    "bg-cyan-300 text-cyan-900",
+    "teal":    "bg-teal-300 text-teal-900",
+    "emerald": "bg-emerald-300 text-emerald-900",
+    "green":   "bg-green-300 text-green-900",
+    "lime":    "bg-lime-300 text-lime-900",
+    "yellow":  "bg-yellow-300 text-yellow-900",
+    "amber":   "bg-amber-300 text-amber-900",
+    "orange":  "bg-orange-300 text-orange-900",
+    "rose":    "bg-rose-300 text-rose-900",
+    "red":     "bg-red-300 text-red-900",
+    "pink":    "bg-pink-300 text-pink-900",
+    "fuchsia": "bg-fuchsia-300 text-fuchsia-900",
+    "purple":  "bg-purple-300 text-purple-900",
+    "violet":  "bg-violet-300 text-violet-900",
+    "indigo":  "bg-indigo-300 text-indigo-900",
+    # — Neutral shades —
+    "slate":   "bg-slate-300 text-slate-900",
+    "gray":    "bg-gray-300 text-gray-900",
+    "zinc":    "bg-zinc-300 text-zinc-900",
+    "stone":   "bg-stone-300 text-stone-900",
+    "neutral": "bg-neutral-300 text-neutral-900",
+    # — Deep/solid bold (saturated background, white text) —
+    "cobalt":  "bg-blue-600 text-white",
+    "navy":    "bg-indigo-800 text-white",
+    "plum":    "bg-purple-700 text-white",
+    "grape":   "bg-violet-700 text-white",
+    "crimson": "bg-red-700 text-white",
+    "forest":  "bg-green-800 text-white",
+    "jade":    "bg-teal-600 text-white",
+    "russet":  "bg-orange-700 text-white",
 }
 
-_DEFAULT = "bg-gray-200 text-gray-800"
+_DEFAULT = "bg-gray-300 text-gray-900"
 
 TAG_COLORS: list[str] = list(_BADGE_CLASSES.keys())
 
@@ -48,6 +61,16 @@ TAG_COLOR_LABELS: dict[str, str] = {
     "slate":   "Slate",
     "gray":    "Gray",
     "zinc":    "Zinc",
+    "stone":   "Stone",
+    "neutral": "Neutral",
+    "cobalt":  "Cobalt",
+    "navy":    "Navy",
+    "plum":    "Plum",
+    "grape":   "Grape",
+    "crimson": "Crimson",
+    "forest":  "Forest",
+    "jade":    "Jade",
+    "russet":  "Russet",
 }
 
 
