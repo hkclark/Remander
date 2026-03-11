@@ -6,6 +6,49 @@ from remander.models.tag import Tag
 from tests.factories import create_camera, create_power_device, create_tag
 
 
+class TestTagColors:
+    async def test_create_tag_with_color_stores_color(self, logged_in_client: AsyncClient) -> None:
+        await logged_in_client.post(
+            "/tags/create",
+            data={"name": "colored-tag", "color": "emerald"},
+            follow_redirects=False,
+        )
+        tag = await Tag.get(name="colored-tag")
+        assert tag.color == "emerald"
+
+    async def test_create_tag_without_color_is_none(self, logged_in_client: AsyncClient) -> None:
+        await logged_in_client.post(
+            "/tags/create",
+            data={"name": "no-color-tag"},
+            follow_redirects=False,
+        )
+        tag = await Tag.get(name="no-color-tag")
+        assert tag.color is None
+
+    async def test_edit_tag_updates_color(self, logged_in_client: AsyncClient) -> None:
+        tag = await create_tag(name="recolored")
+        await logged_in_client.post(
+            f"/tags/{tag.id}/edit",
+            data={"name": "recolored", "color": "violet"},
+            follow_redirects=False,
+        )
+        updated = await Tag.get(id=tag.id)
+        assert updated.color == "violet"
+
+    async def test_tag_list_shows_color_swatch(self, logged_in_client: AsyncClient) -> None:
+        await create_tag(name="sky-tag", color="sky")
+        response = await logged_in_client.get("/tags")
+        assert "sky" in response.text
+
+    async def test_device_list_uses_tag_color(self, logged_in_client: AsyncClient) -> None:
+        cam = await create_camera(name="Color Cam")
+        tag = await create_tag(name="rose-tag", color="rose")
+        await cam.tags.add(tag)
+        response = await logged_in_client.get("/devices")
+        # The colored badge class should appear (not just hardcoded blue)
+        assert "rose" in response.text
+
+
 class TestTagList:
     async def test_get_tags_returns_200(self, logged_in_client: AsyncClient) -> None:
         response = await logged_in_client.get("/tags")

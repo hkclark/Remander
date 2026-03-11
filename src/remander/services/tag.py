@@ -6,9 +6,9 @@ from remander.models.device import Device
 from remander.models.tag import Tag
 
 
-async def create_tag(name: str, *, show_on_dashboard: bool = False) -> Tag:
+async def create_tag(name: str, *, show_on_dashboard: bool = False, color: str | None = None) -> Tag:
     """Create a new tag."""
-    return await Tag.create(name=name, show_on_dashboard=show_on_dashboard)
+    return await Tag.create(name=name, show_on_dashboard=show_on_dashboard, color=color)
 
 
 async def list_tags() -> list[Tag]:
@@ -21,8 +21,10 @@ async def update_tag(
     *,
     name: str | None = None,
     show_on_dashboard: bool | None = None,
+    color: str | None = None,
+    clear_color: bool = False,
 ) -> Tag | None:
-    """Update a tag's name and/or dashboard flag. Returns None if not found."""
+    """Update a tag's name, dashboard flag, and/or color. Returns None if not found."""
     tag = await Tag.get_or_none(id=tag_id)
     if tag is None:
         return None
@@ -30,6 +32,10 @@ async def update_tag(
         tag.name = name
     if show_on_dashboard is not None:
         tag.show_on_dashboard = show_on_dashboard
+    if color is not None:
+        tag.color = color
+    elif clear_color:
+        tag.color = None
     await tag.save()
     return tag
 

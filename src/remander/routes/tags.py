@@ -40,8 +40,13 @@ async def tag_create(
     request: Request,
     name: str = Form(...),
     show_on_dashboard: str | None = Form(None),
+    color: str | None = Form(None),
 ) -> RedirectResponse:
-    await create_tag(name=name, show_on_dashboard=show_on_dashboard == "on")
+    await create_tag(
+        name=name,
+        show_on_dashboard=show_on_dashboard == "on",
+        color=color or None,
+    )
     return RedirectResponse(url="/tags", status_code=303)
 
 
@@ -65,9 +70,14 @@ async def tag_edit(
     tag_id: int,
     name: str = Form(...),
     show_on_dashboard: str | None = Form(None),
+    color: str | None = Form(None),
 ) -> RedirectResponse:
     result = await update_tag(
-        tag_id, name=name, show_on_dashboard=show_on_dashboard == "on"
+        tag_id,
+        name=name,
+        show_on_dashboard=show_on_dashboard == "on",
+        color=color or None,
+        clear_color=not color,
     )
     if not result:
         return HTMLResponse(status_code=404, content="Tag not found")

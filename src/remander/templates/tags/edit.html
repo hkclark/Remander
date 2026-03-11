@@ -20,6 +20,12 @@
                        class="rounded border-gray-300">
                 <label for="show_on_dashboard" class="ml-2 text-sm text-gray-700">Show on dashboard</label>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Color <span class="font-normal text-gray-400">(optional)</span></label>
+                {% with selected_color=tag.color %}
+                {% include "tags/_color_picker.html" %}
+                {% endwith %}
+            </div>
             <div class="flex justify-end space-x-3">
                 <a href="/tags" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
                     Cancel

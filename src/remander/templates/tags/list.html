@@ -8,20 +8,26 @@
 
     <!-- Create tag form -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="post" action="/tags/create" class="flex items-end space-x-3">
-            <div class="flex-1">
-                <label for="name" class="block text-sm font-medium text-gray-700">New Tag</label>
-                <input type="text" name="name" id="name" required placeholder="Tag name"
-                       class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+        <form method="post" action="/tags/create" class="space-y-3">
+            <div class="flex items-end space-x-3">
+                <div class="flex-1">
+                    <label for="name" class="block text-sm font-medium text-gray-700">New Tag</label>
+                    <input type="text" name="name" id="name" required placeholder="Tag name"
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                </div>
+                <div class="flex items-center pb-1">
+                    <input type="checkbox" name="show_on_dashboard" id="show_on_dashboard" class="rounded border-gray-300">
+                    <label for="show_on_dashboard" class="ml-2 text-sm text-gray-700 whitespace-nowrap">Show on dashboard</label>
+                </div>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
+                    Create
+                </button>
             </div>
-            <div class="flex items-center pb-1">
-                <input type="checkbox" name="show_on_dashboard" id="show_on_dashboard" class="rounded border-gray-300">
-                <label for="show_on_dashboard" class="ml-2 text-sm text-gray-700 whitespace-nowrap">Show on dashboard</label>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Color <span class="font-normal text-gray-400">(optional)</span></label>
+                {% include "tags/_color_picker.html" %}
             </div>
-            <button type="submit"
-                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
-                Create
-            </button>
         </form>
     </div>
 
@@ -39,7 +45,12 @@
             <tbody class="divide-y divide-gray-200">
                 {% for tag in tags %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-medium text-gray-900">{{ tag.name }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1.5 font-medium text-gray-900">
+                            <span class="inline-block w-3 h-3 rounded-full {{ tag_badge_classes(tag.color) }}"></span>
+                            {{ tag.name }}
+                        </span>
+                    </td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ tag.device_count }}</td>
                     <td class="px-4 py-3 text-center">
                         <form action="/tags/{{ tag.id }}/toggle-dashboard" method="post" class="inline">
