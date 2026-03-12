@@ -1,6 +1,6 @@
 """Tests for the DashboardButton service layer."""
 
-from remander.models.enums import ButtonColor, ButtonOperationType
+from remander.models.enums import ButtonOperationType
 from remander.services.dashboard_button import (
     create_dashboard_button,
     delete_dashboard_button,
@@ -19,7 +19,7 @@ class TestCreateDashboardButton:
 
     async def test_defaults(self) -> None:
         btn = await create_dashboard_button("Home", ButtonOperationType.HOME)
-        assert btn.color == ButtonColor.BLUE
+        assert btn.color == "#3B82F6"
         assert btn.delay_seconds == 0
         assert btn.sort_order == 0
         assert btn.is_enabled is True
@@ -28,11 +28,11 @@ class TestCreateDashboardButton:
         btn = await create_dashboard_button(
             "Red Away",
             ButtonOperationType.AWAY,
-            color=ButtonColor.RED,
+            color="#EF4444",
             delay_seconds=30,
             sort_order=5,
         )
-        assert btn.color == ButtonColor.RED
+        assert btn.color == "#EF4444"
         assert btn.delay_seconds == 30
         assert btn.sort_order == 5
 

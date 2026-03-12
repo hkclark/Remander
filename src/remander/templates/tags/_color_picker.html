@@ -1,17 +1,4 @@
-{# Color picker partial — expects optional `selected_color` variable in context #}
-<div class="flex flex-wrap gap-1.5">
-    <label class="cursor-pointer" title="None (gray)">
-        <input type="radio" name="color" value="" class="sr-only peer"
-               {% if not selected_color %}checked{% endif %}>
-        <span class="block w-6 h-6 rounded-full bg-gray-200 ring-2 ring-transparent peer-checked:ring-gray-500 hover:ring-gray-400 transition-all"></span>
-    </label>
-    {% for color in TAG_COLORS %}
-    {% if color != "gray" %}
-    <label class="cursor-pointer" title="{{ TAG_COLOR_LABELS[color] }}">
-        <input type="radio" name="color" value="{{ color }}" class="sr-only peer"
-               {% if selected_color == color %}checked{% endif %}>
-        <span class="block w-6 h-6 rounded-full {{ tag_badge_classes(color) }} ring-2 ring-transparent peer-checked:ring-offset-1 peer-checked:ring-gray-700 hover:ring-gray-400 transition-all"></span>
-    </label>
-    {% endif %}
-    {% endfor %}
-</div>
+{# Tag color picker — delegates to unified partial #}
+{% with field_name="color" %}
+{% include "partials/_color_picker.html" %}
+{% endwith %}

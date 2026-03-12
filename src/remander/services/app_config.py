@@ -133,3 +133,35 @@ async def set_plugin_setting(plugin_name: str, key: str, value: Any) -> None:
     full_key = f"plugin.{plugin_name}.{key}"
     await set_config_value(full_key, value)
     await load_plugin_config()
+
+
+# ── Custom color palette ───────────────────────────────────────────────────────
+
+CUSTOM_COLORS_KEY = "custom_colors"
+MAX_CUSTOM_COLORS = 16
+
+
+async def get_custom_colors() -> list[str]:
+    """Return user-saved custom hex colors, most-recently-used first."""
+    return await get_config_value(CUSTOM_COLORS_KEY, default=[])
+
+
+async def add_custom_color(hex_color: str) -> None:
+    """Add hex_color to the front of the custom palette.
+
+    Deduplicates (re-adding an existing color moves it to front) and caps
+    the list at MAX_CUSTOM_COLORS, dropping the oldest entries.
+    """
+    current: list[str] = await get_custom_colors()
+    # Remove existing entry (dedup / move-to-front)
+    updated = [c for c in current if c != hex_color]
+    updated.insert(0, hex_color)
+    updated = updated[:MAX_CUSTOM_COLORS]
+    await set_config_value(CUSTOM_COLORS_KEY, updated)
+
+
+async def remove_custom_color(hex_color: str) -> None:
+    """Remove a specific hex color from the custom palette. No-op if not present."""
+    current: list[str] = await get_custom_colors()
+    updated = [c for c in current if c != hex_color]
+    await set_config_value(CUSTOM_COLORS_KEY, updated)

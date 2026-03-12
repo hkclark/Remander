@@ -24,6 +24,13 @@ from remander.services.tag import (
 router = APIRouter()
 
 
+async def _tag_form_context() -> dict:
+    from remander.app_colors import PALETTE
+    from remander.services.app_config import get_custom_colors
+
+    return {"palette": PALETTE, "custom_colors": await get_custom_colors()}
+
+
 @router.get("/tags", response_class=HTMLResponse)
 async def tag_list(request: Request) -> HTMLResponse:
     from remander.main import templates
@@ -32,7 +39,7 @@ async def tag_list(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "tags/list.html",
-        {"tags": tags},
+        {"tags": tags, **(await _tag_form_context())},
     )
 
 
@@ -43,11 +50,16 @@ async def tag_create(
     show_on_dashboard: str | None = Form(None),
     color: str | None = Form(None),
 ) -> RedirectResponse:
+    from remander.app_colors import PALETTE
+
     await create_tag(
         name=name,
         show_on_dashboard=show_on_dashboard == "on",
         color=color or None,
     )
+    if color and color not in PALETTE:
+        from remander.services.app_config import add_custom_color
+        await add_custom_color(color)
     return RedirectResponse(url="/tags", status_code=303)
 
 
@@ -61,7 +73,7 @@ async def tag_edit_form(request: Request, tag_id: int) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "tags/edit.html",
-        {"tag": tag},
+        {"tag": tag, **(await _tag_form_context())},
     )
 
 
@@ -73,6 +85,8 @@ async def tag_edit(
     show_on_dashboard: str | None = Form(None),
     color: str | None = Form(None),
 ) -> RedirectResponse:
+    from remander.app_colors import PALETTE
+
     result = await update_tag(
         tag_id,
         name=name,
@@ -82,6 +96,9 @@ async def tag_edit(
     )
     if not result:
         return HTMLResponse(status_code=404, content="Tag not found")
+    if color and color not in PALETTE:
+        from remander.services.app_config import add_custom_color
+        await add_custom_color(color)
     return RedirectResponse(url="/tags", status_code=303)
 
 

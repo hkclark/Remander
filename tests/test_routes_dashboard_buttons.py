@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
-from remander.models.enums import ButtonColor, ButtonOperationType, CommandType
+from remander.models.enums import ButtonOperationType, CommandType
 from remander.models.command import Command
 from remander.services.bitmask import create_hour_bitmask
 from remander.services.dashboard_button import create_dashboard_button, save_button_rules
@@ -56,8 +56,9 @@ class TestButtonCreate:
 
     async def test_create_form_shows_color_options(self, logged_in_client: AsyncClient) -> None:
         response = await logged_in_client.get("/dashboard-buttons/create")
-        assert "blue" in response.text.lower()
-        assert "red" in response.text.lower()
+        # Color picker renders hex swatches
+        assert "#3B82F6" in response.text  # blue
+        assert "#EF4444" in response.text  # red
 
     async def test_post_create_redirects(self, logged_in_client: AsyncClient) -> None:
         tag = await create_tag("away-tag")
@@ -67,7 +68,7 @@ class TestButtonCreate:
             data={
                 "name": "Set Away",
                 "operation_type": "away",
-                "color": "red",
+                "color": "#EF4444",
                 "delay_seconds": "0",
                 "rule_tag_ids": str(tag.id),
                 "rule_bitmask_ids": str(bm.id),
@@ -85,7 +86,7 @@ class TestButtonCreate:
             data={
                 "name": "Set Away",
                 "operation_type": "away",
-                "color": "red",
+                "color": "#EF4444",
                 "delay_seconds": "0",
                 "sort_order": "0",
             },
@@ -102,7 +103,7 @@ class TestButtonCreate:
             data={
                 "name": "Delayed Away",
                 "operation_type": "away",
-                "color": "red",
+                "color": "#EF4444",
                 "delay_seconds": "45",
                 "rule_tag_ids": str(tag.id),
                 "rule_bitmask_ids": str(bm.id),
@@ -133,7 +134,7 @@ class TestButtonEdit:
             data={
                 "name": "New Name",
                 "operation_type": "away",
-                "color": "blue",
+                "color": "#3B82F6",
                 "delay_seconds": "0",
                 "rule_tag_ids": str(tag.id),
                 "rule_bitmask_ids": str(bm.id),
@@ -154,7 +155,7 @@ class TestButtonEdit:
             data={
                 "name": "No Rules",
                 "operation_type": "away",
-                "color": "blue",
+                "color": "#3B82F6",
                 "delay_seconds": "0",
                 "sort_order": "0",
             },
@@ -169,7 +170,7 @@ class TestButtonEdit:
             data={
                 "name": "Active",
                 "operation_type": "away",
-                "color": "blue",
+                "color": "#3B82F6",
                 "delay_seconds": "0",
                 "rule_tag_ids": str(tag.id),
                 "rule_bitmask_ids": str(bm.id),

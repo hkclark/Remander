@@ -4,7 +4,8 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from remander.models.dashboard_button import DashboardButton
-from remander.models.enums import ButtonColor, ButtonOperationType
+from remander.app_colors import PALETTE
+from remander.models.enums import ButtonOperationType
 from remander.services.bitmask import list_hour_bitmasks
 from remander.services.dashboard_button import (
     create_dashboard_button,
@@ -20,7 +21,6 @@ from remander.services.tag import list_tags
 
 router = APIRouter(prefix="/dashboard-buttons")
 
-_COLORS = list(ButtonColor)
 _OPERATION_TYPES = list(ButtonOperationType)
 
 
@@ -40,9 +40,12 @@ async def _form_context(
     """
     from remander.main import templates  # noqa: F401  (used by caller)
 
+    from remander.services.app_config import get_custom_colors
+
     return {
         "button": button,
-        "colors": _COLORS,
+        "palette": PALETTE,
+        "custom_colors": await get_custom_colors(),
         "operation_types": _OPERATION_TYPES,
         "hour_bitmasks": await list_hour_bitmasks(),
         "tags": await list_tags(),
@@ -177,13 +180,16 @@ async def button_create(
     btn = await create_dashboard_button(
         name=name,
         operation_type=ButtonOperationType(operation_type),
-        color=ButtonColor(color),
+        color=color,
         delay_seconds=int(delay_seconds),
         sort_order=int(sort_order),
         show_on_main=show_on_main is not None,
         show_on_guest=show_on_guest is not None,
     )
     await save_button_rules(btn.id, rules)
+    if color not in PALETTE:
+        from remander.services.app_config import add_custom_color
+        await add_custom_color(color)
     return RedirectResponse(url="/dashboard-buttons", status_code=303)
 
 
@@ -297,7 +303,7 @@ async def button_edit(
         button_id,
         name=name,
         operation_type=ButtonOperationType(operation_type),
-        color=ButtonColor(color),
+        color=color,
         delay_seconds=int(delay_seconds),
         sort_order=int(sort_order),
         is_enabled=is_enabled is not None,
@@ -305,6 +311,9 @@ async def button_edit(
         show_on_guest=show_on_guest is not None,
     )
     await save_button_rules(button_id, rules)
+    if color not in PALETTE:
+        from remander.services.app_config import add_custom_color
+        await add_custom_color(color)
     return RedirectResponse(url="/dashboard-buttons", status_code=303)
 
 

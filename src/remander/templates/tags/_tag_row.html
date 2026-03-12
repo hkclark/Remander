@@ -1,7 +1,8 @@
 <tr id="tag-row-{{ tag.id }}" class="hover:bg-gray-50">
     <td class="px-4 py-3">
         <span class="inline-flex items-center gap-1.5 font-medium text-gray-900">
-            <span class="inline-block w-3 h-3 rounded-full {{ tag_badge_classes(tag.color) }}"></span>
+            <span class="inline-block w-3 h-3 rounded-full"
+                  style="{{ hex_color_style(tag.color) if tag.color else 'background-color: #94A3B8' }}"></span>
             {{ tag.name }}
         </span>
     </td>

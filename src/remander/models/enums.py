@@ -44,23 +44,6 @@ class ButtonOperationType(StrEnum):
     OTHER = "other"
 
 
-class ButtonColor(StrEnum):
-    BLUE = "blue"
-    INDIGO = "indigo"
-    PURPLE = "purple"
-    PINK = "pink"
-    ROSE = "rose"
-    RED = "red"
-    ORANGE = "orange"
-    AMBER = "amber"
-    YELLOW = "yellow"
-    LIME = "lime"
-    GREEN = "green"
-    TEAL = "teal"
-    CYAN = "cyan"
-    SKY = "sky"
-    GRAY = "gray"
-
 
 class CommandType(StrEnum):
     SET_AWAY_NOW = "set_away_now"

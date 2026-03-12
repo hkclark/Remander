@@ -213,3 +213,69 @@ class TestPluginSettingsCache:
 
         assert get_plugin_setting("hot_water", "ip") == "1.1.1.1"
         assert get_plugin_setting("other_plugin", "ip") == "2.2.2.2"
+
+
+class TestCustomColors:
+    async def test_get_custom_colors_empty_by_default(self) -> None:
+        from remander.services.app_config import get_custom_colors
+
+        colors = await get_custom_colors()
+        assert colors == []
+
+    async def test_add_custom_color(self) -> None:
+        from remander.services.app_config import add_custom_color, get_custom_colors
+
+        await add_custom_color("#AABBCC")
+        colors = await get_custom_colors()
+        assert "#AABBCC" in colors
+
+    async def test_add_same_color_twice_deduplicates(self) -> None:
+        from remander.services.app_config import add_custom_color, get_custom_colors
+
+        await add_custom_color("#AABBCC")
+        await add_custom_color("#AABBCC")
+        colors = await get_custom_colors()
+        assert colors.count("#AABBCC") == 1
+
+    async def test_most_recently_added_is_first(self) -> None:
+        from remander.services.app_config import add_custom_color, get_custom_colors
+
+        await add_custom_color("#111111")
+        await add_custom_color("#222222")
+        colors = await get_custom_colors()
+        assert colors[0] == "#222222"
+
+    async def test_re_adding_existing_moves_it_to_front(self) -> None:
+        from remander.services.app_config import add_custom_color, get_custom_colors
+
+        await add_custom_color("#111111")
+        await add_custom_color("#222222")
+        await add_custom_color("#111111")  # re-add; should bubble to front
+        colors = await get_custom_colors()
+        assert colors[0] == "#111111"
+
+    async def test_remove_custom_color(self) -> None:
+        from remander.services.app_config import (
+            add_custom_color,
+            get_custom_colors,
+            remove_custom_color,
+        )
+
+        await add_custom_color("#AABBCC")
+        await remove_custom_color("#AABBCC")
+        colors = await get_custom_colors()
+        assert "#AABBCC" not in colors
+
+    async def test_remove_nonexistent_color_is_noop(self) -> None:
+        from remander.services.app_config import get_custom_colors, remove_custom_color
+
+        await remove_custom_color("#FFFFFF")  # should not raise
+        assert await get_custom_colors() == []
+
+    async def test_capped_at_max_custom_colors(self) -> None:
+        from remander.services.app_config import MAX_CUSTOM_COLORS, add_custom_color, get_custom_colors
+
+        for i in range(MAX_CUSTOM_COLORS + 5):
+            await add_custom_color(f"#{i:06X}")
+        colors = await get_custom_colors()
+        assert len(colors) == MAX_CUSTOM_COLORS

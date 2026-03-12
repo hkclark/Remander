@@ -77,7 +77,8 @@
         {# ── Away / Other buttons: direct submit ─────────────────────────── #}
         <form action="/d/execute/button/{{ button.id }}" method="post">
             <button type="submit"
-                    class="w-full py-5 px-6 {{ button.tailwind_classes }} text-white font-semibold rounded-xl shadow text-xl">
+                    class="w-full py-5 px-6 font-semibold rounded-xl shadow text-xl hover:opacity-90"
+                    style="{{ button.button_style }}">
                 {{ button.name }}
                 {% if button.delay_seconds %}
                 <span class="block text-sm font-normal opacity-80">after {{ button.delay_seconds }}s</span>

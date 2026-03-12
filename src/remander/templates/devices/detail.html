@@ -246,7 +246,8 @@
         {% if device.tags %}
         <div class="flex flex-wrap gap-2 mb-4">
             {% for tag in device.tags %}
-            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium {{ tag_badge_classes(tag.color) }}">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium"
+                  style="{{ hex_color_style(tag.color) }}">
                 {{ tag.name }}
                 <form method="post" action="/devices/{{ device.id }}/tags/{{ tag.id }}/remove" class="inline">
                     <button type="submit" class="ml-1 opacity-60 hover:opacity-100" title="Remove tag">&times;</button>

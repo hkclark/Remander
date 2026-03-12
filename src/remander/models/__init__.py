@@ -10,7 +10,6 @@ from remander.models.detection import DeviceDetectionType
 from remander.models.device import Device
 from remander.models.enums import (
     ActivityStatus,
-    ButtonColor,
     ButtonOperationType,
     CommandStatus,
     CommandType,
@@ -32,7 +31,6 @@ __all__ = [
     "ActivityLog",
     "ActivityStatus",
     "AppState",
-    "ButtonColor",
     "ButtonOperationType",
     "Command",
     "CommandStatus",

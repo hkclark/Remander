@@ -26,7 +26,7 @@
     {# Resolve display values: prefer pending_data (re-render after warning) over saved button values #}
     {% set d_name = pending_data.name if pending_data else (button.name if button else '') %}
     {% set d_op   = pending_data.operation_type if pending_data else (button.operation_type if button else '') %}
-    {% set d_color = pending_data.color if pending_data else (button.color if button else 'blue') %}
+    {% set d_color = pending_data.color if pending_data else (button.color if button else '#3B82F6') %}
     {% set d_delay = pending_data.delay_seconds if pending_data else (button.delay_seconds if button else 0) %}
     {% set d_sort  = pending_data.sort_order if pending_data else (button.sort_order if button else 0) %}
     {% set d_enabled = (pending_data.is_enabled is not none) if pending_data else (button.is_enabled if button else true) %}
@@ -62,38 +62,9 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
-            {% set swatch_map = {
-                "blue":   "bg-blue-600",
-                "indigo": "bg-indigo-600",
-                "purple": "bg-purple-600",
-                "pink":   "bg-pink-600",
-                "rose":   "bg-rose-600",
-                "red":    "bg-red-600",
-                "orange": "bg-orange-500",
-                "amber":  "bg-amber-500",
-                "yellow": "bg-yellow-400",
-                "lime":   "bg-lime-500",
-                "green":  "bg-green-600",
-                "teal":   "bg-teal-600",
-                "cyan":   "bg-cyan-500",
-                "sky":    "bg-sky-500",
-                "gray":   "bg-gray-500"
-            } %}
-            <div class="flex flex-wrap gap-2">
-                {% for c in colors %}
-                <label class="cursor-pointer">
-                    <input type="radio" name="color" value="{{ c }}"
-                           {{ 'checked' if d_color == c }}
-                           class="sr-only peer">
-                    <span title="{{ c|capitalize }}"
-                          class="flex items-center justify-center w-8 h-8 rounded-full {{ swatch_map[c] }}
-                                 ring-2 ring-offset-2 ring-transparent
-                                 peer-checked:ring-gray-800
-                                 hover:scale-110 transition-transform">
-                    </span>
-                </label>
-                {% endfor %}
-            </div>
+            {% with field_name="color", selected_color=d_color %}
+            {% include "partials/_color_picker.html" %}
+            {% endwith %}
         </div>
 
         <div>

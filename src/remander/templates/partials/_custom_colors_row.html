@@ -1,0 +1,29 @@
+{# Rendered by POST /admin/colors/remove — replaces the My Colors swatch div #}
+{% set field_name = field_name if field_name is defined else "color" %}
+{% if custom_colors %}
+<div id="{{ field_name }}-custom-colors" class="flex flex-wrap gap-1.5">
+    {% for hex in custom_colors %}
+    <div class="relative group">
+        <button type="button"
+                title="{{ hex }}"
+                onclick="selectColor('{{ field_name }}', '{{ hex }}')"
+                style="background-color: {{ hex }}"
+                class="w-7 h-7 rounded-full border-2 border-transparent hover:border-gray-400 transition-all"
+                data-color="{{ hex }}">
+        </button>
+        <button type="button"
+                title="Remove from My Colors"
+                hx-post="/admin/colors/remove"
+                hx-vals='{"hex": "{{ hex }}", "field_name": "{{ field_name }}"}'
+                hx-target="#{{ field_name }}-custom-colors"
+                hx-swap="outerHTML"
+                class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gray-600 text-white text-xs
+                       leading-none hidden group-hover:flex items-center justify-center">
+            &times;
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div id="{{ field_name }}-custom-colors"></div>
+{% endif %}

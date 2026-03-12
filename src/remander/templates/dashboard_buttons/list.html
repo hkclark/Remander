@@ -30,8 +30,9 @@
                     <td class="px-4 py-3 font-medium text-gray-900">{{ button.name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600 capitalize">{{ button.operation_type }}</td>
                     <td class="px-4 py-3">
-                        <span class="inline-block w-4 h-4 rounded {{ button.tailwind_classes.split()[0] }}"></span>
-                        <span class="text-sm text-gray-600 ml-1 capitalize">{{ button.color }}</span>
+                        <span class="inline-block w-4 h-4 rounded"
+                              style="background-color: {{ button.color }}"></span>
+                        <span class="text-sm text-gray-600 ml-1 font-mono text-xs">{{ button.color }}</span>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600">
                         {{ button.delay_seconds }}s

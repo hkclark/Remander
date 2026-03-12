@@ -1,0 +1,98 @@
+{#
+  Unified hex color picker partial.
+  Parameters (via {% with %}):
+    field_name     - form field name (default "color")
+    selected_color - current hex value (e.g. "#3B82F6") or "" / None for no color
+#}
+{% set field_name = field_name if field_name is defined else "color" %}
+{% set selected_color = selected_color if selected_color is defined else "" %}
+
+{# Hidden input that gets submitted with the form #}
+<input type="hidden" name="{{ field_name }}" id="{{ field_name }}-hidden-value"
+       value="{{ selected_color or '' }}">
+
+<div class="space-y-3">
+
+    {# ── Curated palette ─────────────────────────────────────────────────── #}
+    <div class="flex flex-wrap gap-1.5" id="{{ field_name }}-palette">
+        {% for hex in COLOR_PALETTE %}
+        <button type="button"
+                title="{{ hex }}"
+                onclick="selectColor('{{ field_name }}', '{{ hex }}')"
+                style="background-color: {{ hex }}"
+                class="w-7 h-7 rounded-full border-2 transition-all
+                       {% if selected_color == hex %}border-gray-700 scale-110{% else %}border-transparent hover:border-gray-400{% endif %}"
+                data-color="{{ hex }}">
+        </button>
+        {% endfor %}
+    </div>
+
+    {# ── My Colors (saved custom colors) ─────────────────────────────────── #}
+    {% if custom_colors %}
+    <div>
+        <p class="text-xs text-gray-500 mb-1">My Colors</p>
+        <div class="flex flex-wrap gap-1.5" id="{{ field_name }}-custom-colors">
+            {% for hex in custom_colors %}
+            <div class="relative group">
+                <button type="button"
+                        title="{{ hex }}"
+                        onclick="selectColor('{{ field_name }}', '{{ hex }}')"
+                        style="background-color: {{ hex }}"
+                        class="w-7 h-7 rounded-full border-2 transition-all
+                               {% if selected_color == hex %}border-gray-700 scale-110{% else %}border-transparent hover:border-gray-400{% endif %}"
+                        data-color="{{ hex }}">
+                </button>
+                <button type="button"
+                        title="Remove from My Colors"
+                        hx-post="/admin/colors/remove"
+                        hx-vals='{"hex": "{{ hex }}", "field_name": "{{ field_name }}"}'
+                        hx-target="#{{ field_name }}-custom-colors"
+                        hx-swap="outerHTML"
+                        class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gray-600 text-white text-xs
+                               leading-none hidden group-hover:flex items-center justify-center">
+                    &times;
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Custom color picker ──────────────────────────────────────────────── #}
+    <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-500">Custom:</label>
+        <input type="color"
+               id="{{ field_name }}-custom-picker"
+               value="{{ selected_color if selected_color and selected_color.startswith('#') else '#3B82F6' }}"
+               onchange="selectColor('{{ field_name }}', this.value)"
+               class="w-8 h-8 rounded cursor-pointer border border-gray-300 p-0.5">
+        <span id="{{ field_name }}-custom-preview"
+              class="text-xs text-gray-500 font-mono">
+            {{ selected_color if selected_color else '' }}
+        </span>
+    </div>
+
+</div>
+
+<script>
+function selectColor(fieldName, hex) {
+    // Update hidden input
+    document.getElementById(fieldName + '-hidden-value').value = hex;
+    // Update preview label
+    const preview = document.getElementById(fieldName + '-custom-preview');
+    if (preview) preview.textContent = hex;
+    // Sync native picker if hex is valid
+    if (hex && hex.startsWith('#') && hex.length === 7) {
+        const picker = document.getElementById(fieldName + '-custom-picker');
+        if (picker) picker.value = hex;
+    }
+    // Update swatch border states across both palette rows
+    const allSwatches = document.querySelectorAll('[data-color]');
+    allSwatches.forEach(function(sw) {
+        const isSelected = sw.dataset.color === hex;
+        sw.classList.toggle('border-gray-700', isSelected);
+        sw.classList.toggle('scale-110', isSelected);
+        sw.classList.toggle('border-transparent', !isSelected);
+    });
+}
+</script>

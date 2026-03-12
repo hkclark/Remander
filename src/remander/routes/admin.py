@@ -685,3 +685,22 @@ async def audit_trail(request: Request) -> HTMLResponse:
         "admin/audit.html",
         {"commands": commands},
     )
+
+
+@router.post("/colors/remove", response_class=HTMLResponse)
+async def remove_custom_color_route(
+    request: Request,
+    hex: str = Form(...),
+    field_name: str = Form(default="color"),
+) -> HTMLResponse:
+    from remander.main import templates
+    from remander.services.app_config import get_custom_colors, remove_custom_color as _remove
+
+    await _remove(hex)
+    custom_colors = await get_custom_colors()
+    return templates.TemplateResponse(
+        request,
+        "partials/_custom_colors_row.html",
+        {"custom_colors": custom_colors, "field_name": field_name},
+    )
+

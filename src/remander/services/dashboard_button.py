@@ -3,7 +3,7 @@
 from remander.models.dashboard_button import DashboardButton
 from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
 from remander.models.device import Device
-from remander.models.enums import ButtonColor, ButtonOperationType
+from remander.models.enums import ButtonOperationType
 from remander.models.tag import Tag
 
 
@@ -11,7 +11,7 @@ async def create_dashboard_button(
     name: str,
     operation_type: ButtonOperationType,
     *,
-    color: ButtonColor = ButtonColor.BLUE,
+    color: str = "#3B82F6",
     delay_seconds: int = 0,
     sort_order: int = 0,
     is_enabled: bool = True,

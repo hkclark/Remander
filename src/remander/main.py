@@ -147,11 +147,10 @@ app.add_exception_handler(RequiresLoginException, requires_login_handler)  # typ
 
 templates = Jinja2Templates(directory="src/remander/templates")
 
-from remander.tag_colors import TAG_COLOR_LABELS, TAG_COLORS, tag_badge_classes  # noqa: E402
+from remander.app_colors import PALETTE, hex_color_style  # noqa: E402
 
-templates.env.globals["tag_badge_classes"] = tag_badge_classes
-templates.env.globals["TAG_COLORS"] = TAG_COLORS
-templates.env.globals["TAG_COLOR_LABELS"] = TAG_COLOR_LABELS
+templates.env.globals["hex_color_style"] = hex_color_style
+templates.env.globals["COLOR_PALETTE"] = PALETTE
 
 # Register routers
 from remander.routes.activity import router as activity_router  # noqa: E402
