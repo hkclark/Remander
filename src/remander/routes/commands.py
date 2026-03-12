@@ -227,7 +227,15 @@ async def execute_button(
     if "hx-request" not in request.headers:
         return RedirectResponse(url="/", status_code=303)
 
-    warning_devices = await get_devices_missing_detection_types()
+    # Collect device IDs scoped to this button's tag rules so the warning only
+    # mentions devices this button actually operates on.
+    await button.fetch_related("bitmask_rules__tag")
+    button_device_ids: list[int] = []
+    for rule in button.bitmask_rules:
+        devices_for_tag = await get_devices_by_tag(rule.tag.name)
+        button_device_ids.extend(d.id for d in devices_for_tag)
+
+    warning_devices = await get_devices_missing_detection_types(device_ids=button_device_ids)
     active_command = await get_active_command()
     return templates.TemplateResponse(
         request,

@@ -48,17 +48,23 @@ async def list_devices(
     return devices
 
 
-async def get_devices_missing_detection_types() -> list[Device]:
+async def get_devices_missing_detection_types(
+    device_ids: list[int] | None = None,
+) -> list[Device]:
     """Return enabled camera devices that have a channel but no enabled DetectionType records.
 
     These devices are silently skipped during bitmask operations, so this list is
     used to warn the user before a command runs.
+
+    If device_ids is provided, only those devices are checked (used to scope the
+    warning to the devices a specific button operates on).
     """
     from remander.models.detection import DeviceDetectionType
 
-    cameras = await Device.filter(
-        is_enabled=True, device_type=DeviceType.CAMERA
-    ).exclude(channel=None)
+    qs = Device.filter(is_enabled=True, device_type=DeviceType.CAMERA).exclude(channel=None)
+    if device_ids is not None:
+        qs = qs.filter(id__in=device_ids)
+    cameras = await qs
     missing = []
     for device in cameras:
         count = await DeviceDetectionType.filter(device_id=device.id, is_enabled=True).count()
