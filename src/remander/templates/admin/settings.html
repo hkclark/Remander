@@ -50,6 +50,9 @@
                        {% if field.field_type == 'float' %}step="any"{% endif %}
                        class="w-full rounded-md border border-gray-300 py-2 px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 {% endif %}
+                {% if field.description %}
+                <p class="mt-1 text-xs text-gray-400">{{ field.description }}</p>
+                {% endif %}
             </div>
             {% endfor %}
             </div>

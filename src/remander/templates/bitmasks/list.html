@@ -71,6 +71,18 @@
         </div>
     </div>
 
+    {% if location_sunrise %}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600">
+        <strong class="text-gray-700">Location</strong> &mdash;
+        lat {{ location_lat }}, lon {{ location_lon }}, timezone {{ current_timezone }}
+        &mdash; today's sunrise <strong>{{ location_sunrise }}</strong>,
+        sunset <strong>{{ location_sunset }}</strong>.
+        If these times look wrong, check your
+        <a href="/admin/settings" class="underline font-medium">location settings</a>
+        (west of prime meridian needs a negative longitude, e.g. New York = -74.01).
+    </div>
+    {% endif %}
+
     <!-- Zone Masks -->
     <div>
         <div class="flex items-center justify-between mb-3">

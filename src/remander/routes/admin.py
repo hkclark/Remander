@@ -95,6 +95,7 @@ class SettingsField:
     field_type: str = "string"  # "string" | "int" | "bool" | "float" | "password"
     secret: bool = False
     restart_required: bool = False
+    description: str = ""
 
 
 @attrs.define
@@ -139,9 +140,24 @@ CORE_SETTINGS_GROUPS: list[SettingsGroup] = [
         id="location",
         title="Location",
         fields=[
-            SettingsField("latitude", "Latitude", field_type="float"),
-            SettingsField("longitude", "Longitude", field_type="float"),
-            SettingsField("timezone", "Timezone", field_type="str"),
+            SettingsField(
+                "latitude",
+                "Latitude",
+                field_type="float",
+                description="Decimal degrees. Positive = North, negative = South (e.g. 40.71 for NYC).",
+            ),
+            SettingsField(
+                "longitude",
+                "Longitude",
+                field_type="float",
+                description="Decimal degrees. Negative = West, positive = East. Americas are negative (e.g. -74.01 for NYC).",
+            ),
+            SettingsField(
+                "timezone",
+                "Timezone",
+                field_type="str",
+                description="IANA timezone name, e.g. America/New_York, Europe/London, Asia/Tokyo.",
+            ),
         ],
     ),
     SettingsGroup(

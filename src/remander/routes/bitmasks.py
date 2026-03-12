@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from remander.models.enums import HourBitmaskSubtype
 from remander.models.bitmask import HourBitmask
+from remander.models.enums import HourBitmaskSubtype
 from remander.services.bitmask import (
     create_hour_bitmask,
     create_zone_mask,
@@ -17,8 +17,42 @@ from remander.services.bitmask import (
     resolve_hour_bitmask,
     update_hour_bitmask,
 )
+from remander.services.solar import get_sunrise_sunset
 
 router = APIRouter(prefix="/bitmasks")
+
+
+async def _location_form_context() -> dict:
+    """Build location/sunrise/sunset context for the hour bitmask create and edit forms."""
+    from remander.config import get_settings
+
+    settings = get_settings()
+    location_sunrise: str | None = None
+    location_sunset: str | None = None
+    location_sunrise_minutes: int | None = None
+    location_sunset_minutes: int | None = None
+
+    if settings.latitude != 0.0 or settings.longitude != 0.0:
+        try:
+            sr, ss = await get_sunrise_sunset(
+                settings.latitude, settings.longitude, timezone=settings.timezone
+            )
+            location_sunrise = sr.strftime("%-I:%M %p")
+            location_sunset = ss.strftime("%-I:%M %p")
+            location_sunrise_minutes = sr.hour * 60 + sr.minute
+            location_sunset_minutes = ss.hour * 60 + ss.minute
+        except Exception:
+            pass
+
+    return {
+        "location_lat": settings.latitude,
+        "location_lon": settings.longitude,
+        "location_timezone": settings.timezone,
+        "location_sunrise": location_sunrise,
+        "location_sunset": location_sunset,
+        "location_sunrise_minutes": location_sunrise_minutes,
+        "location_sunset_minutes": location_sunset_minutes,
+    }
 
 
 @router.get("", response_class=HTMLResponse)
@@ -45,6 +79,21 @@ async def bitmask_list(request: Request) -> HTMLResponse:
         settings.latitude != 0.0 or settings.longitude != 0.0
     )
 
+    # Compute today's sunrise/sunset for the diagnostic card (only if lat/lon are non-zero)
+    location_sunrise: str | None = None
+    location_sunset: str | None = None
+    if settings.latitude != 0.0 or settings.longitude != 0.0:
+        try:
+            sr, ss = await get_sunrise_sunset(
+                settings.latitude,
+                settings.longitude,
+                timezone=settings.timezone,
+            )
+            location_sunrise = sr.strftime("%-I:%M %p")
+            location_sunset = ss.strftime("%-I:%M %p")
+        except Exception:
+            pass
+
     return templates.TemplateResponse(
         request,
         "bitmasks/list.html",
@@ -54,6 +103,10 @@ async def bitmask_list(request: Request) -> HTMLResponse:
             "dynamic_computed": dynamic_computed,
             "timezone_warning": timezone_warning,
             "current_timezone": settings.timezone,
+            "location_lat": settings.latitude,
+            "location_lon": settings.longitude,
+            "location_sunrise": location_sunrise,
+            "location_sunset": location_sunset,
         },
     )
 
@@ -65,10 +118,11 @@ async def bitmask_list(request: Request) -> HTMLResponse:
 async def hour_bitmask_create_form(request: Request) -> HTMLResponse:
     from remander.main import templates
 
+    location_ctx = await _location_form_context()
     return templates.TemplateResponse(
         request,
         "bitmasks/hour_form.html",
-        {"bitmask": None, "subtypes": list(HourBitmaskSubtype)},
+        {"bitmask": None, "subtypes": list(HourBitmaskSubtype), **location_ctx},
     )
 
 
@@ -122,10 +176,11 @@ async def hour_bitmask_edit_form(request: Request, bitmask_id: int) -> HTMLRespo
     if bitmask is None:
         return HTMLResponse("Hour bitmask not found", status_code=404)
 
+    location_ctx = await _location_form_context()
     return templates.TemplateResponse(
         request,
         "bitmasks/hour_form.html",
-        {"bitmask": bitmask, "subtypes": list(HourBitmaskSubtype)},
+        {"bitmask": bitmask, "subtypes": list(HourBitmaskSubtype), **location_ctx},
     )
 
 

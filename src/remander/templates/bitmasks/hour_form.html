@@ -18,17 +18,20 @@
                        value="{{ bitmask.name if bitmask else '' }}"
                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
             </div>
+
             <div>
-                <label for="subtype" class="block text-sm font-medium text-gray-700">Subtype</label>
-                <select name="subtype" id="subtype"
-                        onchange="toggleSubtypeFields(this.value)"
-                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Subtype</label>
+                <div class="flex gap-6">
                     {% for st in subtypes %}
-                    <option value="{{ st.value }}" {{ 'selected' if bitmask and bitmask.subtype == st else '' }}>
-                        {{ st.value|capitalize }}
-                    </option>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="subtype" value="{{ st.value }}"
+                               {% if bitmask %}{{ 'checked' if bitmask.subtype == st else '' }}{% elif loop.first %}checked{% endif %}
+                               onchange="toggleSubtypeFields(this.value)"
+                               class="text-blue-600 focus:ring-blue-500">
+                        <span class="text-sm text-gray-700">{{ st.value|capitalize }}</span>
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
             <div id="static-fields">
@@ -38,44 +41,149 @@
                 <input type="text" name="static_value" id="static_value" maxlength="24"
                        pattern="[01]{24}"
                        value="{{ bitmask.static_value if bitmask and bitmask.static_value else '' }}"
+                       oninput="updatePreview()"
                        class="mt-1 block w-full rounded border-gray-300 shadow-sm font-mono">
             </div>
 
-            <div id="dynamic-fields" class="grid grid-cols-3 gap-4">
-                <div>
-                    <label for="sunrise_offset_minutes" class="block text-sm font-medium text-gray-700">
-                        Sunrise Offset <span class="text-gray-400 font-normal">(min)</span>
-                    </label>
-                    <input type="number" name="sunrise_offset_minutes" id="sunrise_offset_minutes"
-                           value="{{ bitmask.sunrise_offset_minutes if bitmask and bitmask.sunrise_offset_minutes else '' }}"
-                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label for="sunset_offset_minutes" class="block text-sm font-medium text-gray-700">
-                        Sunset Offset <span class="text-gray-400 font-normal">(min)</span>
-                    </label>
-                    <input type="number" name="sunset_offset_minutes" id="sunset_offset_minutes"
-                           value="{{ bitmask.sunset_offset_minutes if bitmask and bitmask.sunset_offset_minutes else '' }}"
-                           class="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label for="fill_value" class="block text-sm font-medium text-gray-700">Fill Value</label>
-                    <select name="fill_value" id="fill_value"
-                            class="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                        <option value="0" {{ 'selected' if bitmask and bitmask.fill_value == '0' else '' }}>Notifications during night</option>
-                        <option value="1" {{ 'selected' if bitmask and bitmask.fill_value == '1' else '' }}>Notifications during day</option>
-                    </select>
+            <div id="dynamic-fields" class="space-y-4">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="sunrise_offset_minutes" class="block text-sm font-medium text-gray-700">
+                            Sunrise Offset <span class="text-gray-400 font-normal">(min)</span>
+                        </label>
+                        <input type="number" name="sunrise_offset_minutes" id="sunrise_offset_minutes"
+                               value="{{ bitmask.sunrise_offset_minutes if bitmask and bitmask.sunrise_offset_minutes else '' }}"
+                               onblur="updatePreview()"
+                               class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        <p class="mt-1 text-xs text-gray-400">Negative = earlier, positive = later</p>
+                    </div>
+                    <div>
+                        <label for="sunset_offset_minutes" class="block text-sm font-medium text-gray-700">
+                            Sunset Offset <span class="text-gray-400 font-normal">(min)</span>
+                        </label>
+                        <input type="number" name="sunset_offset_minutes" id="sunset_offset_minutes"
+                               value="{{ bitmask.sunset_offset_minutes if bitmask and bitmask.sunset_offset_minutes else '' }}"
+                               onblur="updatePreview()"
+                               class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        <p class="mt-1 text-xs text-gray-400">Negative = earlier, positive = later</p>
+                    </div>
+                    <div>
+                        <label for="fill_value" class="block text-sm font-medium text-gray-700">Fill Value</label>
+                        <select name="fill_value" id="fill_value"
+                                onchange="updatePreview()"
+                                class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                            <option value="0" {{ 'selected' if bitmask and bitmask.fill_value == '0' else '' }}>Notifications during night</option>
+                            <option value="1" {{ 'selected' if bitmask and bitmask.fill_value == '1' else '' }}>Notifications during day</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
+            <!-- Live bitmask preview -->
+            <div class="space-y-1">
+                <label class="block text-sm font-medium text-gray-700">Preview</label>
+                <div id="bitmask-timeline" class="flex">
+                    {% for h in range(24) %}
+                    <div class="hour-cell flex-1 h-8 bg-gray-200
+                                {{ 'rounded-l' if loop.first else '' }}{{ 'rounded-r' if loop.last else '' }}"
+                         title="Hour {{ h }}"></div>
+                    {% endfor %}
+                </div>
+                <div class="flex text-xs text-gray-400 mt-1">
+                    <span class="flex-1">0</span>
+                    <span class="flex-1 text-center">6</span>
+                    <span class="flex-1 text-center">12</span>
+                    <span class="flex-1 text-center">18</span>
+                    <span class="text-right">23</span>
+                </div>
+                <p id="bitmask-preview" class="font-mono text-sm font-semibold text-gray-700 min-h-4"></p>
+            </div>
+
+            <!-- Location info block — shown only when dynamic is selected -->
+            <div id="location-block">
+                {% if location_sunrise %}
+                <div class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600">
+                    <strong class="text-gray-700">Location</strong> &mdash;
+                    lat {{ location_lat }}, lon {{ location_lon }}, timezone {{ location_timezone }}
+                    &mdash; today's sunrise <strong>{{ location_sunrise }}</strong>,
+                    sunset <strong>{{ location_sunset }}</strong>.
+                    If these times look wrong, check your
+                    <a href="/admin/settings" class="underline font-medium">location settings</a>
+                    (west of prime meridian needs a negative longitude, e.g. New York = -74.01).
+                </div>
+                {% else %}
+                <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
+                    Location not configured &mdash; go to
+                    <a href="/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
+                    to set latitude, longitude, and timezone before using dynamic bitmasks.
+                </div>
+                {% endif %}
+            </div>
+
             <script>
-            function toggleSubtypeFields(subtype) {
-                document.getElementById('static-fields').style.display  = subtype === 'static'  ? '' : 'none';
-                document.getElementById('dynamic-fields').style.display = subtype === 'dynamic' ? '' : 'none';
+            const srMin = {{ location_sunrise_minutes if location_sunrise_minutes is not none else 'null' }};
+            const ssMin = {{ location_sunset_minutes if location_sunset_minutes is not none else 'null' }};
+
+            function roundToHour(totalMinutes) {
+                const norm = ((totalMinutes % 1440) + 1440) % 1440;
+                const h = Math.floor(norm / 60);
+                return (norm % 60) >= 30 ? (h + 1) % 24 : h;
             }
-            // Set initial state on page load
-            toggleSubtypeFields(document.getElementById('subtype').value);
+
+            function computeDynamicBitmask(srOff, ssOff, fillValue) {
+                if (srMin === null || ssMin === null) return null;
+                const adjSr = srMin + srOff;
+                const adjSs = ssMin + ssOff;
+                const srHour = roundToHour(adjSr);
+                const ssHour = roundToHour(adjSs);
+                const opp = fillValue === '1' ? '0' : '1';
+                if (srHour === ssHour) {
+                    const gap = adjSs >= adjSr ? adjSs - adjSr : adjSs - adjSr + 1440;
+                    return ((gap / 60 > 12) ? fillValue : opp).repeat(24);
+                }
+                let mask = '';
+                for (let h = 0; h < 24; h++) {
+                    if (srHour < ssHour) {
+                        mask += (h >= srHour && h < ssHour) ? fillValue : opp;
+                    } else {
+                        mask += (h >= srHour || h < ssHour) ? fillValue : opp;
+                    }
+                }
+                return mask;
+            }
+
+            function renderPreview(mask) {
+                document.getElementById('bitmask-preview').textContent = mask || '';
+                document.querySelectorAll('#bitmask-timeline .hour-cell').forEach((cell, i) => {
+                    cell.classList.toggle('bg-blue-500', !!mask && mask[i] === '1');
+                    cell.classList.toggle('bg-gray-200', !mask || mask[i] !== '1');
+                    if (mask) cell.title = 'Hour ' + i + ': ' + (mask[i] === '1' ? 'Active' : 'Inactive');
+                });
+            }
+
+            function updatePreview() {
+                const subtype = document.querySelector('input[name="subtype"]:checked')?.value;
+                if (subtype === 'static') {
+                    const val = document.getElementById('static_value').value;
+                    renderPreview(/^[01]{24}$/.test(val) ? val : null);
+                } else {
+                    const srOff = parseInt(document.getElementById('sunrise_offset_minutes').value) || 0;
+                    const ssOff = parseInt(document.getElementById('sunset_offset_minutes').value) || 0;
+                    const fv = document.getElementById('fill_value').value;
+                    renderPreview(computeDynamicBitmask(srOff, ssOff, fv));
+                }
+            }
+
+            function toggleSubtypeFields(subtype) {
+                document.getElementById('static-fields').style.display   = subtype === 'static'  ? '' : 'none';
+                document.getElementById('dynamic-fields').style.display  = subtype === 'dynamic' ? '' : 'none';
+                document.getElementById('location-block').style.display  = subtype === 'dynamic' ? '' : 'none';
+                updatePreview();
+            }
+
+            toggleSubtypeFields(document.querySelector('input[name="subtype"]:checked')?.value || 'static');
             </script>
+
             <div class="flex justify-end space-x-3">
                 <a href="/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
                     Cancel
