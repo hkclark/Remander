@@ -100,7 +100,7 @@ class SaveBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     )
                 except Exception as e:
                     logger.warning(
-                        "[cmd %d] SaveBitmasks: device %d failed: %s",
+                        "*** ERROR: [cmd %d] SaveBitmasks: device %d failed: %s",
                         ctx.state.command_id,
                         device_id,
                         e,
@@ -210,7 +210,7 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     )
                 except Exception as e:
                     logger.warning(
-                        "[cmd %d] RestoreBitmasks: device %d failed: %s",
+                        "*** ERROR: [cmd %d] RestoreBitmasks: device %d failed: %s",
                         ctx.state.command_id,
                         device_id,
                         e,

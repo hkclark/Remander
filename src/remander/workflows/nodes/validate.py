@@ -96,7 +96,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
 
                     if not _bitmasks_match(expected_hour, actual_hour):
                         logger.warning(
-                            "[cmd %d] Validate: MISMATCH device '%s' %s "
+                            "*** ERROR: [cmd %d] Validate: MISMATCH device '%s' %s "
                             "hour_bitmask expected=%s actual=%s",
                             ctx.state.command_id,
                             device.name,
@@ -124,7 +124,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
 
                     if expected_zone is not None and actual_zone != expected_zone:
                         logger.warning(
-                            "[cmd %d] Validate: MISMATCH device '%s' %s "
+                            "*** ERROR: [cmd %d] Validate: MISMATCH device '%s' %s "
                             "zone_mask expected=%s actual=%s",
                             ctx.state.command_id,
                             device.name,
@@ -152,7 +152,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
 
                 except Exception as e:
                     logger.warning(
-                        "[cmd %d] Validate: device %d error: %s", ctx.state.command_id, device_id, e
+                        "*** ERROR: [cmd %d] Validate: device %d error: %s", ctx.state.command_id, device_id, e
                     )
                     await log_activity(
                         command_id=ctx.state.command_id,
@@ -164,7 +164,7 @@ class ValidateNode(BaseNode[WorkflowState, WorkflowDeps]):
 
         if ctx.state.validation_discrepancies:
             logger.warning(
-                "[cmd %d] Validate: %d discrepancies found",
+                "*** ERROR: [cmd %d] Validate: %d discrepancies found",
                 ctx.state.command_id,
                 len(ctx.state.validation_discrepancies),
             )

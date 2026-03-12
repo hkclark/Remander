@@ -41,7 +41,7 @@ async def execute_command(command_id: int) -> None:
         return
 
     logger.info(
-        "[cmd %d] Executing command: type=%s tag_filter=%s delay=%s pause=%s",
+        "****** JOB START ****** [cmd %d] type=%s tag_filter=%s delay=%s pause=%s",
         command_id,
         cmd.command_type,
         cmd.tag_filter,
@@ -61,14 +61,16 @@ async def execute_command(command_id: int) -> None:
             await transition_status(command_id, CommandStatus.SUCCEEDED)
     except asyncio.CancelledError:
         # SAQ job was cancelled or timed out — CancelledError is BaseException, not Exception
-        logger.warning("[cmd %d] Command job was cancelled or timed out", command_id)
+        logger.warning("*** ERROR: [cmd %d] Job timed out or was cancelled", command_id)
         await transition_status(command_id, CommandStatus.FAILED)
         await set_error_summary(command_id, "Job timed out or was cancelled")
         raise  # re-raise so SAQ knows the job did not complete
     except Exception as e:
-        logger.exception("[cmd %d] Command failed: %s", command_id, e)
+        logger.exception("*** ERROR: [cmd %d] Command failed: %s", command_id, e)
         await transition_status(command_id, CommandStatus.FAILED)
         await set_error_summary(command_id, str(e))
+    finally:
+        logger.info("****** JOB END ****** [cmd %d]", command_id)
 
 
 async def run_workflow(cmd: Command) -> bool | None:
@@ -183,7 +185,7 @@ async def execute_rearm(command_id: int) -> None:
     from remander.workflows.graphs import get_workflow_for_command
     from remander.workflows.state import WorkflowDeps, WorkflowState
 
-    logger.info("[cmd %d] Starting re-arm workflow", command_id)
+    logger.info("****** JOB START ****** [cmd %d] re-arm workflow", command_id)
     cmd = await Command.get(id=command_id)
     settings = get_settings()
 
@@ -232,4 +234,6 @@ async def execute_rearm(command_id: int) -> None:
         await graph.run(start_node, state=state, deps=deps)
         logger.info("Re-arm completed for command %d", command_id)
     except Exception:
-        logger.exception("Re-arm failed for command %d", command_id)
+        logger.exception("*** ERROR: [cmd %d] Re-arm failed", command_id)
+    finally:
+        logger.info("****** JOB END ****** [cmd %d] re-arm workflow", command_id)

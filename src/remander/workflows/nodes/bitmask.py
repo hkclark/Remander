@@ -117,7 +117,7 @@ class SetNotificationBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.device_results[device_id] = "succeeded"
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] SetNotificationBitmasks: device %d failed: %s",
+                    "*** ERROR: [cmd %d] SetNotificationBitmasks: device %d failed: %s",
                     ctx.state.command_id,
                     device_id,
                     e,
@@ -198,7 +198,7 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] SetZoneMasks: device %d failed: %s",
+                    "*** ERROR: [cmd %d] SetZoneMasks: device %d failed: %s",
                     ctx.state.command_id,
                     device_id,
                     e,

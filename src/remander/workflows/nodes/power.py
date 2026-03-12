@@ -82,7 +82,7 @@ class PowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] PowerOn: device %d failed: %s", ctx.state.command_id, device_id, e
+                    "*** ERROR: [cmd %d] PowerOn: device %d failed: %s", ctx.state.command_id, device_id, e
                 )
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -158,7 +158,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
                         del pending[device_id]
                 except Exception as e:
                     logger.warning(
-                        "[cmd %d] WaitForPowerOn: poll error device %d: %s",
+                        "*** ERROR: [cmd %d] WaitForPowerOn: poll error device %d: %s",
                         ctx.state.command_id,
                         device_id,
                         e,
@@ -170,7 +170,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
         # Mark timed-out cameras as failed
         for device_id in pending:
             logger.warning(
-                "[cmd %d] WaitForPowerOn: device %d timed out after %ds",
+                "*** ERROR: [cmd %d] WaitForPowerOn: device %d timed out after %ds",
                 ctx.state.command_id,
                 device_id,
                 self.timeout_seconds,
@@ -230,7 +230,7 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] PowerOff: device %d failed: %s", ctx.state.command_id, device_id, e
+                    "*** ERROR: [cmd %d] PowerOff: device %d failed: %s", ctx.state.command_id, device_id, e
                 )
                 await log_activity(
                     command_id=ctx.state.command_id,

@@ -35,7 +35,7 @@ class NotifyNode(BaseNode[WorkflowState, WorkflowDeps, str]):
                 status=ActivityStatus.SUCCEEDED,
             )
         except Exception as e:
-            logger.warning("[cmd %d] Notify: failed: %s", ctx.state.command_id, e)
+            logger.warning("*** ERROR: [cmd %d] Notify: failed: %s", ctx.state.command_id, e)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="notify",

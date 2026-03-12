@@ -68,7 +68,7 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] PTZCalibrate: device %d failed: %s",
+                    "*** ERROR: [cmd %d] PTZCalibrate: device %d failed: %s",
                     ctx.state.command_id,
                     device_id,
                     e,
@@ -145,7 +145,7 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] SetPTZPreset: device %d failed: %s",
+                    "*** ERROR: [cmd %d] SetPTZPreset: device %d failed: %s",
                     ctx.state.command_id,
                     device_id,
                     e,
@@ -216,7 +216,7 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                 )
             except Exception as e:
                 logger.warning(
-                    "[cmd %d] SetPTZHome: device %d failed: %s", ctx.state.command_id, device_id, e
+                    "*** ERROR: [cmd %d] SetPTZHome: device %d failed: %s", ctx.state.command_id, device_id, e
                 )
                 await log_activity(
                     command_id=ctx.state.command_id,

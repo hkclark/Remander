@@ -45,7 +45,7 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
         except Exception as e:
             elapsed_ms = int((time.monotonic() - start) * 1000)
             logger.error(
-                "[cmd %d] NVRLogin: failed in %dms: %s", ctx.state.command_id, elapsed_ms, e
+                "*** ERROR: [cmd %d] NVRLogin: failed in %dms: %s", ctx.state.command_id, elapsed_ms, e
             )
             await log_activity(
                 command_id=ctx.state.command_id,
@@ -104,7 +104,7 @@ class NVRLogoutNode(BaseNode[WorkflowState, WorkflowDeps]):
                 status=ActivityStatus.SUCCEEDED,
             )
         except Exception as e:
-            logger.warning("[cmd %d] NVRLogout: failed: %s", ctx.state.command_id, e)
+            logger.warning("*** ERROR: [cmd %d] NVRLogout: failed: %s", ctx.state.command_id, e)
             await log_activity(
                 command_id=ctx.state.command_id,
                 step_name="nvr_logout",
