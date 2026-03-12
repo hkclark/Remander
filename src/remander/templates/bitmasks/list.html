@@ -8,6 +8,15 @@
         <h1 class="text-2xl font-bold text-gray-900">Bitmasks</h1>
     </div>
 
+    {% if timezone_warning %}
+    <div class="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-sm text-amber-800">
+        <strong>Timezone not configured.</strong>
+        Dynamic bitmask hours are computed in UTC, which may not match your local day/night.
+        Go to <a href="/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
+        and set the <strong>Timezone</strong> field (e.g. <code>America/New_York</code>, <code>Europe/London</code>).
+    </div>
+    {% endif %}
+
     <!-- Hour Bitmasks -->
     <div>
         <div class="flex items-center justify-between mb-3">

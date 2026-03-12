@@ -40,6 +40,11 @@ async def bitmask_list(request: Request) -> HTMLResponse:
                 timezone=settings.timezone,
             )
 
+    has_dynamic = any(bm.subtype == HourBitmaskSubtype.DYNAMIC for bm in hour_bitmasks)
+    timezone_warning = has_dynamic and settings.timezone == "UTC" and (
+        settings.latitude != 0.0 or settings.longitude != 0.0
+    )
+
     return templates.TemplateResponse(
         request,
         "bitmasks/list.html",
@@ -47,6 +52,8 @@ async def bitmask_list(request: Request) -> HTMLResponse:
             "hour_bitmasks": hour_bitmasks,
             "zone_masks": zone_masks,
             "dynamic_computed": dynamic_computed,
+            "timezone_warning": timezone_warning,
+            "current_timezone": settings.timezone,
         },
     )
 

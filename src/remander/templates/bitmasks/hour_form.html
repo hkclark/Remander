@@ -62,8 +62,8 @@
                     <label for="fill_value" class="block text-sm font-medium text-gray-700">Fill Value</label>
                     <select name="fill_value" id="fill_value"
                             class="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                        <option value="1" {{ 'selected' if bitmask and bitmask.fill_value == '1' else '' }}>1 — active during day</option>
-                        <option value="0" {{ 'selected' if bitmask and bitmask.fill_value == '0' else '' }}>0 — active during night</option>
+                        <option value="0" {{ 'selected' if bitmask and bitmask.fill_value == '0' else '' }}>Notifications during night</option>
+                        <option value="1" {{ 'selected' if bitmask and bitmask.fill_value == '1' else '' }}>Notifications during day</option>
                     </select>
                 </div>
             </div>
