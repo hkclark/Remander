@@ -197,6 +197,10 @@ async def execute_button(
     button_id: int,
     current_user: User = Depends(get_current_user),
 ) -> Response:
+    from remander.main import templates
+    from remander.services.command import get_active_command
+    from remander.services.device import get_devices_missing_detection_types
+
     button = await DashboardButton.get_or_none(id=button_id)
     if button is None:
         return HTMLResponse("Button not found", status_code=404)
@@ -217,7 +221,19 @@ async def execute_button(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+
+    # HTMX requests get the command-progress partial + optional warning toast.
+    # Non-HTMX fallback (e.g. no-JS) redirects as before.
+    if "hx-request" not in request.headers:
+        return RedirectResponse(url="/", status_code=303)
+
+    warning_devices = await get_devices_missing_detection_types()
+    active_command = await get_active_command()
+    return templates.TemplateResponse(
+        request,
+        "partials/execute_button_response.html",
+        {"active_command": active_command, "warning_devices": warning_devices},
+    )
 
 
 @router.post("/{command_id}/cancel")

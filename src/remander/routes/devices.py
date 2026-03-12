@@ -372,7 +372,7 @@ async def device_query_ptz_presets(request: Request, device_id: int) -> HTMLResp
 
     try:
         await asyncio.wait_for(client.login(), timeout=settings.nvr_timeout)
-        presets = client.get_ptz_presets(device.channel)
+        presets = await client.get_ptz_presets(device.channel)
         await client.logout()
     except Exception as e:
         return templates.TemplateResponse(

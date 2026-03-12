@@ -136,6 +136,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
         pending = {d.id: d for d in cameras_to_wait}
 
         while pending and (time.monotonic() - start_time) < self.timeout_seconds:
+            await ctx.deps.nvr_client.refresh_channel_states()
             for device_id, device in list(pending.items()):
                 try:
                     online = await ctx.deps.nvr_client.is_channel_online(device.channel)

@@ -15,9 +15,18 @@ logger = logging.getLogger(__name__)
 class ReolinkNVRClient:
     """High-level async client for a Reolink NVR.
 
-    Uses reolink-aio for login/logout/PTZ/channel info.
-    Uses direct HTTP API calls for alarm schedule and detection zone operations
-    that reolink-aio doesn't expose as public methods.
+    Login is intentionally minimal: only the authentication token exchange plus a
+    single batched GetDevInfo + GetChannelstatus request (sets is_nvr and channel
+    online state).  All other data is fetched lazily on first use so that the
+    critical workflow path pays only for what it actually needs.
+
+    Methods that require full host discovery (list_channels, get_ptz_presets,
+    get_push_schedules) call _ensure_host_data() internally, which runs
+    get_host_data() once and caches the result.
+
+    The push schedule API version (GetPushV20 vs legacy GetPush) is detected
+    once on first use via _detect_push_v20() and cached for the lifetime of
+    this client instance.
     """
 
     host: str
@@ -27,6 +36,10 @@ class ReolinkNVRClient:
     use_https: bool = False
     timeout: int = 15
     _nvr: Host = attrs.field(init=False)
+    # True once get_host_data() has been called (needed for admin operations)
+    _host_data_loaded: bool = attrs.field(init=False, default=False)
+    # None = not yet detected, True = GetPushV20 supported, False = legacy GetPush
+    _push_v20: bool | None = attrs.field(init=False, default=None)
 
     def __attrs_post_init__(self) -> None:
         self._nvr = Host(
@@ -39,11 +52,26 @@ class ReolinkNVRClient:
         )
 
     async def login(self) -> None:
-        """Authenticate with the NVR and fetch host data."""
+        """Authenticate with the NVR and perform minimal initialisation.
+
+        Only two commands are sent after the token exchange:
+          - GetDevInfo   → sets is_nvr so camera_online() works correctly
+          - GetChannelstatus → seeds _channel_online and _channels
+
+        This replaces the previous get_host_data() call which sent ~15 commands
+        and took ~8s. Full host data is fetched lazily when needed.
+        """
         logger.info("NVR login to %s:%s", self.host, self.port)
         t0 = time.monotonic()
         await self._nvr.login()
-        await self._nvr.get_host_data()
+        # Single batched request: device type + channel online/offline state
+        body = [
+            {"cmd": "GetDevInfo", "action": 0, "param": {}},
+            {"cmd": "GetChannelstatus"},
+        ]
+        json_data = await self._nvr.send(body, expected_response_type="json")
+        if json_data:
+            self._nvr.map_host_json_response(json_data)
         elapsed = time.monotonic() - t0
         logger.info("NVR login completed in %.1fs", elapsed)
 
@@ -54,6 +82,7 @@ class ReolinkNVRClient:
 
     async def list_channels(self) -> list[dict]:
         """Return metadata for all connected camera channels."""
+        await self._ensure_host_data()
         t0 = time.monotonic()
         channels = [await self.get_channel_info(ch) for ch in self._nvr.channels]
         elapsed = time.monotonic() - t0
@@ -137,11 +166,12 @@ class ReolinkNVRClient:
         elapsed = time.monotonic() - t0
         logger.info("NVR PTZ move completed in %.1fs", elapsed)
 
-    def get_ptz_presets(self, channel: int) -> dict[str, int]:
+    async def get_ptz_presets(self, channel: int) -> dict[str, int]:
         """Return available PTZ presets for a channel as {name: preset_id}.
 
-        Populated during login() via get_host_data(). Synchronous — reads in-memory NVR data.
+        Requires full host data (populated on demand via get_host_data()).
         """
+        await self._ensure_host_data()
         return self._nvr.ptz_presets(channel)
 
     async def get_push_schedules(self) -> list[dict]:
@@ -153,10 +183,12 @@ class ReolinkNVRClient:
         Uses the GetPushV20 API (falls back to GetPush for legacy firmware).
         Leverages reolink-aio's send() to handle auth and HTTP transport.
         """
+        await self._ensure_host_data()
         t0 = time.monotonic()
         results = []
+        use_v20 = await self._detect_push_v20(next(iter(self._nvr.channels), 0))
         for ch in self._nvr.channels:
-            if self._nvr.api_version("GetPush") >= 1:
+            if use_v20:
                 body = [{"cmd": "GetPushV20", "action": 1, "param": {"channel": ch}}]
             else:
                 body = [{"cmd": "GetPush", "action": 1, "param": {"channel": ch}}]
@@ -186,11 +218,55 @@ class ReolinkNVRClient:
         logger.info("NVR fetched push schedules for %d channels in %.1fs", len(results), elapsed)
         return results
 
+    async def refresh_channel_states(self) -> None:
+        """Refresh channel online/offline status from the NVR.
+
+        Sends a targeted GetChannelstatus request and processes the response
+        through reolink-aio's normal response mapper so that is_channel_online()
+        reflects the current state. Works whether or not _channels is populated.
+        """
+        await self._nvr.get_state("GetChannelstatus")
+
     async def is_channel_online(self, channel: int) -> bool:
-        """Check if a camera channel is currently online."""
+        """Check if a camera channel is currently online (reads in-memory cache)."""
         online = self._nvr.camera_online(channel)
         logger.debug("NVR channel %d online=%s", channel, online)
         return online
+
+    # --- Private helpers ---
+
+    async def _ensure_host_data(self) -> None:
+        """Fetch full host data if not already loaded.
+
+        get_host_data() populates camera names, models, firmware versions, PTZ
+        presets, and API capability versions. It is only needed for admin operations
+        (channel listing, PTZ preset discovery, push schedule inspection) and is
+        not called during normal workflow execution.
+        """
+        if not self._host_data_loaded:
+            logger.info("NVR fetching full host data (first admin request)")
+            await self._nvr.get_host_data()
+            self._host_data_loaded = True
+            self._push_v20 = self._nvr.api_version("GetPush") >= 1
+
+    async def _detect_push_v20(self, channel: int) -> bool:
+        """Detect and cache whether this NVR supports GetPushV20.
+
+        Tries GetPushV20 once; if the NVR returns a successful response (code=0)
+        the result is cached as True, otherwise False (falls back to legacy GetPush).
+        If full host data was already loaded, the API version is read from the
+        reolink-aio capability cache instead.
+        """
+        if self._push_v20 is not None:
+            return self._push_v20
+        body = [{"cmd": "GetPushV20", "action": 0, "param": {"channel": channel}}]
+        response = await self._nvr.send(body, expected_response_type="json")
+        self._push_v20 = bool(response) and response[0].get("code", 1) == 0
+        logger.info(
+            "NVR push schedule API detected: %s",
+            "GetPushV20" if self._push_v20 else "GetPush (legacy)",
+        )
+        return self._push_v20
 
     # --- Detection type → Reolink push schedule table key ---
 
@@ -206,7 +282,7 @@ class ReolinkNVRClient:
     async def _api_get_alarm(self, channel: int, detection_type: DetectionType) -> str:
         """Fetch alarm schedule bitmask from NVR push notification schedule."""
         nvr_key = self._PUSH_SCHEDULE_KEY[detection_type]
-        if self._nvr.api_version("GetPush") >= 1:
+        if await self._detect_push_v20(channel):
             body = [{"cmd": "GetPushV20", "action": 0, "param": {"channel": channel}}]
         else:
             body = [{"cmd": "GetPush", "action": 0, "param": {"channel": channel}}]
@@ -237,7 +313,7 @@ class ReolinkNVRClient:
         nvr_key = self._PUSH_SCHEDULE_KEY[detection_type]
         # Expand 24-char per-hour bitmask to 168-char (7 days × 24 hours/day)
         nvr_bitmask = hour_bitmask * 7 if len(hour_bitmask) == 24 else hour_bitmask
-        if self._nvr.api_version("GetPush") >= 1:
+        if await self._detect_push_v20(channel):
             body = [
                 {
                     "cmd": "SetPushV20",

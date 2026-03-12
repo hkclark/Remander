@@ -1,0 +1,11 @@
+{% include "partials/command_progress.html" %}
+
+{% if warning_devices %}
+<div id="toast-container" hx-swap-oob="afterbegin:#toast-container">
+    <div class="px-4 py-3 rounded shadow-lg text-sm bg-yellow-500 text-gray-900 transition-opacity duration-300"
+         hx-on::load="let el = this; setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300) }, 15000)">
+        Warning: {{ warning_devices|length }} device(s) have no detection types configured and will be skipped:
+        {% for d in warning_devices %}{{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </div>
+</div>
+{% endif %}

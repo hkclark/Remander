@@ -478,14 +478,15 @@ async def query_push_schedules(request: Request) -> HTMLResponse:
         await client.logout()
         return schedules
 
+    _PUSH_SCHEDULES_TIMEOUT = 20
     try:
-        schedules = await asyncio.wait_for(_query(), timeout=settings.nvr_timeout)
+        schedules = await asyncio.wait_for(_query(), timeout=_PUSH_SCHEDULES_TIMEOUT)
     except TimeoutError:
-        logger.warning("Push schedule query timed out after %ds", settings.nvr_timeout)
+        logger.warning("Push schedule query timed out after %ds", _PUSH_SCHEDULES_TIMEOUT)
         return templates.TemplateResponse(
             request,
             "admin/_push_schedules.html",
-            {"schedules": [], "error": f"NVR query timed out after {settings.nvr_timeout}s"},
+            {"schedules": [], "error": f"NVR query timed out after {_PUSH_SCHEDULES_TIMEOUT}s"},
         )
     except Exception as e:
         logger.warning("Push schedule query failed: %s", e)
