@@ -37,11 +37,14 @@ set_away_graph = Graph(
     name="set_away",
 )
 
-# Set Home workflow: Login -> Restore -> PTZHome -> PowerOff -> Validate -> Logout -> Notify
+# Set Home workflow: Login -> Restore -> SetBitmasks(HOME) -> SetZones(HOME) ->
+#   PTZHome -> PowerOff -> Validate -> Logout -> Notify
 set_home_graph = Graph(
     nodes=(
         NVRLoginNode,
         RestoreBitmasksNode,
+        SetNotificationBitmasksNode,
+        SetZoneMasksNode,
         SetPTZHomeNode,
         PowerOffNode,
         ValidateNode,

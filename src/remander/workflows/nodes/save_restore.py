@@ -225,4 +225,10 @@ class RestoreBitmasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                     ctx.state.has_errors = True
                     ctx.state.device_results[device_id] = str(e)
 
-        return SetPTZHomeNode()
+        # Rearm goes straight to PTZ home; a regular home command sets bitmasks first.
+        if ctx.state.is_rearm:
+            return SetPTZHomeNode()
+        from remander.models.enums import Mode
+        from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
+
+        return SetNotificationBitmasksNode(mode=Mode.HOME)

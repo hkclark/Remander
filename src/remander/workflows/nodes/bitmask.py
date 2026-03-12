@@ -213,4 +213,10 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.has_errors = True
                 ctx.state.device_results[device_id] = str(e)
 
+        from remander.models.enums import Mode
+
+        if self.mode == Mode.HOME:
+            from remander.workflows.nodes.ptz import SetPTZHomeNode
+
+            return SetPTZHomeNode()
         return ValidateNode()
