@@ -46,6 +46,11 @@ class WorkflowState:
     # Whether this is a re-arm workflow (triggered by timer, not a user command)
     is_rearm: bool = False
 
+    # Tracks whether the NVR session is currently open. Set True by NVRLoginNode on success,
+    # cleared by NVRLogoutNode. Used by run_workflow's finally block to force-logout if the
+    # graph exits without reaching NVRLogoutNode (e.g. due to an unexpected exception).
+    nvr_logged_in: bool = False
+
     # Validation discrepancies collected by ValidateNode
     validation_discrepancies: list[dict] = field(default_factory=list)
 

@@ -164,7 +164,21 @@ async def run_workflow(cmd: Command) -> bool | None:
         type(start_node).__name__,
         device_ids,
     )
-    result = await graph.run(start_node, state=state, deps=deps)
+    try:
+        result = await graph.run(start_node, state=state, deps=deps)
+    finally:
+        # Safety net: if the graph exited without reaching NVRLogoutNode (e.g. due to an
+        # unexpected exception), force a logout so we don't exhaust NVR connection slots.
+        if state.nvr_logged_in:
+            logger.warning("[cmd %d] NVR session still open after workflow — forcing logout", cmd.id)
+            try:
+                await nvr_client.logout()
+            except Exception as e:
+                logger.warning(
+                    "*** ERROR: [cmd %d] Forced NVR logout failed: %s", cmd.id, e
+                )
+            state.nvr_logged_in = False
+
     logger.info("[cmd %d] Workflow finished: has_errors=%s", cmd.id, result.state.has_errors)
 
     return True if result.state.has_errors else None
@@ -236,4 +250,16 @@ async def execute_rearm(command_id: int) -> None:
     except Exception:
         logger.exception("*** ERROR: [cmd %d] Re-arm failed", command_id)
     finally:
+        # Safety net: force logout if the graph exited without reaching NVRLogoutNode.
+        if state.nvr_logged_in:
+            logger.warning(
+                "[cmd %d] NVR session still open after re-arm — forcing logout", command_id
+            )
+            try:
+                await deps.nvr_client.logout()
+            except Exception as e:
+                logger.warning(
+                    "*** ERROR: [cmd %d] Forced NVR logout (re-arm) failed: %s", command_id, e
+                )
+            state.nvr_logged_in = False
         logger.info("****** JOB END ****** [cmd %d] re-arm workflow", command_id)

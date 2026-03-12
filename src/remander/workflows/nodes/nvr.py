@@ -35,6 +35,7 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
         try:
             await ctx.deps.nvr_client.login()
             elapsed_ms = int((time.monotonic() - start) * 1000)
+            ctx.state.nvr_logged_in = True
             logger.info("[cmd %d] NVRLogin: succeeded in %dms", ctx.state.command_id, elapsed_ms)
             await log_activity(
                 command_id=ctx.state.command_id,
@@ -111,6 +112,8 @@ class NVRLogoutNode(BaseNode[WorkflowState, WorkflowDeps]):
                 status=ActivityStatus.FAILED,
                 detail=str(e),
             )
+        finally:
+            ctx.state.nvr_logged_in = False
 
         # Pause commands schedule re-arm; other commands send notification
         if ctx.state.pause_minutes and ctx.state.pause_minutes > 0:
