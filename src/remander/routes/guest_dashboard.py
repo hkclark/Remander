@@ -27,6 +27,7 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
 
     dashboard_buttons = await list_dashboard_buttons(enabled_only=True, show_on_guest=True)
     pin_error = request.query_params.get("pin_error") == "1"
+    show_toast = request.query_params.get("submitted") == "1"
     plugin_widgets = get_registry().all_dashboard_widgets("guest_dashboard")
 
     return templates.TemplateResponse(
@@ -37,6 +38,7 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
             "dashboard_buttons": dashboard_buttons,
             "show_mode": settings.guest_dashboard_show_mode,
             "pin_error": pin_error,
+            "show_toast": show_toast,
             "plugin_widgets": plugin_widgets,
         },
     )
@@ -72,4 +74,4 @@ async def guest_execute_button(
         initiated_by_ip=request.client.host if request.client else None,
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/d", status_code=303)
+    return RedirectResponse(url="/d?submitted=1", status_code=303)

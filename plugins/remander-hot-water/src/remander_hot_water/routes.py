@@ -71,7 +71,7 @@ async def hot_water_start(
     return templates.TemplateResponse(
         request,
         "hot_water/_status_partial.html",
-        {"status": status, "settings": settings},
+        {"status": status, "settings": settings, "toast_message": f"Hot water started — {duration_minutes} min"},
     )
 
 
@@ -94,5 +94,5 @@ async def hot_water_cancel(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "hot_water/_status_partial.html",
-        {"status": status, "settings": settings},
+        {"status": status, "settings": settings, "toast_message": "Hot water cancelled"},
     )

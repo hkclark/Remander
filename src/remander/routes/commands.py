@@ -12,6 +12,7 @@ from remander.services.bitmask import find_devices_missing_bitmasks
 from remander.services.command import (
     cancel_command,
     create_command,
+    get_active_command,
     get_command,
     list_commands,
 )
@@ -155,8 +156,6 @@ async def execute_pause_notifications(
     if tag_filter:
         if error := await _empty_tag_error_response(request, tag_filter):
             return error
-    if error := await _bitmask_error_response(request, tag_filter=tag_filter, mode=Mode.AWAY):
-        return error
     cmd = await create_command(
         CommandType.PAUSE_NOTIFICATIONS,
         pause_minutes=int(pause_minutes),
@@ -165,7 +164,18 @@ async def execute_pause_notifications(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+
+    if "hx-request" not in request.headers:
+        return RedirectResponse(url="/", status_code=303)
+
+    from remander.main import templates
+
+    active_command = await get_active_command()
+    return templates.TemplateResponse(
+        request,
+        "partials/command_progress.html",
+        {"active_command": active_command},
+    )
 
 
 @router.post("/execute/pause-recording")

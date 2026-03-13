@@ -89,3 +89,12 @@
     {% endfor %}
 </div>
 {% endif %}
+
+{% if toast_message %}
+<div id="toast-container" hx-swap-oob="afterbegin:#toast-container">
+    <div class="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-500"
+         hx-on::load="let el = this; setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 500) }, 8000)">
+        {{ toast_message }}
+    </div>
+</div>
+{% endif %}

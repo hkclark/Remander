@@ -34,7 +34,8 @@
         {% for button in dashboard_buttons %}
         <form hx-post="/commands/execute/button/{{ button.id }}"
               hx-target="#command-progress"
-              hx-swap="innerHTML">
+              hx-swap="innerHTML"
+              data-toast-label="{{ button.name }} — command sent">
             <button type="submit"
                     class="w-full py-4 px-6 font-semibold rounded-lg shadow text-lg hover:opacity-90"
                     style="{{ button.button_style }}; border: 2px solid rgba(0,0,0,0.30)">
@@ -71,7 +72,10 @@
                     {% set intervals = [(1, "1 Min")] if debug else [] %}
                     {% set intervals = intervals + [(3, "3 Min"), (15, "15 Min"), (30, "30 Min"), (60, "1 Hour"), (120, "2 Hours")] %}
                     {% for minutes, label in intervals %}
-                    <form action="/commands/execute/pause-notifications" method="post">
+                    <form hx-post="/commands/execute/pause-notifications"
+                          hx-target="#command-progress"
+                          hx-swap="innerHTML"
+                          data-toast-label="Notifications paused — {{ label }}">
                         <input type="hidden" name="pause_minutes" value="{{ minutes }}">
                         <input type="hidden" name="tag_filter" value="{{ tag.name }}">
                         <button type="submit"
@@ -94,4 +98,12 @@
         {% include "partials/command_progress.html" %}
     </div>
 </div>
+<script>
+document.addEventListener('htmx:afterRequest', function(e) {
+    const form = e.detail.elt;
+    if (form && form.dataset && form.dataset.toastLabel && e.detail.successful) {
+        showToast(form.dataset.toastLabel);
+    }
+});
+</script>
 {% endblock %}
