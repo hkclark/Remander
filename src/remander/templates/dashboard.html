@@ -37,7 +37,7 @@
               hx-swap="innerHTML">
             <button type="submit"
                     class="w-full py-4 px-6 font-semibold rounded-lg shadow text-lg hover:opacity-90"
-                    style="{{ button.button_style }}">
+                    style="{{ button.button_style }}; border: 2px solid rgba(0,0,0,0.30)">
                 {{ button.name }}
                 {% if button.delay_seconds %}
                 <span class="block text-sm font-normal opacity-80"><!--after {{ button.delay_seconds }}s--></span>
