@@ -13,7 +13,9 @@
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-14">
                 <a href="/" class="text-lg font-bold tracking-wide">Remander</a>
-                <div class="flex items-center space-x-4 text-sm">
+
+                {# Desktop nav #}
+                <div class="hidden md:flex items-center space-x-4 text-sm">
                     <a href="/" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
                     <a href="/devices" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_devices %}{% endblock %}">Devices</a>
                     <a href="/bitmasks" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_bitmasks %}{% endblock %}">Bitmasks</a>
@@ -27,6 +29,36 @@
                     <a href="/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
                     {% endif %}
                 </div>
+
+                {# Hamburger button (mobile only) #}
+                <button id="nav-toggle"
+                        class="md:hidden p-2 rounded text-gray-300 hover:text-white hover:bg-gray-700"
+                        aria-label="Toggle navigation"
+                        onclick="document.getElementById('nav-menu').classList.toggle('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        {# Mobile dropdown menu #}
+        <div id="nav-menu" class="hidden md:hidden border-t border-gray-700">
+            <div class="px-4 py-3 space-y-1 text-sm">
+                <a href="/" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_dashboard() }}">Dashboard</a>
+                <a href="/devices" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_devices() }}">Devices</a>
+                <a href="/bitmasks" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_bitmasks() }}">Bitmasks</a>
+                <a href="/tags" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_tags() }}">Tags</a>
+                <a href="/commands" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_commands() }}">Commands</a>
+                <a href="/activity" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_activity() }}">Activity</a>
+                <a href="/admin" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_admin() }}">Admin</a>
+                {% if request.state.current_user %}
+                <div class="pt-2 border-t border-gray-700 flex items-center justify-between">
+                    <span class="text-gray-400 text-xs">{{ request.state.current_user.display_name or request.state.current_user.email }}</span>
+                    <a href="/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </nav>
