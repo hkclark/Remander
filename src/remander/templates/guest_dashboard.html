@@ -32,8 +32,11 @@
 
         {% if button.operation_type.value == 'home' %}
         {# ── Home button: always-visible PIN pad ─────────────────────────── #}
-        <div class="bg-white rounded-xl shadow p-5 space-y-4">
-            <div class="text-center text-base font-semibold text-gray-700">{{ button.name }}</div>
+        <div class="bg-white rounded-xl shadow overflow-hidden"
+             style="border: 2px solid {{ button.color }}">
+            <div class="px-5 py-3 text-center text-base font-semibold"
+                 style="{{ button.button_style }}">{{ button.name }}</div>
+            <div class="p-5 space-y-4">
 
             <form action="/d/execute/button/{{ button.id }}" method="post">
                 <input type="hidden" name="pin" id="pin-input-{{ button.id }}" value="">
@@ -71,6 +74,7 @@
                     </button>
                 </div>
             </form>
+            </div>{# /inner content div #}
         </div>
 
         {% else %}
