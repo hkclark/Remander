@@ -170,12 +170,12 @@ from remander.routes.users import router as users_router  # noqa: E402
 app.include_router(dashboard_router)
 app.include_router(guest_dashboard_router)
 app.include_router(auth_router)
+app.include_router(commands_router)  # execute/button and pause-notifications are used from public dashboard
 
 # Protected routes — valid session required
 app.include_router(devices_router,            dependencies=[Depends(get_current_user)])
 app.include_router(bitmasks_router,           dependencies=[Depends(get_current_user)])
 app.include_router(tags_router,               dependencies=[Depends(get_current_user)])
-app.include_router(commands_router,           dependencies=[Depends(get_current_user)])
 app.include_router(dashboard_buttons_router,  dependencies=[Depends(get_current_user)])
 app.include_router(activity_router,           dependencies=[Depends(get_current_user)])
 app.include_router(admin_router,              dependencies=[Depends(get_current_user)])

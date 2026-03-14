@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from remander.auth import get_current_user
+from remander.auth import get_current_user, get_current_user_optional
 from remander.models.dashboard_button import DashboardButton
 from remander.models.device import Device
 from remander.models.enums import ButtonOperationType, CommandType, Mode
@@ -87,7 +87,10 @@ def _user_label(user: User) -> str:
 
 
 @router.get("/execute", response_class=HTMLResponse)
-async def command_execute_page(request: Request) -> HTMLResponse:
+async def command_execute_page(
+    request: Request,
+    _: User = Depends(get_current_user),
+) -> HTMLResponse:
     from remander.main import templates
 
     tags = await list_tags()
@@ -151,7 +154,7 @@ async def execute_pause_notifications(
     request: Request,
     pause_minutes: str = Form(...),
     tag_filter: str | None = Form(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_optional),
 ) -> Response:
     if tag_filter:
         if error := await _empty_tag_error_response(request, tag_filter):
@@ -161,7 +164,7 @@ async def execute_pause_notifications(
         pause_minutes=int(pause_minutes),
         tag_filter=tag_filter if tag_filter else None,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=_user_label(current_user),
+        initiated_by_user=_user_label(current_user) if current_user else None,
     )
     await enqueue_command(cmd.id)
 
@@ -205,7 +208,7 @@ async def execute_pause_recording(
 async def execute_button(
     request: Request,
     button_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_optional),
 ) -> Response:
     from remander.main import templates
     from remander.services.command import get_active_command
@@ -228,7 +231,7 @@ async def execute_button(
         delay_seconds=button.delay_seconds if button.delay_seconds else None,
         dashboard_button_id=button.id,
         initiated_by_ip=request.client.host if request.client else None,
-        initiated_by_user=_user_label(current_user),
+        initiated_by_user=_user_label(current_user) if current_user else None,
     )
     await enqueue_command(cmd.id)
 
@@ -255,7 +258,11 @@ async def execute_button(
 
 
 @router.post("/{command_id}/cancel")
-async def command_cancel(request: Request, command_id: int) -> RedirectResponse:
+async def command_cancel(
+    request: Request,
+    command_id: int,
+    _: User = Depends(get_current_user),
+) -> RedirectResponse:
     await cancel_command(command_id)
     return RedirectResponse(url="/commands", status_code=303)
 
@@ -264,7 +271,7 @@ async def command_cancel(request: Request, command_id: int) -> RedirectResponse:
 
 
 @router.get("", response_class=HTMLResponse)
-async def command_list(request: Request) -> HTMLResponse:
+async def command_list(request: Request, _: User = Depends(get_current_user)) -> HTMLResponse:
     from remander.main import templates
 
     page = int(request.query_params.get("page", "1"))
@@ -287,7 +294,11 @@ async def command_list(request: Request) -> HTMLResponse:
 
 
 @router.get("/{command_id}", response_class=HTMLResponse)
-async def command_detail(request: Request, command_id: int) -> HTMLResponse:
+async def command_detail(
+    request: Request,
+    command_id: int,
+    _: User = Depends(get_current_user),
+) -> HTMLResponse:
     from remander.main import templates
 
     cmd = await get_command(command_id)
