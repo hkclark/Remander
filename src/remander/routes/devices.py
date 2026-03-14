@@ -27,7 +27,7 @@ router = APIRouter(prefix="/devices")
 async def device_list(request: Request) -> HTMLResponse:
     from remander.main import templates
 
-    devices = await list_devices(prefetch=["tags"], sorted_for_display=True)
+    devices = await list_devices(prefetch=["tags", "detection_types"], sorted_for_display=True)
     return templates.TemplateResponse(
         request,
         "devices/list.html",
