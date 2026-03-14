@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import ChoiceLoader, FileSystemLoader
 from starlette.middleware.sessions import SessionMiddleware
@@ -144,6 +145,8 @@ app.add_middleware(
 
 # Register the RequiresLoginException handler
 app.add_exception_handler(RequiresLoginException, requires_login_handler)  # type: ignore[arg-type]
+
+app.mount("/static", StaticFiles(directory="src/remander/static"), name="static")
 
 templates = Jinja2Templates(directory="src/remander/templates")
 
