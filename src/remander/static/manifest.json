@@ -1,0 +1,13 @@
+{
+  "short_name": "Remander",
+  "name": "Remander Security Automation",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/static/icon.png",
+      "sizes": "142x142",
+      "type": "image/png"
+    }
+  ]
+}
