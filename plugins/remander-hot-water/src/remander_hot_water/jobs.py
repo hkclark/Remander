@@ -15,6 +15,13 @@ async def turn_off_hot_water(ctx: Context) -> None:
     """SAQ job: turn off the hot water pump after the timer expires."""
     settings = HotWaterSettings()
     client = SonoffClient()
-    await client.turn_off(settings.sonoff_ip)
-    await delete_plugin_value("hot_water", "timer_state")
-    logger.info("Hot water auto-off completed (IP: %s)", settings.sonoff_ip)
+    try:
+        await client.turn_off(settings.sonoff_ip)
+        logger.info("Hot water auto-off completed (IP: %s)", settings.sonoff_ip)
+    except Exception:
+        logger.warning(
+            "Hot water auto-off: device unreachable at %s — timer expired, clearing state",
+            settings.sonoff_ip,
+        )
+    finally:
+        await delete_plugin_value("hot_water", "timer_state")

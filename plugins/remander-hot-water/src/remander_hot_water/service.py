@@ -25,6 +25,16 @@ async def start_hot_water(
     duration_minutes: int,
 ) -> None:
     """Turn on the hot water pump and schedule automatic turn-off."""
+    # Abort any existing scheduled job before starting a new timer
+    existing_state = await get_plugin_value(PLUGIN_NAME, TIMER_KEY)
+    if existing_state is not None:
+        existing_job_id = existing_state.get("job_id")
+        if existing_job_id:
+            existing_job = await queue.job(existing_job_id)
+            if existing_job:
+                await queue.abort(existing_job, error="Superseded by new timer")
+                logger.info("Aborted existing hot water job %s", existing_job_id)
+
     await sonoff_client.turn_on(settings.sonoff_ip)
 
     # Schedule the turn-off SAQ job — SAQ expects a Unix timestamp, not a datetime
