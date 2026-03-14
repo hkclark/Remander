@@ -165,6 +165,39 @@ Used to calculate sunrise/sunset times for dynamic hour bitmasks.
 
 ---
 
+## Workflow Error Handling
+
+When a command runs (Away, Home, Pause, etc.), each step in the workflow is either **best-effort** or a **full failure**.
+
+### Full Failures — affect the email result (PASS / FAIL)
+
+These steps set `has_errors = True` on the workflow state when they fail. A failed step causes the notification email to report **FAILED**.
+
+| Step | Node | Behaviour on error |
+|------|------|--------------------|
+| Set notification bitmasks | `SetNotificationBitmasksNode` | Marks device result as error; `has_errors = True` |
+| Set zone masks | `SetZoneMasksNode` | Marks device result as error; `has_errors = True` |
+| Validate final state | `ValidateNode` | Marks device result as error; `has_errors = True` |
+
+### Best-Effort — logged as warnings, do not affect PASS / FAIL
+
+These steps log `ActivityStatus.FAILED` to the activity log and emit a `WARNING` log line, but do **not** set `has_errors`. The email will still report **PASSED** even if they fail, because the critical camera-state (notification bitmasks) may still have been applied correctly.
+
+| Step | Node | Why best-effort |
+|------|------|-----------------|
+| PTZ calibrate (pre-move) | `PTZCalibrateNode` | Camera may not respond immediately after power-on; the final preset move (`SetPTZPresetNode`) is more important |
+| PTZ set away preset | `SetPTZPresetNode` | Camera framing, not notification state |
+| PTZ set home position | `SetPTZHomeNode` | Camera framing, not notification state |
+| Power on camera | `PowerOnNode` | Camera may already be on; a failure here skips PTZ but still allows bitmask updates |
+| Wait for camera power-on | `WaitForPowerOnNode` | Timeout is logged but workflow continues |
+| Ingress/egress mute | `IngressEgressMuteNode` | Silences cameras before leaving/arriving; a per-camera failure is logged but the workflow still applies the final bitmasks |
+
+### PTZ retry behaviour
+
+`PTZCalibrateNode`, `SetPTZPresetNode`, and `SetPTZHomeNode` all retry failed `move_to_preset` calls up to **3 times** with a **5-second back-off** between attempts. This handles the common case where the NVR reports a channel as online before the camera firmware is fully ready to accept PTZ commands. Only after all 3 attempts fail is the step logged as `FAILED` and the error treated as best-effort (no `has_errors`).
+
+---
+
 ## Reolink API
 
 [Reolink API V8](https://github.com/rgl/reolink-e1-zoom-playground/blob/main/reolink-camera-http-api-user-guide.pdf)

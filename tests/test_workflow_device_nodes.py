@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic_graph import GraphRunContext
 
 from remander.models.enums import (
+    ActivityStatus,
     CommandType,
     DetectionType,
     Mode,
@@ -433,6 +434,80 @@ class TestPTZNodes:
 
         # Calibration calls move_to_preset (moves to preset and back)
         assert deps.nvr_client.move_to_preset.call_count >= 1
+
+    async def test_calibrate_retries_on_transient_failure(self) -> None:
+        """PTZCalibrateNode retries move_to_preset on failure with a back-off sleep."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="Retry Calib Cam", channel=4, has_ptz=True, ptz_away_preset=0, ptz_speed=None
+        )
+
+        deps = _make_deps()
+        # Fail first attempt, succeed on second
+        deps.nvr_client.move_to_preset.side_effect = [Exception("no camera connected"), None]
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = PTZCalibrateNode()
+        with (
+            patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock) as mock_log,
+            patch("remander.workflows.nodes.ptz.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            await node.run(ctx)
+
+        # Two attempts total — one sleep between them
+        assert deps.nvr_client.move_to_preset.call_count == 2
+        mock_sleep.assert_awaited_once()
+        # Activity logged as SUCCEEDED (eventually succeeded)
+        statuses = [c.kwargs.get("status") for c in mock_log.call_args_list]
+        assert ActivityStatus.SUCCEEDED in statuses
+
+    async def test_calibrate_logs_failed_after_all_retries_exhausted(self) -> None:
+        """PTZCalibrateNode logs FAILED after exhausting all retry attempts."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="All Fail Calib Cam", channel=5, has_ptz=True, ptz_away_preset=0, ptz_speed=None
+        )
+
+        deps = _make_deps()
+        deps.nvr_client.move_to_preset.side_effect = Exception("no camera connected")
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = PTZCalibrateNode()
+        with (
+            patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock) as mock_log,
+            patch("remander.workflows.nodes.ptz.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            await node.run(ctx)
+
+        statuses = [c.kwargs.get("status") for c in mock_log.call_args_list]
+        assert ActivityStatus.FAILED in statuses
+        assert ActivityStatus.SUCCEEDED not in statuses
+
+    async def test_set_ptz_preset_retries_on_transient_failure(self) -> None:
+        """SetPTZPresetNode retries move_to_preset on failure with a back-off sleep."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="Retry Preset Cam", channel=6, has_ptz=True, ptz_away_preset=1, ptz_speed=None
+        )
+
+        deps = _make_deps()
+        deps.nvr_client.move_to_preset.side_effect = [Exception("no camera connected"), None]
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = SetPTZPresetNode()
+        with (
+            patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock) as mock_log,
+            patch("remander.workflows.nodes.ptz.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            await node.run(ctx)
+
+        assert deps.nvr_client.move_to_preset.call_count == 2
+        mock_sleep.assert_awaited_once()
+        statuses = [c.kwargs.get("status") for c in mock_log.call_args_list]
+        assert ActivityStatus.SUCCEEDED in statuses
 
 
 class TestSetNotificationBitmasksNode:

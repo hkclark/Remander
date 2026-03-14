@@ -15,6 +15,42 @@ from remander.workflows.state import WorkflowDeps, WorkflowState
 
 logger = logging.getLogger(__name__)
 
+_PTZ_MAX_ATTEMPTS = 3
+_PTZ_RETRY_SLEEP_SECONDS = 5
+
+
+async def _move_to_preset_with_retry(
+    nvr_client: object,
+    channel: int,
+    preset: int,
+    speed: object,
+    label: str,
+) -> None:
+    """Attempt move_to_preset up to _PTZ_MAX_ATTEMPTS times with back-off between retries.
+
+    Raises the last exception if all attempts fail.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(1, _PTZ_MAX_ATTEMPTS + 1):
+        try:
+            await nvr_client.move_to_preset(channel, preset, speed)  # type: ignore[union-attr]
+            return
+        except Exception as e:
+            last_exc = e
+            if attempt < _PTZ_MAX_ATTEMPTS:
+                logger.warning(
+                    "%s attempt %d/%d failed: %s — retrying in %ds",
+                    label,
+                    attempt,
+                    _PTZ_MAX_ATTEMPTS,
+                    e,
+                    _PTZ_RETRY_SLEEP_SECONDS,
+                )
+                await asyncio.sleep(_PTZ_RETRY_SLEEP_SECONDS)
+            else:
+                logger.warning("%s all %d attempts failed: %s", label, _PTZ_MAX_ATTEMPTS, e)
+    raise last_exc  # type: ignore[misc]
+
 
 @dataclass
 class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
@@ -57,8 +93,12 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
                         device.ptz_away_preset,
                         device.ptz_speed,
                     )
-                    await ctx.deps.nvr_client.move_to_preset(
-                        device.channel, device.ptz_away_preset, device.ptz_speed
+                    await _move_to_preset_with_retry(
+                        ctx.deps.nvr_client,
+                        device.channel,
+                        device.ptz_away_preset,
+                        device.ptz_speed,
+                        f"[cmd {ctx.state.command_id}] PTZCalibrate: device '{device.name}'",
                     )
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -134,8 +174,12 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
                     device.ptz_away_preset,
                     device.ptz_speed,
                 )
-                await ctx.deps.nvr_client.move_to_preset(
-                    device.channel, device.ptz_away_preset, device.ptz_speed
+                await _move_to_preset_with_retry(
+                    ctx.deps.nvr_client,
+                    device.channel,
+                    device.ptz_away_preset,
+                    device.ptz_speed,
+                    f"[cmd {ctx.state.command_id}] SetPTZPreset: device '{device.name}'",
                 )
                 await log_activity(
                     command_id=ctx.state.command_id,
@@ -209,8 +253,12 @@ class SetPTZHomeNode(BaseNode[WorkflowState, WorkflowDeps]):
                     device.ptz_home_preset,
                     device.ptz_speed,
                 )
-                await ctx.deps.nvr_client.move_to_preset(
-                    device.channel, device.ptz_home_preset, device.ptz_speed
+                await _move_to_preset_with_retry(
+                    ctx.deps.nvr_client,
+                    device.channel,
+                    device.ptz_home_preset,
+                    device.ptz_speed,
+                    f"[cmd {ctx.state.command_id}] SetPTZHome: device '{device.name}'",
                 )
                 any_ptz_moved = True
                 await log_activity(
