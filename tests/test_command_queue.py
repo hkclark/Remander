@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from remander.models.command import Command
 from remander.models.enums import CommandStatus, CommandType
 from remander.services.queue import enqueue_command, execute_command
-from tests.factories import create_camera, create_command, create_tag
+from tests.factories import create_camera, create_command, create_hour_bitmask, create_tag
 
 
 class TestEnqueueCommand:
@@ -194,6 +194,84 @@ class TestExecuteCommand:
             await run_workflow(cmd)
 
         mock_gwfc.assert_called_once_with(CommandType.SET_HOME_NOW, mute_enabled=True)
+
+    async def test_device_ids_scoped_to_button_tag_rules(self) -> None:
+        """WorkflowState.device_ids must only contain devices covered by the button's tag rules.
+
+        Before the fix, device_ids = all enabled devices.  After the fix, device_ids is
+        filtered to the keys in override_bitmask_map so PTZ/power nodes don't touch cameras
+        that aren't part of this command's configuration.
+        """
+        from remander.models.dashboard_button import DashboardButton
+        from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
+        from remander.models.enums import ButtonOperationType
+
+        bitmask = await create_hour_bitmask()
+        btn = await DashboardButton.create(
+            name="Scoped Away",
+            operation_type=ButtonOperationType.AWAY,
+        )
+        tag = await create_tag(name="indoor-cam")
+        await DashboardButtonBitmaskRule.create(
+            dashboard_button=btn,
+            tag=tag,
+            hour_bitmask=bitmask,
+        )
+
+        # Camera covered by the rule
+        tagged_cam = await create_camera(name="Indoor Cam")
+        await tagged_cam.tags.add(tag)
+
+        # Camera NOT covered by the rule — should be excluded from device_ids
+        other_tag = await create_tag(name="other-tag")
+        untagged_cam = await create_camera(name="Other Cam")
+        await untagged_cam.tags.add(other_tag)
+
+        cmd = await create_command(
+            command_type=CommandType.SET_AWAY_NOW,
+            status=CommandStatus.QUEUED,
+            dashboard_button_id=btn.id,
+        )
+
+        captured_states: list = []
+
+        async def fake_graph_run(start_node, *, state, deps):
+            captured_states.append(state)
+            result = MagicMock()
+            result.state = state
+            result.state.has_errors = False
+            return result
+
+        mock_graph = MagicMock()
+        mock_graph.run = fake_graph_run
+
+        _settings = MagicMock(
+            latitude=0.0, longitude=0.0, timezone="UTC",
+            power_on_timeout_seconds=120, power_on_poll_interval_seconds=10,
+            power_on_settle_seconds=30,
+            ptz_settle_seconds=10,
+            nvr_host="localhost", nvr_port=8080, nvr_username="admin",
+            nvr_password=MagicMock(get_secret_value=lambda: "pass"),
+            nvr_use_https=False,
+            smtp_host="", smtp_port=587, smtp_username="", smtp_use_tls=False,
+            smtp_password=MagicMock(get_secret_value=lambda: ""),
+            smtp_from="", smtp_to="",
+        )
+        with (
+            patch("remander.config.get_settings", return_value=_settings),
+            patch("remander.clients.reolink.ReolinkNVRClient"),
+            patch("remander.clients.tapo.TapoClient"),
+            patch("remander.clients.sonoff.SonoffClient"),
+            patch("remander.clients.email.EmailNotificationSender"),
+            patch("remander.workflows.graphs.get_workflow_for_command", return_value=(mock_graph, MagicMock())),
+        ):
+            from remander.services.queue import run_workflow
+            await run_workflow(cmd)
+
+        assert len(captured_states) == 1
+        state = captured_states[0]
+        assert tagged_cam.id in state.device_ids
+        assert untagged_cam.id not in state.device_ids
 
     async def test_fifo_ordering(self) -> None:
         """Commands should execute in creation order."""

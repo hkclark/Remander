@@ -161,6 +161,12 @@ async def run_workflow(cmd: Command) -> bool | None:
                 cmd.dashboard_button_id, enabled_device_ids
             )
 
+        # Scope device_ids to only those covered by the button's tag rules.
+        # This prevents PTZ, power, and zone-mask nodes from touching cameras
+        # that aren't part of this button's configuration.
+        if override_bitmask_map:
+            device_ids = [did for did in device_ids if did in override_bitmask_map]
+
     state = WorkflowState(
         command_id=cmd.id,
         command_type=cmd.command_type,

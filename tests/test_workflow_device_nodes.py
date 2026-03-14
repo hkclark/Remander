@@ -481,8 +481,8 @@ class TestPTZNodes:
             await node.run(ctx)
 
         deps.nvr_client.ptz_calibrate.assert_awaited_once_with(0)
-        # 20s settle wait after PtzCheck
-        mock_sleep.assert_awaited_once_with(20)
+        # 5s settle wait after PtzCheck
+        mock_sleep.assert_awaited_once_with(5)
 
     async def test_calibrate_skips_when_calibration_not_required(self) -> None:
         """PTZCalibrateNode skips ptz_calibrate() when ptz_calibration_required is False."""
