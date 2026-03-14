@@ -166,6 +166,13 @@ Used to calculate sunrise/sunset times for dynamic hour bitmasks.
 
 ---
 
+## Query Parameters
+
+* `?scale` (or `?scale=anything`) = Enable scaling mode on that device for the Guest Dashboard only.
+  * Is saved in a cookie to be used by default on that device going forward.
+
+---
+
 ## Workflow Error Handling
 
 When a command runs (Away, Home, Pause, etc.), each step in the workflow is either **best-effort** or a **full failure**.

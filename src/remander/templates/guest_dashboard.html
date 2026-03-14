@@ -142,5 +142,27 @@ function showToast(message) {
 document.addEventListener('DOMContentLoaded', function() { showToast('Command sent'); });
 {% endif %}
 </script>
+{% if use_scale %}
+<script>
+(function () {
+    function applyScale() {
+        const main = document.querySelector('main');
+        main.style.transform = '';
+        document.body.style.height = '';
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const mw = main.offsetWidth;
+        const mh = main.scrollHeight;
+        const scale = Math.min(vw / mw, vh / mh);
+        main.style.transformOrigin = 'top center';
+        main.style.transform = 'scale(' + scale + ')';
+        document.body.style.height = (mh * scale) + 'px';
+        document.body.style.overflow = 'hidden';
+    }
+    window.addEventListener('load', applyScale);
+    window.addEventListener('resize', applyScale);
+}());
+</script>
+{% endif %}
 </body>
 </html>

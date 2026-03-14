@@ -3,6 +3,9 @@
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+_SCALE_COOKIE = "gd_scale"
+_SCALE_MAX_AGE = 5 * 365 * 24 * 60 * 60  # 5 years in seconds
+
 from remander.config import get_settings
 from remander.models.enums import ButtonOperationType, CommandType
 from remander.models.state import AppState
@@ -15,7 +18,7 @@ router = APIRouter()
 
 
 @router.get("/d", response_class=HTMLResponse)
-async def guest_dashboard(request: Request) -> HTMLResponse:
+async def guest_dashboard(request: Request, scale: str | None = None) -> HTMLResponse:
     from remander.main import templates
 
     settings = get_settings()
@@ -30,7 +33,9 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
     show_toast = request.query_params.get("submitted") == "1"
     plugin_widgets = get_registry().all_dashboard_widgets("guest_dashboard")
 
-    return templates.TemplateResponse(
+    use_scale = scale is not None or request.cookies.get(_SCALE_COOKIE) == "1"
+
+    response = templates.TemplateResponse(
         request,
         "guest_dashboard.html",
         {
@@ -40,8 +45,14 @@ async def guest_dashboard(request: Request) -> HTMLResponse:
             "pin_error": pin_error,
             "show_toast": show_toast,
             "plugin_widgets": plugin_widgets,
+            "use_scale": use_scale,
         },
     )
+
+    if scale is not None:
+        response.set_cookie(_SCALE_COOKIE, "1", max_age=_SCALE_MAX_AGE, samesite="lax", httponly=True)
+
+    return response
 
 
 @router.post("/d/execute/button/{button_id}")
