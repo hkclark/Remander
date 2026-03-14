@@ -48,6 +48,17 @@ class TestGetSunriseSunset:
         assert sunset_default.hour == sunset_utc.hour
 
 
+    async def test_does_not_fail_when_dusk_unavailable(self) -> None:
+        """At lat=61°N on June 21, dusk can't be computed (midnight sun zone), but
+        sunrise and sunset are valid.  get_sunrise_sunset() must not raise."""
+        from datetime import date
+
+        sunrise, sunset = await get_sunrise_sunset(61.0, 10.0, date=date(2026, 6, 21))
+        # Sun rises before 2:00 UTC and sets after 20:00 UTC at this latitude
+        assert sunrise.hour < 2
+        assert sunset.hour >= 20
+
+
 class TestComputeDynamicBitmask:
     def test_basic_daytime_bitmask(self) -> None:
         """Sunrise at 6:00, sunset at 20:00 -> hours 6-19 active."""

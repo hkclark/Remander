@@ -4,7 +4,8 @@ import datetime as dt
 import zoneinfo
 
 from astral import LocationInfo
-from astral.sun import sun
+from astral.sun import sunrise as _astral_sunrise
+from astral.sun import sunset as _astral_sunset
 
 
 async def get_sunrise_sunset(
@@ -17,14 +18,18 @@ async def get_sunrise_sunset(
 
     The `timezone` parameter controls the local timezone for the returned datetimes.
     Defaults to UTC if not provided. Defaults to today if no date is provided.
+
+    Uses the individual sunrise/sunset functions (not astral.sun.sun()) so that locations
+    near the arctic circle in summer don't raise ValueError when dusk can't be computed.
     """
     if date is None:
         date = dt.date.today()
 
     location = LocationInfo(latitude=latitude, longitude=longitude)
-    s = sun(location.observer, date=date)
     tz = zoneinfo.ZoneInfo(timezone)
-    return s["sunrise"].astimezone(tz), s["sunset"].astimezone(tz)
+    sr = _astral_sunrise(location.observer, date=date).astimezone(tz)
+    ss = _astral_sunset(location.observer, date=date).astimezone(tz)
+    return sr, ss
 
 
 def _round_to_hour(time: dt.datetime) -> int:
