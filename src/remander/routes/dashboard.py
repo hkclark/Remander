@@ -1,7 +1,7 @@
 """Dashboard route handlers."""
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from remander.auth import get_current_user_optional
 from remander.config import get_settings
@@ -16,6 +16,11 @@ router = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
+async def root_redirect() -> RedirectResponse:
+    return RedirectResponse(url="/d", status_code=302)
+
+
+@router.get("/maindboard", response_class=HTMLResponse)
 async def dashboard(request: Request, token: str | None = None) -> HTMLResponse:
     from remander.main import templates
 

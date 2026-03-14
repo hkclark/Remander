@@ -48,7 +48,7 @@ def _invite_expiry() -> int:
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, next: str = "/", message: str = "") -> HTMLResponse:
+async def login_page(request: Request, next: str = "/maindboard", message: str = "") -> HTMLResponse:
     # Fresh install with no users — redirect to setup
     if await _no_users_exist():
         return RedirectResponse(url="/setup", status_code=302)
@@ -65,7 +65,7 @@ async def login_submit(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
-    next: str = Form("/"),
+    next: str = Form("/maindboard"),
 ) -> Response:
     templates = _templates()
     ctx = {"next": next, "message": "", "error": ""}
@@ -82,7 +82,7 @@ async def login_submit(
     request.session["user_id"] = user.id
     ip = request.client.host if request.client else None
     await log_access(user, ip, method="password", path=next)
-    return RedirectResponse(url=next or "/", status_code=303)
+    return RedirectResponse(url=next or "/maindboard", status_code=303)
 
 
 @router.get("/logout")

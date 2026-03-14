@@ -114,7 +114,7 @@ async def execute_set_away_now(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/maindboard", status_code=303)
 
 
 @router.post("/execute/set-away-delayed")
@@ -132,7 +132,7 @@ async def execute_set_away_delayed(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/maindboard", status_code=303)
 
 
 @router.post("/execute/set-home-now")
@@ -146,7 +146,7 @@ async def execute_set_home_now(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/maindboard", status_code=303)
 
 
 @router.post("/execute/pause-notifications")
@@ -169,7 +169,7 @@ async def execute_pause_notifications(
     await enqueue_command(cmd.id)
 
     if "hx-request" not in request.headers:
-        return RedirectResponse(url="/", status_code=303)
+        return RedirectResponse(url="/maindboard", status_code=303)
 
     from remander.main import templates
 
@@ -201,7 +201,7 @@ async def execute_pause_recording(
         initiated_by_user=_user_label(current_user),
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/maindboard", status_code=303)
 
 
 @router.post("/execute/button/{button_id}")
@@ -238,7 +238,7 @@ async def execute_button(
     # HTMX requests get the command-progress partial + optional warning toast.
     # Non-HTMX fallback (e.g. no-JS) redirects as before.
     if "hx-request" not in request.headers:
-        return RedirectResponse(url="/", status_code=303)
+        return RedirectResponse(url="/maindboard", status_code=303)
 
     # Collect device IDs scoped to this button's tag rules so the warning only
     # mentions devices this button actually operates on.

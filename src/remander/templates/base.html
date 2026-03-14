@@ -12,11 +12,11 @@
     <nav class="bg-gray-800 text-white">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-14">
-                <a href="/" class="text-lg font-bold tracking-wide">Remander</a>
+                <a href="/maindboard" class="text-lg font-bold tracking-wide">Remander</a>
 
                 {# Desktop nav #}
                 <div class="hidden md:flex items-center space-x-4 text-sm">
-                    <a href="/" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
+                    <a href="/maindboard" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
                     <a href="/devices" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_devices %}{% endblock %}">Devices</a>
                     <a href="/bitmasks" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_bitmasks %}{% endblock %}">Bitmasks</a>
                     <a href="/tags" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_tags %}{% endblock %}">Tags</a>
@@ -46,7 +46,7 @@
         {# Mobile dropdown menu #}
         <div id="nav-menu" class="hidden md:hidden border-t border-gray-700">
             <div class="px-4 py-3 space-y-1 text-sm">
-                <a href="/" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_dashboard() }}">Dashboard</a>
+                <a href="/maindboard" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_dashboard() }}">Dashboard</a>
                 <a href="/devices" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_devices() }}">Devices</a>
                 <a href="/bitmasks" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_bitmasks() }}">Bitmasks</a>
                 <a href="/tags" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_tags() }}">Tags</a>
