@@ -2233,6 +2233,7 @@ dependencies = [
     { name = "reolink-aio" },
     { name = "saq" },
     { name = "tortoise-orm" },
+    { name = "tzdata" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -2266,6 +2267,7 @@ requires-dist = [
     { name = "reolink-aio" },
     { name = "saq" },
     { name = "tortoise-orm" },
+    { name = "tzdata" },
     { name = "uvicorn", extras = ["standard"] },
 ]
 

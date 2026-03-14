@@ -29,6 +29,7 @@ dependencies = [
     "python-kasa",
     "httpx",
     # Utilities
+    "tzdata",
     "astral",
     "aiosmtplib",
     "attrs",
