@@ -322,6 +322,7 @@ async def device_ptz_settings(
     request: Request,
     device_id: int,
     has_ptz: str | None = Form(None),
+    ptz_calibration_required: str | None = Form(None),
     ptz_away_preset: str | None = Form(None),
     ptz_home_preset: str | None = Form(None),
     ptz_speed: str | None = Form(None),
@@ -333,10 +334,12 @@ async def device_ptz_settings(
     enabled = has_ptz == "on"
     device.has_ptz = enabled
     if enabled:
+        device.ptz_calibration_required = ptz_calibration_required == "on"
         device.ptz_away_preset = int(ptz_away_preset) if ptz_away_preset else None
         device.ptz_home_preset = int(ptz_home_preset) if ptz_home_preset else None
         device.ptz_speed = int(ptz_speed) if ptz_speed else None
     else:
+        device.ptz_calibration_required = False
         device.ptz_away_preset = None
         device.ptz_home_preset = None
         device.ptz_speed = None

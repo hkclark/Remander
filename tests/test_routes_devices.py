@@ -245,6 +245,32 @@ class TestPTZSettings:
         assert cam.ptz_home_preset is None
         assert cam.ptz_speed is None
 
+    async def test_post_ptz_settings_saves_calibration_required(
+        self, logged_in_client: AsyncClient
+    ) -> None:
+        cam = await create_camera(name="Calib Required Cam")
+        response = await logged_in_client.post(
+            f"/devices/{cam.id}/ptz-settings",
+            data={"has_ptz": "on", "ptz_calibration_required": "on", "ptz_speed": "20"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        await cam.refresh_from_db()
+        assert cam.ptz_calibration_required is True
+
+    async def test_post_ptz_settings_clears_calibration_required_when_unchecked(
+        self, logged_in_client: AsyncClient
+    ) -> None:
+        cam = await create_camera(name="Calib Clear Cam", has_ptz=True, ptz_calibration_required=True)
+        response = await logged_in_client.post(
+            f"/devices/{cam.id}/ptz-settings",
+            data={"has_ptz": "on"},  # no ptz_calibration_required field
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        await cam.refresh_from_db()
+        assert cam.ptz_calibration_required is False
+
     async def test_query_ptz_presets_returns_preset_names(
         self, logged_in_client: AsyncClient
     ) -> None:

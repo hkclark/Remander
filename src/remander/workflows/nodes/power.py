@@ -196,6 +196,16 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             ctx.state.has_errors = True
             ctx.state.device_results[device_id] = f"Timeout after {self.timeout_seconds}s"
 
+        settle = ctx.deps.power_on_settle_seconds
+        logger.info(
+            "[cmd %d] WaitForPowerOn: settling %ds before PTZ",
+            ctx.state.command_id,
+            settle,
+        )
+        await asyncio.sleep(settle)
+        # Re-discover channels so cameras that came online after the initial NVR
+        # login are registered in reolink-aio's _channels list before PTZ commands run.
+        await ctx.deps.nvr_client.rediscover_channels()
         return _next_node()
 
 

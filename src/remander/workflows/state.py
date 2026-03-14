@@ -79,4 +79,5 @@ class WorkflowDeps:
     timezone: str = "UTC"
     power_on_timeout_seconds: int = 120
     power_on_poll_interval_seconds: int = 10
+    power_on_settle_seconds: int = 30
     ptz_settle_seconds: int = 10

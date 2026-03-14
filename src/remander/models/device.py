@@ -21,6 +21,7 @@ class Device(Model):
     is_poe = fields.BooleanField(default=False)
     resolution = fields.CharField(max_length=20, null=True)
     has_ptz = fields.BooleanField(default=False)
+    ptz_calibration_required = fields.BooleanField(default=False)
     ptz_away_preset = fields.IntField(null=True)
     ptz_home_preset = fields.IntField(null=True)
     ptz_speed = fields.IntField(null=True)

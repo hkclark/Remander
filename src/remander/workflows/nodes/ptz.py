@@ -19,6 +19,33 @@ _PTZ_MAX_ATTEMPTS = 3
 _PTZ_RETRY_SLEEP_SECONDS = 5
 
 
+async def _ptz_calibrate_with_retry(nvr_client: object, channel: int, label: str) -> None:
+    """Attempt ptz_calibrate up to _PTZ_MAX_ATTEMPTS times with back-off between retries.
+
+    Raises the last exception if all attempts fail.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(1, _PTZ_MAX_ATTEMPTS + 1):
+        try:
+            await nvr_client.ptz_calibrate(channel)  # type: ignore[union-attr]
+            return
+        except Exception as e:
+            last_exc = e
+            if attempt < _PTZ_MAX_ATTEMPTS:
+                logger.warning(
+                    "%s attempt %d/%d failed: %s — retrying in %ds",
+                    label,
+                    attempt,
+                    _PTZ_MAX_ATTEMPTS,
+                    e,
+                    _PTZ_RETRY_SLEEP_SECONDS,
+                )
+                await asyncio.sleep(_PTZ_RETRY_SLEEP_SECONDS)
+            else:
+                logger.warning("%s all %d attempts failed: %s", label, _PTZ_MAX_ATTEMPTS, e)
+    raise last_exc  # type: ignore[misc]
+
+
 async def _move_to_preset_with_retry(
     nvr_client: object,
     channel: int,
@@ -52,13 +79,21 @@ async def _move_to_preset_with_retry(
     raise last_exc  # type: ignore[misc]
 
 
+_PTZ_CALIBRATE_SETTLE_SECONDS = 5
+
+
 @dataclass
 class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
-    """Run PTZ calibration on cameras that support it."""
+    """Run PTZ calibration (PtzCheck) on cameras that require it.
+
+    Only cameras with ptz_calibration_required=True are calibrated.  After a
+    successful PtzCheck the node sleeps _PTZ_CALIBRATE_SETTLE_SECONDS to give
+    the camera time to complete the physical calibration movement.
+    """
 
     async def run(self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]) -> SetPTZPresetNode:
         logger.info(
-            "[cmd %d] PTZCalibrate: calibrating %d devices",
+            "[cmd %d] PTZCalibrate: checking %d devices",
             ctx.state.command_id,
             len(ctx.state.device_ids),
         )
@@ -81,25 +116,33 @@ class PTZCalibrateNode(BaseNode[WorkflowState, WorkflowDeps]):
                     device.channel,
                 )
                 continue
+            if not device.ptz_calibration_required:
+                logger.debug(
+                    "[cmd %d] PTZCalibrate: skipping device '%s' (calibration not required)",
+                    ctx.state.command_id,
+                    device.name,
+                )
+                continue
 
             try:
-                # Calibrate by moving to preset 0 and back
-                if device.ptz_away_preset is not None:
-                    logger.info(
-                        "[cmd %d] PTZCalibrate: device '%s' ch=%d preset=%d speed=%s",
-                        ctx.state.command_id,
-                        device.name,
-                        device.channel,
-                        device.ptz_away_preset,
-                        device.ptz_speed,
-                    )
-                    await _move_to_preset_with_retry(
-                        ctx.deps.nvr_client,
-                        device.channel,
-                        device.ptz_away_preset,
-                        device.ptz_speed,
-                        f"[cmd {ctx.state.command_id}] PTZCalibrate: device '{device.name}'",
-                    )
+                logger.info(
+                    "[cmd %d] PTZCalibrate: device '%s' ch=%d — sending PtzCheck",
+                    ctx.state.command_id,
+                    device.name,
+                    device.channel,
+                )
+                await _ptz_calibrate_with_retry(
+                    ctx.deps.nvr_client,
+                    device.channel,
+                    f"[cmd {ctx.state.command_id}] PTZCalibrate: device '{device.name}'",
+                )
+                logger.info(
+                    "[cmd %d] PTZCalibrate: device '%s' settling for %ds",
+                    ctx.state.command_id,
+                    device.name,
+                    _PTZ_CALIBRATE_SETTLE_SECONDS,
+                )
+                await asyncio.sleep(_PTZ_CALIBRATE_SETTLE_SECONDS)
                 await log_activity(
                     command_id=ctx.state.command_id,
                     device_id=device_id,

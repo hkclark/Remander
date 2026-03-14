@@ -297,6 +297,49 @@ class TestWaitForPowerOnNode:
         assert state.has_errors is True
         assert state.device_results.get(camera.id) == "Timeout after 2s"
 
+    async def test_rediscovers_channels_after_settle(self) -> None:
+        """After all cameras come online and the settle sleep, WaitForPowerOnNode
+        calls nvr_client.rediscover_channels() so newly-powered cameras are registered
+        in reolink-aio's internal _channels list before PTZ commands are sent."""
+        cmd = await create_command()
+        power = await create_power_device(name="Rediscover Plug")
+        camera = await create_camera(name="Rediscover Cam", channel=3, power_device_id=power.id)
+
+        deps = _make_deps()
+        deps.nvr_client.is_channel_online.return_value = True
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = WaitForPowerOnNode()
+        with (
+            patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock),
+            patch("remander.workflows.nodes.power.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            await node.run(ctx)
+
+        deps.nvr_client.rediscover_channels.assert_awaited_once()
+
+    async def test_settle_sleep_after_cameras_online(self) -> None:
+        """WaitForPowerOnNode sleeps power_on_settle_seconds after cameras come online."""
+        cmd = await create_command()
+        power = await create_power_device(name="Settle Plug")
+        camera = await create_camera(name="Settle Cam", channel=2, power_device_id=power.id)
+
+        deps = _make_deps(power_on_settle_seconds=30)
+        deps.nvr_client.is_channel_online.return_value = True
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = WaitForPowerOnNode()
+        with (
+            patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock),
+            patch("remander.workflows.nodes.power.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            await node.run(ctx)
+
+        # Must sleep the settle time after cameras report online
+        mock_sleep.assert_awaited_with(30)
+
 
 class TestPowerOffNode:
     async def test_powers_off_devices(self) -> None:
@@ -415,6 +458,7 @@ class TestPTZNodes:
         mock_sleep.assert_awaited_once_with(7)
 
     async def test_calibrate_ptz(self) -> None:
+        """PTZCalibrateNode calls ptz_calibrate() and sleeps 20s when calibration is required."""
         cmd = await create_command()
         camera = await create_camera(
             name="Calib Cam",
@@ -422,6 +466,29 @@ class TestPTZNodes:
             has_ptz=True,
             ptz_away_preset=2,
             ptz_speed=30,
+            ptz_calibration_required=True,
+        )
+
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = PTZCalibrateNode()
+        with (
+            patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock),
+            patch("remander.workflows.nodes.ptz.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            await node.run(ctx)
+
+        deps.nvr_client.ptz_calibrate.assert_awaited_once_with(0)
+        # 20s settle wait after PtzCheck
+        mock_sleep.assert_awaited_once_with(20)
+
+    async def test_calibrate_skips_when_calibration_not_required(self) -> None:
+        """PTZCalibrateNode skips ptz_calibrate() when ptz_calibration_required is False."""
+        cmd = await create_command()
+        camera = await create_camera(
+            name="No Calib Cam", channel=7, has_ptz=True, ptz_away_preset=1, ptz_calibration_required=False
         )
 
         deps = _make_deps()
@@ -432,19 +499,18 @@ class TestPTZNodes:
         with patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock):
             await node.run(ctx)
 
-        # Calibration calls move_to_preset (moves to preset and back)
-        assert deps.nvr_client.move_to_preset.call_count >= 1
+        deps.nvr_client.ptz_calibrate.assert_not_awaited()
 
     async def test_calibrate_retries_on_transient_failure(self) -> None:
-        """PTZCalibrateNode retries move_to_preset on failure with a back-off sleep."""
+        """PTZCalibrateNode retries ptz_calibrate() on failure with a back-off sleep."""
         cmd = await create_command()
         camera = await create_camera(
-            name="Retry Calib Cam", channel=4, has_ptz=True, ptz_away_preset=0, ptz_speed=None
+            name="Retry Calib Cam", channel=4, has_ptz=True, ptz_calibration_required=True
         )
 
         deps = _make_deps()
         # Fail first attempt, succeed on second
-        deps.nvr_client.move_to_preset.side_effect = [Exception("no camera connected"), None]
+        deps.nvr_client.ptz_calibrate.side_effect = [Exception("no camera connected"), None]
         state = _make_state(command_id=cmd.id, device_ids=[camera.id])
         ctx = _make_ctx(state, deps)
 
@@ -455,22 +521,21 @@ class TestPTZNodes:
         ):
             await node.run(ctx)
 
-        # Two attempts total — one sleep between them
-        assert deps.nvr_client.move_to_preset.call_count == 2
-        mock_sleep.assert_awaited_once()
-        # Activity logged as SUCCEEDED (eventually succeeded)
+        # Two ptz_calibrate attempts, one retry sleep + one 20s post-calibrate sleep
+        assert deps.nvr_client.ptz_calibrate.call_count == 2
+        assert mock_sleep.await_count == 2  # one retry sleep + one 20s settle sleep
         statuses = [c.kwargs.get("status") for c in mock_log.call_args_list]
         assert ActivityStatus.SUCCEEDED in statuses
 
     async def test_calibrate_logs_failed_after_all_retries_exhausted(self) -> None:
-        """PTZCalibrateNode logs FAILED after exhausting all retry attempts."""
+        """PTZCalibrateNode logs FAILED after exhausting all ptz_calibrate() attempts."""
         cmd = await create_command()
         camera = await create_camera(
-            name="All Fail Calib Cam", channel=5, has_ptz=True, ptz_away_preset=0, ptz_speed=None
+            name="All Fail Calib Cam", channel=5, has_ptz=True, ptz_calibration_required=True
         )
 
         deps = _make_deps()
-        deps.nvr_client.move_to_preset.side_effect = Exception("no camera connected")
+        deps.nvr_client.ptz_calibrate.side_effect = Exception("no camera connected")
         state = _make_state(command_id=cmd.id, device_ids=[camera.id])
         ctx = _make_ctx(state, deps)
 

@@ -156,6 +156,7 @@ Used to calculate sunrise/sunset times for dynamic hour bitmasks.
 | `WORKFLOW_DEBUG` | `false` | Log detailed pydantic-graph workflow execution (`.env` only) |
 | `POWER_ON_TIMEOUT_SECONDS` | `120` | How long `WaitForPowerOnNode` polls the NVR waiting for a powered-on camera to come online |
 | `POWER_ON_POLL_INTERVAL_SECONDS` | `10` | How often (seconds) `WaitForPowerOnNode` checks camera online status |
+| `POWER_ON_SETTLE_SECONDS` | `30` | Extra delay after all cameras report online before PTZ commands run. The NVR reports a channel online before the camera firmware is fully ready to accept PTZ commands |
 | `JOB_TIMEOUT_SECONDS` | `120` | Overhead time budget (seconds) for all workflow steps *excluding* the power-on wait. The actual SAQ job timeout is `POWER_ON_TIMEOUT_SECONDS + JOB_TIMEOUT_SECONDS` |
 | `PTZ_SETTLE_SECONDS` | `10` | Seconds to wait after sending a PTZ home preset command before powering off the camera. The NVR acknowledges the command immediately but the camera takes time to physically rotate |
 | `PASSWORD_RESET_EXPIRY_SECONDS` | `3600` | How long a password reset link is valid (`.env` only) |

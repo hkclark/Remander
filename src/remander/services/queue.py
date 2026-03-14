@@ -124,6 +124,7 @@ async def run_workflow(cmd: Command) -> bool | None:
         timezone=settings.timezone,
         power_on_timeout_seconds=settings.power_on_timeout_seconds,
         power_on_poll_interval_seconds=settings.power_on_poll_interval_seconds,
+        power_on_settle_seconds=settings.power_on_settle_seconds,
         ptz_settle_seconds=settings.ptz_settle_seconds,
     )
 

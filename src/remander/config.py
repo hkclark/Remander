@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     # Power-on timing
     power_on_timeout_seconds: int = 120
     power_on_poll_interval_seconds: int = 10
+    # Extra settle time after WaitForPowerOn reports all cameras online, before PTZ commands.
+    # The NVR reports a channel online before the camera firmware is fully ready for PTZ.
+    power_on_settle_seconds: int = 30
 
     # PTZ settle time — seconds to wait after sending a PTZ home command before powering off.
     # The NVR acknowledges the command immediately but the camera takes time to physically move.

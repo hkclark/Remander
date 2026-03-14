@@ -156,6 +156,18 @@ class ReolinkNVRClient:
         elapsed = time.monotonic() - t0
         logger.info("NVR set detection zones in %.1fs", elapsed)
 
+    async def ptz_calibrate(self, channel: int) -> None:
+        """Run PTZ calibration (PtzCheck) on a camera channel.
+
+        Wraps reolink-aio's ptz_callibrate() (note the upstream typo) to keep the
+        correct spelling throughout the rest of the codebase.
+        """
+        logger.info("NVR PTZ calibrate ch=%d", channel)
+        t0 = time.monotonic()
+        await self._nvr.ptz_callibrate(channel)
+        elapsed = time.monotonic() - t0
+        logger.info("NVR PTZ calibrate completed in %.1fs", elapsed)
+
     async def move_to_preset(
         self, channel: int, preset_index: int, speed: int | None = None
     ) -> None:
@@ -225,6 +237,23 @@ class ReolinkNVRClient:
         through reolink-aio's normal response mapper so that is_channel_online()
         reflects the current state. Works whether or not _channels is populated.
         """
+        await self._nvr.get_state("GetChannelstatus")
+
+    async def rediscover_channels(self) -> None:
+        """Re-discover connected camera channels from the NVR.
+
+        reolink-aio's _channels list is populated only once (on the first
+        GetChannelstatus response), and only for cameras that were online at
+        that moment.  If cameras power on after the initial login, they are
+        tracked in the online/offline cache but never added to _channels — so
+        PTZ commands (which guard on `channel in _channels`) fail for them.
+
+        Resetting the discovery flag forces the next GetChannelstatus response
+        to rebuild _channels from scratch, picking up all currently-online
+        cameras.
+        """
+        self._nvr._GetChannelStatus_present = False  # type: ignore[attr-defined]
+        self._nvr._channels = []  # type: ignore[attr-defined]
         await self._nvr.get_state("GetChannelstatus")
 
     async def is_channel_online(self, channel: int) -> bool:
