@@ -158,6 +158,11 @@ class SetPTZPresetNode(BaseNode[WorkflowState, WorkflowDeps]):
                     detail=str(e),
                 )
 
+        if ctx.state.mute_duration_seconds is not None:
+            # AWAY mute: wait for mute expiry before applying bitmasks.
+            from remander.workflows.nodes.mute import WaitForMuteExpiryNode
+
+            return WaitForMuteExpiryNode()
         return SetNotificationBitmasksNode()
 
 

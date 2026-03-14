@@ -110,7 +110,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
     async def run(
         self, ctx: GraphRunContext[WorkflowState, WorkflowDeps]
     ) -> BaseNode[WorkflowState, WorkflowDeps]:
-        from remander.workflows.nodes.save_restore import SaveBitmasksNode
+        from remander.models.enums import CommandType
 
         # Only wait for cameras with power devices
         cameras_to_wait = []
@@ -119,11 +119,21 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             if device.power_device_id and device.channel is not None:
                 cameras_to_wait.append(device)
 
+        # AWAY commands skip SaveBitmasks and go straight to PTZ calibration.
+        # PAUSE commands save bitmasks (for later re-arm restore) before zeroing notifications.
+        def _next_node() -> BaseNode[WorkflowState, WorkflowDeps]:
+            from remander.workflows.nodes.ptz import PTZCalibrateNode
+            from remander.workflows.nodes.save_restore import SaveBitmasksNode
+
+            if ctx.state.command_type in (CommandType.SET_AWAY_NOW, CommandType.SET_AWAY_DELAYED):
+                return PTZCalibrateNode()
+            return SaveBitmasksNode()
+
         if not cameras_to_wait:
             logger.info(
                 "[cmd %d] WaitForPowerOn: no cameras need power-on wait", ctx.state.command_id
             )
-            return SaveBitmasksNode()
+            return _next_node()
 
         logger.info(
             "[cmd %d] WaitForPowerOn: waiting for %d cameras (timeout=%ds): %s",
@@ -186,7 +196,7 @@ class WaitForPowerOnNode(BaseNode[WorkflowState, WorkflowDeps]):
             ctx.state.has_errors = True
             ctx.state.device_results[device_id] = f"Timeout after {self.timeout_seconds}s"
 
-        return SaveBitmasksNode()
+        return _next_node()
 
 
 @dataclass
@@ -243,4 +253,9 @@ class PowerOffNode(BaseNode[WorkflowState, WorkflowDeps]):
                 ctx.state.has_errors = True
                 ctx.state.device_results[device_id] = str(e)
 
+        if ctx.state.mute_duration_seconds is not None:
+            # HOME mute: wait for mute expiry before applying bitmasks.
+            from remander.workflows.nodes.mute import WaitForMuteExpiryNode
+
+            return WaitForMuteExpiryNode()
         return ValidateNode()

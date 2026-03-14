@@ -1,11 +1,11 @@
 """Tests for command queueing and execution — RED phase (TDD)."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from remander.models.command import Command
 from remander.models.enums import CommandStatus, CommandType
 from remander.services.queue import enqueue_command, execute_command
-from tests.factories import create_command
+from tests.factories import create_camera, create_command, create_tag
 
 
 class TestEnqueueCommand:
@@ -81,6 +81,119 @@ class TestExecuteCommand:
         with patch("remander.services.queue.run_workflow", new_callable=AsyncMock) as mock_run:
             await execute_command(cmd.id)
             mock_run.assert_not_called()
+
+    async def test_mute_state_loaded_into_workflow_state(self) -> None:
+        """When button has mute enabled, run_workflow populates mute fields in WorkflowState."""
+        from remander.models.dashboard_button import DashboardButton
+        from remander.models.enums import ButtonOperationType
+        from remander.services.dashboard_button import save_button_mute_tags
+
+        btn = await DashboardButton.create(
+            name="Mute Away",
+            operation_type=ButtonOperationType.AWAY,
+            mute_notifications_enabled=True,
+            mute_duration_seconds=90,
+        )
+        cam = await create_camera(name="Mute Cam")
+        tag = await create_tag(name="mute-group")
+        await cam.tags.add(tag)
+        await save_button_mute_tags(btn.id, [tag.id])
+
+        cmd = await create_command(
+            command_type=CommandType.SET_AWAY_NOW,
+            status=CommandStatus.QUEUED,
+            dashboard_button_id=btn.id,
+        )
+
+        captured_states: list = []
+
+        async def fake_graph_run(start_node, *, state, deps):
+            captured_states.append(state)
+            result = MagicMock()
+            result.state = state
+            result.state.has_errors = False
+            return result
+
+        mock_graph = MagicMock()
+        mock_graph.run = fake_graph_run
+
+        _settings = MagicMock(
+            latitude=0.0, longitude=0.0, timezone="UTC",
+            power_on_timeout_seconds=120, power_on_poll_interval_seconds=10,
+            ptz_settle_seconds=10,
+            nvr_host="localhost", nvr_port=8080, nvr_username="admin",
+            nvr_password=MagicMock(get_secret_value=lambda: "pass"),
+            nvr_use_https=False,
+            smtp_host="", smtp_port=587, smtp_username="", smtp_use_tls=False,
+            smtp_password=MagicMock(get_secret_value=lambda: ""),
+            smtp_from="", smtp_to="",
+        )
+        with (
+            patch("remander.config.get_settings", return_value=_settings),
+            patch("remander.clients.reolink.ReolinkNVRClient"),
+            patch("remander.clients.tapo.TapoClient"),
+            patch("remander.clients.sonoff.SonoffClient"),
+            patch("remander.clients.email.EmailNotificationSender"),
+            patch("remander.workflows.graphs.get_workflow_for_command", return_value=(mock_graph, MagicMock())),
+        ):
+            from remander.services.queue import run_workflow
+            await run_workflow(cmd)
+
+        assert len(captured_states) == 1
+        state = captured_states[0]
+        assert state.mute_duration_seconds == 90
+        assert cam.id in state.mute_tag_device_ids
+
+    async def test_mute_graph_selected_when_mute_enabled(self) -> None:
+        """When button has mute enabled, get_workflow_for_command is called with mute_enabled=True."""
+        from remander.models.dashboard_button import DashboardButton
+        from remander.models.enums import ButtonOperationType
+
+        btn = await DashboardButton.create(
+            name="Mute Home",
+            operation_type=ButtonOperationType.HOME,
+            mute_notifications_enabled=True,
+            mute_duration_seconds=60,
+        )
+        cmd = await create_command(
+            command_type=CommandType.SET_HOME_NOW,
+            status=CommandStatus.QUEUED,
+            dashboard_button_id=btn.id,
+        )
+
+        mock_graph = MagicMock()
+
+        async def fake_graph_run(start_node, *, state, deps):
+            result = MagicMock()
+            result.state = state
+            result.state.has_errors = False
+            return result
+
+        mock_graph.run = fake_graph_run
+
+        _settings = MagicMock(
+            latitude=0.0, longitude=0.0, timezone="UTC",
+            power_on_timeout_seconds=120, power_on_poll_interval_seconds=10,
+            ptz_settle_seconds=10,
+            nvr_host="localhost", nvr_port=8080, nvr_username="admin",
+            nvr_password=MagicMock(get_secret_value=lambda: "pass"),
+            nvr_use_https=False,
+            smtp_host="", smtp_port=587, smtp_username="", smtp_use_tls=False,
+            smtp_password=MagicMock(get_secret_value=lambda: ""),
+            smtp_from="", smtp_to="",
+        )
+        with (
+            patch("remander.config.get_settings", return_value=_settings),
+            patch("remander.clients.reolink.ReolinkNVRClient"),
+            patch("remander.clients.tapo.TapoClient"),
+            patch("remander.clients.sonoff.SonoffClient"),
+            patch("remander.clients.email.EmailNotificationSender"),
+            patch("remander.workflows.graphs.get_workflow_for_command", return_value=(mock_graph, MagicMock())) as mock_gwfc,
+        ):
+            from remander.services.queue import run_workflow
+            await run_workflow(cmd)
+
+        mock_gwfc.assert_called_once_with(CommandType.SET_HOME_NOW, mute_enabled=True)
 
     async def test_fifo_ordering(self) -> None:
         """Commands should execute in creation order."""

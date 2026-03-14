@@ -6,6 +6,7 @@ from remander.models.bitmask import DeviceBitmaskAssignment, HourBitmask, ZoneMa
 from remander.models.command import Command
 from remander.models.dashboard_button import DashboardButton
 from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
+from remander.models.dashboard_button_mute_tag import DashboardButtonMuteTag
 from remander.models.detection import DeviceDetectionType
 from remander.models.device import Device
 from remander.models.enums import (
@@ -37,6 +38,7 @@ __all__ = [
     "CommandType",
     "DashboardButton",
     "DashboardButtonBitmaskRule",
+    "DashboardButtonMuteTag",
     "DetectionType",
     "Device",
     "DeviceBitmaskAssignment",

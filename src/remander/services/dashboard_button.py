@@ -2,6 +2,7 @@
 
 from remander.models.dashboard_button import DashboardButton
 from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
+from remander.models.dashboard_button_mute_tag import DashboardButtonMuteTag
 from remander.models.device import Device
 from remander.models.enums import ButtonOperationType
 from remander.models.tag import Tag
@@ -17,6 +18,8 @@ async def create_dashboard_button(
     is_enabled: bool = True,
     show_on_main: bool = True,
     show_on_guest: bool = False,
+    mute_notifications_enabled: bool = False,
+    mute_duration_seconds: int = 180,
 ) -> DashboardButton:
     """Create a new dashboard button."""
     return await DashboardButton.create(
@@ -28,6 +31,8 @@ async def create_dashboard_button(
         is_enabled=is_enabled,
         show_on_main=show_on_main,
         show_on_guest=show_on_guest,
+        mute_notifications_enabled=mute_notifications_enabled,
+        mute_duration_seconds=mute_duration_seconds,
     )
 
 
@@ -131,3 +136,47 @@ async def validate_button_rules(
     ]
 
     return overlap_device_names, uncovered_device_names
+
+
+async def save_button_mute_tags(button_id: int, tag_ids: list[int]) -> None:
+    """Replace all mute tags for a button with the given tag IDs.
+
+    Existing mute tags are deleted before new ones are created.
+    Duplicate tag_ids are deduplicated silently.
+    """
+    await DashboardButtonMuteTag.filter(dashboard_button_id=button_id).delete()
+    for tag_id in dict.fromkeys(tag_ids):  # deduplicate, preserving order
+        await DashboardButtonMuteTag.create(
+            dashboard_button_id=button_id,
+            tag_id=tag_id,
+        )
+
+
+async def list_mute_tags_for_button(button_id: int) -> list[Tag]:
+    """Return all Tag objects associated as mute tags for this button."""
+    mute_tag_rows = await DashboardButtonMuteTag.filter(
+        dashboard_button_id=button_id
+    ).prefetch_related("tag").all()
+    return [row.tag for row in mute_tag_rows]
+
+
+async def get_mute_device_ids_for_button(
+    button_id: int, enabled_device_ids: set[int]
+) -> list[int]:
+    """Expand mute tags to the list of enabled device IDs they cover.
+
+    Returns device IDs that are both in a mute tag and in enabled_device_ids.
+    """
+    mute_tag_rows = await DashboardButtonMuteTag.filter(
+        dashboard_button_id=button_id
+    ).prefetch_related("tag").all()
+
+    result: list[int] = []
+    seen: set[int] = set()
+    for row in mute_tag_rows:
+        tag_devices = await row.tag.devices.filter(is_enabled=True)
+        for device in tag_devices:
+            if device.id in enabled_device_ids and device.id not in seen:
+                result.append(device.id)
+                seen.add(device.id)
+    return result

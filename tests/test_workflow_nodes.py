@@ -8,6 +8,7 @@ from pydantic_graph import End, GraphRunContext
 from remander.models.enums import ActivityStatus, CommandType, DetectionType
 from remander.workflows.nodes.delay import OptionalDelayNode
 from remander.workflows.nodes.filter import FilterByTagNode
+from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
 from remander.workflows.nodes.notify import NotifyNode
 from remander.workflows.nodes.nvr import NVRLoginNode, NVRLogoutNode
 from remander.workflows.nodes.power import PowerOnNode
@@ -92,7 +93,7 @@ class TestNVRLoginNode:
 
 
 class TestNVRLoginNodeRouting:
-    """NVRLoginNode must route SET_AWAY to PowerOn, pause to SaveBitmasks, home to RestoreBitmasks."""
+    """NVRLoginNode routes SET_AWAY to PowerOn, PAUSE to SaveBitmasks, HOME to SetNotificationBitmasks."""
 
     async def test_set_away_routes_to_power_on(self) -> None:
         cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
@@ -130,7 +131,10 @@ class TestNVRLoginNodeRouting:
 
         assert isinstance(result, SaveBitmasksNode)
 
-    async def test_set_home_routes_to_restore_bitmasks(self) -> None:
+    async def test_set_home_routes_to_set_notification_bitmasks(self) -> None:
+        """HOME bypasses RestoreBitmasks — saved states use AWAY command IDs and are never found.
+        NVRLoginNode routes directly to SetNotificationBitmasks(HOME) to apply configured bitmasks.
+        """
         cmd = await create_command(command_type=CommandType.SET_HOME_NOW)
         deps = _make_deps()
         state = _make_state(command_id=cmd.id, command_type=CommandType.SET_HOME_NOW)
@@ -140,7 +144,27 @@ class TestNVRLoginNodeRouting:
         with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
             result = await node.run(ctx)
 
-        assert isinstance(result, RestoreBitmasksNode)
+        assert isinstance(result, SetNotificationBitmasksNode)
+        assert result.mode.value == "home"
+
+    async def test_set_home_with_mute_routes_to_ptz_home(self) -> None:
+        """When mute is active, HOME NVRLoginNode routes to SetPTZHomeNode (bitmasks applied after mute)."""
+        from remander.workflows.nodes.ptz import SetPTZHomeNode
+
+        cmd = await create_command(command_type=CommandType.SET_HOME_NOW)
+        deps = _make_deps()
+        state = _make_state(
+            command_id=cmd.id,
+            command_type=CommandType.SET_HOME_NOW,
+            mute_duration_seconds=120,
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = NVRLoginNode()
+        with patch("remander.workflows.nodes.nvr.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, SetPTZHomeNode)
 
 
 class TestNVRLogoutNode:

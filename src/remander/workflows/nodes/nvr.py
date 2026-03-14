@@ -58,14 +58,31 @@ class NVRLoginNode(BaseNode[WorkflowState, WorkflowDeps]):
             raise
 
         # Route to the correct next node based on command type
-        if ctx.state.command_type == CommandType.SET_HOME_NOW or ctx.state.is_rearm:
+        if ctx.state.is_rearm:
+            # Re-arm restores bitmasks saved during the original pause command.
+            logger.debug("[cmd %d] NVRLogin: is_rearm=True → RestoreBitmasks", ctx.state.command_id)
+            return RestoreBitmasksNode()
+        if ctx.state.command_type == CommandType.SET_HOME_NOW:
+            if ctx.state.mute_duration_seconds is not None:
+                # HOME mute: run PTZ/power during the mute window; apply bitmasks after expiry.
+                logger.debug(
+                    "[cmd %d] NVRLogin: command_type=%s mute_active → SetPTZHome",
+                    ctx.state.command_id,
+                    ctx.state.command_type,
+                )
+                from remander.workflows.nodes.ptz import SetPTZHomeNode
+
+                return SetPTZHomeNode()
+            # HOME applies configured bitmasks directly (no save/restore needed for HOME).
             logger.debug(
-                "[cmd %d] NVRLogin: command_type=%s is_rearm=%s → RestoreBitmasks",
+                "[cmd %d] NVRLogin: command_type=%s → SetNotificationBitmasks(HOME)",
                 ctx.state.command_id,
                 ctx.state.command_type,
-                ctx.state.is_rearm,
             )
-            return RestoreBitmasksNode()
+            from remander.models.enums import Mode
+            from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode
+
+            return SetNotificationBitmasksNode(mode=Mode.HOME)
         if ctx.state.command_type in (CommandType.SET_AWAY_NOW, CommandType.SET_AWAY_DELAYED):
             # Power on cameras before querying the NVR — the NVR returns no data for offline cameras
             logger.debug(

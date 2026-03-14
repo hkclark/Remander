@@ -155,11 +155,11 @@ class TestPowerOnNode:
 
 
 class TestWaitForPowerOnNodeRouting:
-    """WaitForPowerOnNode must route to SaveBitmasksNode (not PTZCalibrateNode)."""
+    """WaitForPowerOnNode routes to PTZCalibrateNode for AWAY, SaveBitmasksNode for PAUSE."""
 
-    async def test_routes_to_save_bitmasks_when_no_power_cameras(self) -> None:
-        """Cameras without power devices skip the wait — next node must be SaveBitmasks."""
-        cmd = await create_command()
+    async def test_away_routes_to_ptz_calibrate_when_no_power_cameras(self) -> None:
+        """AWAY cameras without power devices skip the wait — next node is PTZCalibrateNode."""
+        cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
         camera = await create_camera(name="No Power Routing Cam")  # no power_device_id
 
         deps = _make_deps()
@@ -170,11 +170,11 @@ class TestWaitForPowerOnNodeRouting:
         with patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock):
             result = await node.run(ctx)
 
-        assert isinstance(result, SaveBitmasksNode)
+        assert isinstance(result, PTZCalibrateNode)
 
-    async def test_routes_to_save_bitmasks_after_power_on(self) -> None:
-        """Once a camera comes online, next node must be SaveBitmasks."""
-        cmd = await create_command()
+    async def test_away_routes_to_ptz_calibrate_after_power_on(self) -> None:
+        """AWAY: once a camera comes online, next node is PTZCalibrateNode (no save needed)."""
+        cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
         power = await create_power_device(name="Routing Plug")
         camera = await create_camera(name="Power Routing Cam", channel=0, power_device_id=power.id)
 
@@ -188,6 +188,21 @@ class TestWaitForPowerOnNodeRouting:
             patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock),
             patch("remander.workflows.nodes.power.asyncio.sleep", new_callable=AsyncMock),
         ):
+            result = await node.run(ctx)
+
+        assert isinstance(result, PTZCalibrateNode)
+
+    async def test_pause_routes_to_save_bitmasks_when_no_power_cameras(self) -> None:
+        """PAUSE cameras without power devices skip the wait — next node is SaveBitmasks."""
+        cmd = await create_command(command_type=CommandType.PAUSE_NOTIFICATIONS)
+        camera = await create_camera(name="No Power Pause Cam")  # no power_device_id
+
+        deps = _make_deps()
+        state = _make_state(command_id=cmd.id, command_type=CommandType.PAUSE_NOTIFICATIONS, device_ids=[camera.id])
+        ctx = _make_ctx(state, deps)
+
+        node = WaitForPowerOnNode()
+        with patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock):
             result = await node.run(ctx)
 
         assert isinstance(result, SaveBitmasksNode)
@@ -527,3 +542,64 @@ class TestSetZoneMasksNode:
             await node.run(ctx)
 
         assert state.has_errors is True
+
+    async def test_home_mute_routes_to_validate_not_ptz_home(self) -> None:
+        """When mute is active, HOME SetZoneMasks routes to ValidateNode (PTZ already ran)."""
+        from remander.workflows.nodes.validate import ValidateNode
+
+        cmd = await create_command(command_type=CommandType.SET_HOME_NOW)
+        deps = _make_deps()
+        state = _make_state(
+            command_id=cmd.id,
+            command_type=CommandType.SET_HOME_NOW,
+            mute_duration_seconds=120,
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = SetZoneMasksNode(mode=Mode.HOME)
+        with patch("remander.workflows.nodes.bitmask.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, ValidateNode)
+
+
+class TestMuteRoutingInNodes:
+    """Verify that mute_duration_seconds triggers alternate routing in existing nodes."""
+
+    async def test_set_ptz_preset_routes_to_wait_for_mute_expiry_when_mute_active(self) -> None:
+        """When mute is active, SetPTZPresetNode routes to WaitForMuteExpiryNode."""
+        from remander.workflows.nodes.mute import WaitForMuteExpiryNode
+
+        cmd = await create_command(command_type=CommandType.SET_AWAY_NOW)
+        deps = _make_deps()
+        state = _make_state(
+            command_id=cmd.id,
+            command_type=CommandType.SET_AWAY_NOW,
+            mute_duration_seconds=180,
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = SetPTZPresetNode()
+        with patch("remander.workflows.nodes.ptz.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, WaitForMuteExpiryNode)
+
+    async def test_power_off_routes_to_wait_for_mute_expiry_when_mute_active(self) -> None:
+        """When mute is active, PowerOffNode routes to WaitForMuteExpiryNode."""
+        from remander.workflows.nodes.mute import WaitForMuteExpiryNode
+
+        cmd = await create_command(command_type=CommandType.SET_HOME_NOW)
+        deps = _make_deps()
+        state = _make_state(
+            command_id=cmd.id,
+            command_type=CommandType.SET_HOME_NOW,
+            mute_duration_seconds=120,
+        )
+        ctx = _make_ctx(state, deps)
+
+        node = PowerOffNode()
+        with patch("remander.workflows.nodes.power.log_activity", new_callable=AsyncMock):
+            result = await node.run(ctx)
+
+        assert isinstance(result, WaitForMuteExpiryNode)

@@ -12,7 +12,9 @@ from remander.services.dashboard_button import (
     delete_dashboard_button,
     get_dashboard_button,
     list_dashboard_buttons,
+    list_mute_tags_for_button,
     list_rules_for_button,
+    save_button_mute_tags,
     save_button_rules,
     update_dashboard_button,
     validate_button_rules,
@@ -32,6 +34,7 @@ async def _form_context(
     pending_data: dict | None = None,
     error: str | None = None,
     coverage_warning: list[str] | None = None,
+    existing_mute_tag_ids: list[int] | None = None,
 ) -> dict:
     """Build the shared template context for the button create/edit form.
 
@@ -54,6 +57,7 @@ async def _form_context(
         "pending_data": pending_data,
         "error": error,
         "coverage_warning": coverage_warning or [],
+        "existing_mute_tag_ids": existing_mute_tag_ids or [],
     }
 
 
@@ -89,12 +93,21 @@ def _parse_rules(
 @router.get("", response_class=HTMLResponse)
 async def button_list(request: Request) -> HTMLResponse:
     from remander.main import templates
+    from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
 
     buttons = await list_dashboard_buttons()
+
+    # Fetch rule counts for all buttons in one query
+    button_ids = [b.id for b in buttons]
+    all_rules = await DashboardButtonBitmaskRule.filter(dashboard_button_id__in=button_ids)
+    rule_counts: dict[int, int] = {}
+    for rule in all_rules:
+        rule_counts[rule.dashboard_button_id] = rule_counts.get(rule.dashboard_button_id, 0) + 1
+
     return templates.TemplateResponse(
         request,
         "dashboard_buttons/list.html",
-        {"buttons": buttons},
+        {"buttons": buttons, "rule_counts": rule_counts},
     )
 
 
@@ -119,10 +132,15 @@ async def button_create(
     force_save: str | None = Form(None),
     show_on_main: str | None = Form(None),
     show_on_guest: str | None = Form(None),
+    mute_notifications_enabled: str | None = Form(None),
+    mute_duration_seconds: str = Form("180"),
+    mute_tag_ids: list[str] = Form(default=[]),
 ) -> Response:
     from remander.main import templates
 
     rules = _parse_rules(rule_tag_ids, rule_bitmask_ids)
+    mute_enabled = mute_notifications_enabled is not None
+    mute_tag_id_ints = [int(t) for t in mute_tag_ids if t]
     submitted = {
         "name": name,
         "operation_type": operation_type,
@@ -131,13 +149,28 @@ async def button_create(
         "sort_order": sort_order,
         "show_on_main": show_on_main,
         "show_on_guest": show_on_guest,
+        "mute_notifications_enabled": mute_notifications_enabled,
+        "mute_duration_seconds": mute_duration_seconds,
     }
 
     if not rules:
         ctx = await _form_context(
             request,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error="At least one tag-bitmask rule is required.",
+        )
+        return templates.TemplateResponse(
+            request, "dashboard_buttons/form.html", ctx, status_code=422
+        )
+
+    if mute_enabled and not mute_tag_id_ints:
+        ctx = await _form_context(
+            request,
+            pending_rules=rules,
+            pending_data=submitted,
+            existing_mute_tag_ids=[],
+            error="At least one mute tag is required when notification mute is enabled.",
         )
         return templates.TemplateResponse(
             request, "dashboard_buttons/form.html", ctx, status_code=422
@@ -151,6 +184,7 @@ async def button_create(
             request,
             pending_rules=rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error=f"These devices appear in multiple tags and would receive conflicting bitmasks: {device_list}",
         )
         return templates.TemplateResponse(
@@ -162,6 +196,7 @@ async def button_create(
             request,
             pending_rules=rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             coverage_warning=uncovered_names,
         )
         return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
@@ -171,6 +206,7 @@ async def button_create(
             request,
             pending_rules=rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error="Only one Home button can be assigned to the Guest Dashboard.",
         )
         return templates.TemplateResponse(
@@ -185,8 +221,12 @@ async def button_create(
         sort_order=int(sort_order),
         show_on_main=show_on_main is not None,
         show_on_guest=show_on_guest is not None,
+        mute_notifications_enabled=mute_enabled,
+        mute_duration_seconds=int(mute_duration_seconds) if mute_duration_seconds else 180,
     )
     await save_button_rules(btn.id, rules)
+    if mute_enabled:
+        await save_button_mute_tags(btn.id, mute_tag_id_ints)
     if color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)
@@ -202,7 +242,14 @@ async def button_edit_form(request: Request, button_id: int) -> Response:
         return HTMLResponse("Button not found", status_code=404)
 
     existing_rules = await list_rules_for_button(button_id)
-    ctx = await _form_context(request, button=button, rules=existing_rules)
+    existing_mute_tags = await list_mute_tags_for_button(button_id)
+    existing_mute_tag_ids = [t.id for t in existing_mute_tags]
+    ctx = await _form_context(
+        request,
+        button=button,
+        rules=existing_rules,
+        existing_mute_tag_ids=existing_mute_tag_ids,
+    )
     return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
 
 
@@ -221,6 +268,9 @@ async def button_edit(
     force_save: str | None = Form(None),
     show_on_main: str | None = Form(None),
     show_on_guest: str | None = Form(None),
+    mute_notifications_enabled: str | None = Form(None),
+    mute_duration_seconds: str = Form("180"),
+    mute_tag_ids: list[str] = Form(default=[]),
 ) -> Response:
     from remander.main import templates
 
@@ -229,6 +279,8 @@ async def button_edit(
         return HTMLResponse("Button not found", status_code=404)
 
     rules = _parse_rules(rule_tag_ids, rule_bitmask_ids)
+    mute_enabled = mute_notifications_enabled is not None
+    mute_tag_id_ints = [int(t) for t in mute_tag_ids if t]
     submitted = {
         "name": name,
         "operation_type": operation_type,
@@ -238,6 +290,8 @@ async def button_edit(
         "is_enabled": is_enabled,
         "show_on_main": show_on_main,
         "show_on_guest": show_on_guest,
+        "mute_notifications_enabled": mute_notifications_enabled,
+        "mute_duration_seconds": mute_duration_seconds,
     }
 
     if not rules:
@@ -247,7 +301,23 @@ async def button_edit(
             button=button,
             rules=existing_rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error="At least one tag-bitmask rule is required.",
+        )
+        return templates.TemplateResponse(
+            request, "dashboard_buttons/form.html", ctx, status_code=422
+        )
+
+    if mute_enabled and not mute_tag_id_ints:
+        existing_rules = await list_rules_for_button(button_id)
+        ctx = await _form_context(
+            request,
+            button=button,
+            rules=existing_rules,
+            pending_rules=rules,
+            pending_data=submitted,
+            existing_mute_tag_ids=[],
+            error="At least one mute tag is required when notification mute is enabled.",
         )
         return templates.TemplateResponse(
             request, "dashboard_buttons/form.html", ctx, status_code=422
@@ -262,6 +332,7 @@ async def button_edit(
             button=button,
             pending_rules=rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error=f"These devices appear in multiple tags and would receive conflicting bitmasks: {device_list}",
         )
         return templates.TemplateResponse(
@@ -273,16 +344,8 @@ async def button_edit(
             request,
             button=button,
             pending_rules=rules,
-            pending_data={
-                "name": name,
-                "operation_type": operation_type,
-                "color": color,
-                "delay_seconds": delay_seconds,
-                "sort_order": sort_order,
-                "is_enabled": is_enabled,
-                "show_on_main": show_on_main,
-                "show_on_guest": show_on_guest,
-            },
+            pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             coverage_warning=uncovered_names,
         )
         return templates.TemplateResponse(request, "dashboard_buttons/form.html", ctx)
@@ -293,6 +356,7 @@ async def button_edit(
             button=button,
             pending_rules=rules,
             pending_data=submitted,
+            existing_mute_tag_ids=mute_tag_id_ints,
             error="Only one Home button can be assigned to the Guest Dashboard.",
         )
         return templates.TemplateResponse(
@@ -309,8 +373,11 @@ async def button_edit(
         is_enabled=is_enabled is not None,
         show_on_main=show_on_main is not None,
         show_on_guest=show_on_guest is not None,
+        mute_notifications_enabled=mute_enabled,
+        mute_duration_seconds=int(mute_duration_seconds) if mute_duration_seconds else 180,
     )
     await save_button_rules(button_id, rules)
+    await save_button_mute_tags(button_id, mute_tag_id_ints if mute_enabled else [])
     if color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)

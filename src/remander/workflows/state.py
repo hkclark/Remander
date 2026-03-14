@@ -1,6 +1,7 @@
 """Workflow state and dependencies for pydantic-graph workflows."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from remander.clients.reolink import ReolinkNVRClient
 from remander.clients.sonoff import SonoffClient
@@ -57,6 +58,11 @@ class WorkflowState:
     # Final bitmask state per channel for notification display
     # channel -> {detection_type_str -> 24-char bitmask}
     channel_bitmask_results: dict[int, dict[str, str]] = field(default_factory=dict)
+
+    # Ingress/egress notification mute settings
+    mute_duration_seconds: int | None = None
+    mute_tag_device_ids: list[int] = field(default_factory=list)
+    mute_start_time: datetime | None = None
 
 
 # Reason: dataclass required by pydantic-graph for deps (immutable by convention)

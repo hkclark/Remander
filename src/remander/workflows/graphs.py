@@ -8,6 +8,7 @@ from remander.models.enums import CommandType
 from remander.workflows.nodes.bitmask import SetNotificationBitmasksNode, SetZoneMasksNode
 from remander.workflows.nodes.delay import OptionalDelayNode
 from remander.workflows.nodes.filter import FilterByTagNode
+from remander.workflows.nodes.mute import IngressEgressMuteNode, WaitForMuteExpiryNode
 from remander.workflows.nodes.notify import NotifyNode
 from remander.workflows.nodes.nvr import NVRLoginNode, NVRLogoutNode
 from remander.workflows.nodes.power import PowerOffNode, PowerOnNode, WaitForPowerOnNode
@@ -16,14 +17,15 @@ from remander.workflows.nodes.save_restore import RestoreBitmasksNode, SaveBitma
 from remander.workflows.nodes.schedule import ScheduleReArmNode
 from remander.workflows.nodes.validate import ValidateNode
 
-# Set Away workflow: Delay -> Login -> PowerOn -> Wait -> Save -> Calibrate ->
+# Set Away workflow: Delay -> Login -> PowerOn -> Wait -> Calibrate ->
 #   PTZPreset -> SetBitmasks -> SetZones -> Validate -> Logout -> Notify
-# PowerOn/Wait come before Save because the NVR returns no data for offline cameras.
+# PowerOn/Wait come before Calibrate because the NVR returns no data for offline cameras.
+# Bitmasks are NOT saved for AWAY — SaveBitmasks only serves PAUSE → rearm workflows
+# (which reuse the same command_id for restore). HOME applies configured bitmasks directly.
 set_away_graph = Graph(
     nodes=(
         OptionalDelayNode,
         NVRLoginNode,
-        SaveBitmasksNode,
         PowerOnNode,
         WaitForPowerOnNode,
         PTZCalibrateNode,
@@ -37,12 +39,13 @@ set_away_graph = Graph(
     name="set_away",
 )
 
-# Set Home workflow: Login -> Restore -> SetBitmasks(HOME) -> SetZones(HOME) ->
+# Set Home workflow: Login -> SetBitmasks(HOME) -> SetZones(HOME) ->
 #   PTZHome -> PowerOff -> Validate -> Logout -> Notify
+# RestoreBitmasks is not used here — HOME applies configured bitmasks directly.
+# (RestoreBitmasks only works for PAUSE → rearm, which reuses the same command_id.)
 set_home_graph = Graph(
     nodes=(
         NVRLoginNode,
-        RestoreBitmasksNode,
         SetNotificationBitmasksNode,
         SetZoneMasksNode,
         SetPTZHomeNode,
@@ -52,6 +55,49 @@ set_home_graph = Graph(
         NotifyNode,
     ),
     name="set_home",
+)
+
+# Set Away with Mute workflow: IngressEgressMute -> Delay -> Login -> PowerOn -> Wait ->
+#   Calibrate -> PTZPreset -> WaitForMuteExpiry -> SetBitmasks -> SetZones -> Validate ->
+#   Logout -> Notify
+# IngressEgressMuteNode runs before the delay so cameras are silenced immediately on button press.
+# WaitForMuteExpiryNode inserts between PTZPreset and SetBitmasks to hold until mute window closes.
+set_away_with_mute_graph = Graph(
+    nodes=(
+        IngressEgressMuteNode,
+        OptionalDelayNode,
+        NVRLoginNode,
+        PowerOnNode,
+        WaitForPowerOnNode,
+        PTZCalibrateNode,
+        SetPTZPresetNode,
+        WaitForMuteExpiryNode,
+        SetNotificationBitmasksNode,
+        SetZoneMasksNode,
+        ValidateNode,
+        NVRLogoutNode,
+        NotifyNode,
+    ),
+    name="set_away_with_mute",
+)
+
+# Set Home with Mute workflow: IngressEgressMute -> Login -> PTZHome -> PowerOff ->
+#   WaitForMuteExpiry -> SetBitmasks(HOME) -> SetZones(HOME) -> Validate -> Logout -> Notify
+# PTZ/Power happen during the mute window; bitmasks are applied after mute expires.
+set_home_with_mute_graph = Graph(
+    nodes=(
+        IngressEgressMuteNode,
+        NVRLoginNode,
+        SetPTZHomeNode,
+        PowerOffNode,
+        WaitForMuteExpiryNode,
+        SetNotificationBitmasksNode,
+        SetZoneMasksNode,
+        ValidateNode,
+        NVRLogoutNode,
+        NotifyNode,
+    ),
+    name="set_home_with_mute",
 )
 
 # Pause Notifications workflow: Filter -> Login -> Save -> SetBitmasks -> SetZones ->
@@ -125,14 +171,21 @@ rearm_graph = Graph(
 
 def get_workflow_for_command(
     command_type: CommandType | str,
+    mute_enabled: bool = False,
 ) -> tuple[Graph, BaseNode]:
-    """Return the graph and start node for a given command type."""
+    """Return the graph and start node for a given command type.
+
+    When mute_enabled=True, Away and Home commands use the mute graph variants
+    that include IngressEgressMuteNode and WaitForMuteExpiryNode.
+    """
     match command_type:
-        case CommandType.SET_AWAY_NOW:
-            return set_away_graph, OptionalDelayNode()
-        case CommandType.SET_AWAY_DELAYED:
+        case CommandType.SET_AWAY_NOW | CommandType.SET_AWAY_DELAYED:
+            if mute_enabled:
+                return set_away_with_mute_graph, IngressEgressMuteNode()
             return set_away_graph, OptionalDelayNode()
         case CommandType.SET_HOME_NOW:
+            if mute_enabled:
+                return set_home_with_mute_graph, IngressEgressMuteNode()
             return set_home_graph, NVRLoginNode()
         case CommandType.PAUSE_NOTIFICATIONS:
             return pause_notifications_graph, FilterByTagNode()

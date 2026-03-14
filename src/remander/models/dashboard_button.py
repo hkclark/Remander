@@ -12,6 +12,8 @@ class DashboardButton(Model):
     color = fields.CharField(max_length=7, default="#3B82F6")
     delay_seconds = fields.IntField(default=0)
     operation_type = fields.CharEnumField(ButtonOperationType)
+    mute_notifications_enabled = fields.BooleanField(default=False)
+    mute_duration_seconds = fields.IntField(default=180)
     sort_order = fields.IntField(default=0)
     is_enabled = fields.BooleanField(default=True)
     show_on_main = fields.BooleanField(default=True)

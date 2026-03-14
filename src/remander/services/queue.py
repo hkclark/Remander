@@ -132,18 +132,33 @@ async def run_workflow(cmd: Command) -> bool | None:
     # so the workflow node can look up the right bitmask per device without querying tags.
     override_bitmask_map: dict[int, int] = {}
     delay_seconds: int | None = cmd.delay_seconds
+    mute_enabled = False
+    mute_duration_seconds: int | None = None
+    mute_tag_device_ids: list[int] = []
+
     if cmd.dashboard_button_id is not None:
+        from remander.models.dashboard_button import DashboardButton
         from remander.models.dashboard_button_bitmask_rule import DashboardButtonBitmaskRule
+        from remander.services.dashboard_button import get_mute_device_ids_for_button
+
+        button = await DashboardButton.get(id=cmd.dashboard_button_id)
+        enabled_device_ids = set(device_ids)
 
         rules = await DashboardButtonBitmaskRule.filter(
             dashboard_button_id=cmd.dashboard_button_id
         ).prefetch_related("tag")
-        enabled_device_ids = set(device_ids)
         for rule in rules:
             tag_devices = await rule.tag.devices.filter(is_enabled=True)
             for device in tag_devices:
                 if device.id in enabled_device_ids:
                     override_bitmask_map[device.id] = rule.hour_bitmask_id
+
+        if button.mute_notifications_enabled:
+            mute_enabled = True
+            mute_duration_seconds = button.mute_duration_seconds
+            mute_tag_device_ids = await get_mute_device_ids_for_button(
+                cmd.dashboard_button_id, enabled_device_ids
+            )
 
     state = WorkflowState(
         command_id=cmd.id,
@@ -154,9 +169,11 @@ async def run_workflow(cmd: Command) -> bool | None:
         delay_seconds=delay_seconds,
         pause_minutes=cmd.pause_minutes,
         override_bitmask_map=override_bitmask_map,
+        mute_duration_seconds=mute_duration_seconds,
+        mute_tag_device_ids=mute_tag_device_ids,
     )
 
-    graph, start_node = get_workflow_for_command(cmd.command_type)
+    graph, start_node = get_workflow_for_command(cmd.command_type, mute_enabled=mute_enabled)
     logger.info(
         "[cmd %d] Starting workflow: graph=%s start_node=%s devices=%s",
         cmd.id,

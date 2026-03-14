@@ -215,8 +215,11 @@ class SetZoneMasksNode(BaseNode[WorkflowState, WorkflowDeps]):
 
         from remander.models.enums import Mode
 
-        if self.mode == Mode.HOME:
+        if self.mode == Mode.HOME and ctx.state.mute_duration_seconds is None:
+            # Normal HOME: PTZ/Power happen after bitmasks.
             from remander.workflows.nodes.ptz import SetPTZHomeNode
 
             return SetPTZHomeNode()
+        # HOME mute: PTZ/Power already ran before WaitForMuteExpiry; go directly to validate.
+        # AWAY: always routes to ValidateNode from here.
         return ValidateNode()
