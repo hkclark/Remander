@@ -169,7 +169,11 @@ Used to calculate sunrise/sunset times for dynamic hour bitmasks.
 ## Query Parameters
 
 * `?scale` (or `?scale=anything`) = Enable scaling mode on that device for the Guest Dashboard only.
-  * Is saved in a cookie to be used by default on that device going forward.
+    * Is saved in a cookie to be used by default on that device going forward.
+    * Use `?scale=0` to delete the cookie and disable.
+* `?horiz` (or `?horiz=anything`) = Switch to horizontal layout for the Guest Dashboard only.
+    * Is saved in a cookie to be used by default on that device going forward.
+    * Use `?horiz=0` to delete the cookie and disable.
 
 ---
 

@@ -4,7 +4,8 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 _SCALE_COOKIE = "gd_scale"
-_SCALE_MAX_AGE = 5 * 365 * 24 * 60 * 60  # 5 years in seconds
+_HORIZ_COOKIE = "gd_horiz"
+_PREF_MAX_AGE = 5 * 365 * 24 * 60 * 60  # 5 years in seconds
 
 from remander.config import get_settings
 from remander.models.enums import ButtonOperationType, CommandType
@@ -18,7 +19,11 @@ router = APIRouter()
 
 
 @router.get("/d", response_class=HTMLResponse)
-async def guest_dashboard(request: Request, scale: str | None = None) -> HTMLResponse:
+async def guest_dashboard(
+    request: Request,
+    scale: str | None = None,
+    horiz: str | None = None,
+) -> HTMLResponse:
     from remander.main import templates
 
     settings = get_settings()
@@ -33,7 +38,21 @@ async def guest_dashboard(request: Request, scale: str | None = None) -> HTMLRes
     show_toast = request.query_params.get("submitted") == "1"
     plugin_widgets = get_registry().all_dashboard_widgets("guest_dashboard")
 
-    use_scale = scale is not None or request.cookies.get(_SCALE_COOKIE) == "1"
+    # ?scale=0 clears the preference; any other ?scale value sets it; absent → use cookie
+    if scale == "0":
+        use_scale = False
+    elif scale is not None:
+        use_scale = True
+    else:
+        use_scale = request.cookies.get(_SCALE_COOKIE) == "1"
+
+    # Same pattern for ?horiz
+    if horiz == "0":
+        use_horiz = False
+    elif horiz is not None:
+        use_horiz = True
+    else:
+        use_horiz = request.cookies.get(_HORIZ_COOKIE) == "1"
 
     response = templates.TemplateResponse(
         request,
@@ -46,11 +65,19 @@ async def guest_dashboard(request: Request, scale: str | None = None) -> HTMLRes
             "show_toast": show_toast,
             "plugin_widgets": plugin_widgets,
             "use_scale": use_scale,
+            "use_horiz": use_horiz,
         },
     )
 
-    if scale is not None:
-        response.set_cookie(_SCALE_COOKIE, "1", max_age=_SCALE_MAX_AGE, samesite="lax", httponly=True)
+    if scale == "0":
+        response.delete_cookie(_SCALE_COOKIE)
+    elif scale is not None:
+        response.set_cookie(_SCALE_COOKIE, "1", max_age=_PREF_MAX_AGE, samesite="lax", httponly=True)
+
+    if horiz == "0":
+        response.delete_cookie(_HORIZ_COOKIE)
+    elif horiz is not None:
+        response.set_cookie(_HORIZ_COOKIE, "1", max_age=_PREF_MAX_AGE, samesite="lax", httponly=True)
 
     return response
 
