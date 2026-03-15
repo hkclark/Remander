@@ -29,6 +29,9 @@ class ProxyPrefixMiddleware:
         self.prefix = prefix.rstrip("/")
         self.token = token
         self.scheme = scheme
+        # Force to be absolute path
+        if not self.prefix.startswith("/"):
+            self.prefix = "/" + self.prefix
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] in ("http", "websocket") and self.prefix:
