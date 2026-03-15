@@ -32,7 +32,7 @@
     {% if dashboard_buttons %}
     <div class="grid grid-cols-2 gap-4">
         {% for button in dashboard_buttons %}
-        <form hx-post="{{ root_path }}/commands/execute/button/{{ button.id }}"
+        <form hx-post="{{ request.root_path }}/commands/execute/button/{{ button.id }}"
               hx-target="#command-progress"
               hx-swap="innerHTML"
               data-toast-label="{{ button.name }} — command sent">
@@ -50,7 +50,7 @@
     {% else %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
         No dashboard buttons configured.
-        <a href="{{ root_path }}/dashboard-buttons/create" class="font-medium underline hover:text-yellow-900">Add one</a>
+        <a href="{{ request.root_path }}/dashboard-buttons/create" class="font-medium underline hover:text-yellow-900">Add one</a>
         to get started.
     </div>
     {% endif %}
@@ -72,7 +72,7 @@
                     {% set intervals = [(1, "1 Min")] if debug else [] %}
                     {% set intervals = intervals + [(3, "3 Min"), (15, "15 Min"), (30, "30 Min"), (60, "1 Hour"), (120, "2 Hours")] %}
                     {% for minutes, label in intervals %}
-                    <form hx-post="{{ root_path }}/commands/execute/pause-notifications"
+                    <form hx-post="{{ request.root_path }}/commands/execute/pause-notifications"
                           hx-target="#command-progress"
                           hx-swap="innerHTML"
                           data-toast-label="Notifications paused — {{ label }}">
@@ -92,7 +92,7 @@
     {% endif %}
 
     <div id="command-progress"
-         hx-get="{{ root_path }}/partials/command-progress"
+         hx-get="{{ request.root_path }}/partials/command-progress"
          hx-trigger="every 2s"
          hx-swap="innerHTML">
         {% include "partials/command_progress.html" %}

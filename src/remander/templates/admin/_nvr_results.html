@@ -10,7 +10,7 @@
     <form>
         <input type="hidden" name="cameras_json" value="{{ cameras_json | e }}">
         <button type="button"
-                hx-post="{{ root_path }}/admin/nvr-sync/sync-all"
+                hx-post="{{ request.root_path }}/admin/nvr-sync/sync-all"
                 hx-target="#nvr-results"
                 hx-swap="innerHTML"
                 hx-include="closest form"

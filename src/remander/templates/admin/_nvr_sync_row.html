@@ -54,7 +54,7 @@
     <td class="px-4 py-3">
         {% if result.status == 'new' %}
         <button type="button"
-                hx-post="{{ root_path }}/admin/nvr-sync/create"
+                hx-post="{{ request.root_path }}/admin/nvr-sync/create"
                 hx-target="closest tr"
                 hx-swap="outerHTML"
                 hx-include="closest tr"
@@ -63,7 +63,7 @@
         </button>
         {% elif result.status == 'changed' %}
         <button type="button"
-                hx-post="{{ root_path }}/admin/nvr-sync/update"
+                hx-post="{{ request.root_path }}/admin/nvr-sync/update"
                 hx-target="closest tr"
                 hx-swap="outerHTML"
                 hx-include="closest tr"

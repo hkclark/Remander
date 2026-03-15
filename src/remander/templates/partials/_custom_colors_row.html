@@ -13,7 +13,7 @@
         </button>
         <button type="button"
                 title="Remove from My Colors"
-                hx-post="{{ root_path }}/admin/colors/remove"
+                hx-post="{{ request.root_path }}/admin/colors/remove"
                 hx-vals='{"hex": "{{ hex }}", "field_name": "{{ field_name }}"}'
                 hx-target="#{{ field_name }}-custom-colors"
                 hx-swap="outerHTML"

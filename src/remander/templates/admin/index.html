@@ -20,7 +20,7 @@
             </div>
             <p class="text-sm text-gray-500 grow">Fetch camera metadata from the NVR.</p>
             <div class="mt-4 flex items-center gap-3">
-                <button hx-post="{{ root_path }}/admin/query-nvr"
+                <button hx-post="{{ request.root_path }}/admin/query-nvr"
                         hx-target="#nvr-results"
                         hx-indicator="#nvr-spinner"
                         class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium shadow-sm">
@@ -48,7 +48,7 @@
             </div>
             <p class="text-sm text-gray-500 grow">Fetch push notification hour bitmasks from the NVR.</p>
             <div class="mt-4 flex items-center gap-3">
-                <button hx-post="{{ root_path }}/admin/query-push-schedules"
+                <button hx-post="{{ request.root_path }}/admin/query-push-schedules"
                         hx-target="#push-schedule-results"
                         hx-indicator="#push-spinner"
                         class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium shadow-sm">
@@ -65,7 +65,7 @@
         </div>
 
         {# ── Pending Jobs ───────────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/admin/pending-jobs" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/admin/pending-jobs" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -86,7 +86,7 @@
         </a>
 
         {# ── Audit Trail ────────────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/admin/audit" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/admin/audit" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -107,7 +107,7 @@
         </a>
 
         {# ── Dashboard Buttons ──────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/dashboard-buttons" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/dashboard-buttons" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -128,7 +128,7 @@
         </a>
 
         {# ── Settings ───────────────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/admin/settings" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/admin/settings" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -150,7 +150,7 @@
         </a>
 
         {# ── Users ──────────────────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/admin/users" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/admin/users" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -171,7 +171,7 @@
         </a>
 
         {# ── Export / Import ────────────────────────────────────────────────── #}
-        <a href="{{ root_path }}/admin/import" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
+        <a href="{{ request.root_path }}/admin/import" class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-600 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">

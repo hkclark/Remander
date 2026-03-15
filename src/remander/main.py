@@ -166,7 +166,6 @@ from remander.app_colors import PALETTE, hex_color_style  # noqa: E402
 
 templates.env.globals["hex_color_style"] = hex_color_style
 templates.env.globals["COLOR_PALETTE"] = PALETTE
-templates.env.globals["root_path"] = _settings.proxy_path_prefix
 
 # Register routers
 from remander.routes.activity import router as activity_router  # noqa: E402

@@ -8,7 +8,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="get" action="{{ root_path }}/activity" class="flex items-end space-x-4">
+        <form method="get" action="{{ request.root_path }}/activity" class="flex items-end space-x-4">
             <div>
                 <label for="command_id" class="block text-xs font-medium text-gray-500">Command ID</label>
                 <input type="number" name="command_id" id="command_id"
@@ -36,7 +36,7 @@
                     class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium">
                 Filter
             </button>
-            <a href="{{ root_path }}/activity" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm">
+            <a href="{{ request.root_path }}/activity" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm">
                 Clear
             </a>
         </form>
@@ -63,14 +63,14 @@
                         {{ act.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                     </td>
                     <td class="px-4 py-2 text-sm">
-                        <a href="{{ root_path }}/commands/{{ act.command_id }}" class="text-blue-600 hover:underline">
+                        <a href="{{ request.root_path }}/commands/{{ act.command_id }}" class="text-blue-600 hover:underline">
                             #{{ act.command_id }}
                         </a>
                     </td>
                     <td class="px-4 py-2 text-sm font-mono">{{ act.step_name }}</td>
                     <td class="px-4 py-2 text-sm text-gray-600">
                         {% if act.device_id %}
-                        <a href="{{ root_path }}/devices/{{ act.device_id }}" class="text-blue-600 hover:underline">
+                        <a href="{{ request.root_path }}/devices/{{ act.device_id }}" class="text-blue-600 hover:underline">
                             #{{ act.device_id }}
                         </a>
                         {% else %}—{% endif %}

@@ -8,7 +8,7 @@
 
     <!-- Create tag form -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="post" action="{{ root_path }}/tags/create" class="space-y-3">
+        <form method="post" action="{{ request.root_path }}/tags/create" class="space-y-3">
             <div class="flex items-end space-x-3">
                 <div class="flex-1">
                     <label for="name" class="block text-sm font-medium text-gray-700">New Tag</label>
@@ -58,7 +58,7 @@
     {% if tags %}
     <div class="bg-white rounded-lg shadow p-4">
         <h2 class="text-sm font-semibold text-gray-700 mb-3">Bulk Tag / Untag</h2>
-        <form hx-post="{{ root_path }}/tags/bulk-preview"
+        <form hx-post="{{ request.root_path }}/tags/bulk-preview"
               hx-target="#bulk-preview-result"
               hx-swap="innerHTML"
               class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">

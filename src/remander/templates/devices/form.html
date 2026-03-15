@@ -59,7 +59,7 @@
                 <label for="is_enabled" class="ml-2 text-sm text-gray-700">Enabled</label>
             </div>
             <div class="flex justify-end space-x-3">
-                <a href="{{ root_path }}/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
+                <a href="{{ request.root_path }}/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
                     Cancel
                 </a>
                 <button type="submit"
@@ -73,7 +73,7 @@
     {% if device %}
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <span>Tags are managed on the</span>
-        <a href="{{ root_path }}/devices/{{ device.id }}" class="text-blue-600 hover:underline font-medium">device detail page</a>
+        <a href="{{ request.root_path }}/devices/{{ device.id }}" class="text-blue-600 hover:underline font-medium">device detail page</a>
     </div>
     {% endif %}
 </div>

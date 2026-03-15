@@ -6,7 +6,7 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">{{ device.name }}</h1>
-        <a href="{{ root_path }}/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+        <a href="{{ request.root_path }}/devices" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
             Back
         </a>
     </div>
@@ -14,7 +14,7 @@
     <!-- Basic Settings -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Settings</h2>
-        <form method="post" action="{{ root_path }}/devices/{{ device.id }}/edit" class="space-y-4">
+        <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/edit" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
@@ -89,7 +89,7 @@
     <!-- Detection Types -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Detection Types</h2>
-        <form method="post" action="{{ root_path }}/devices/{{ device.id }}/detection-types" class="space-y-3">
+        <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/detection-types" class="space-y-3">
             <div class="flex flex-wrap gap-4">
                 {% for dt in all_detection_types %}
                 <label class="flex items-center gap-2 text-sm text-gray-700">
@@ -116,7 +116,7 @@
         {% if zone_mask_error %}
         <p class="mb-4 text-sm text-red-600 font-medium">{{ zone_mask_error }}</p>
         {% endif %}
-        <form method="post" action="{{ root_path }}/devices/{{ device.id }}/zone-masks" class="space-y-4">
+        <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/zone-masks" class="space-y-4">
             <label class="flex items-center gap-2 text-sm text-gray-700 font-medium">
                 <input type="checkbox" name="zone_masks_enabled" id="zone_masks_enabled"
                        {% if zm_enabled %}checked{% endif %}
@@ -154,7 +154,7 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-2">
             <h2 class="text-lg font-semibold text-gray-900">Power Control</h2>
-            <div hx-get="{{ root_path }}/devices/{{ device.id }}/power/status"
+            <div hx-get="{{ request.root_path }}/devices/{{ device.id }}/power/status"
                  hx-trigger="load"
                  hx-swap="innerHTML">
                 <span class="inline-flex items-center gap-1.5 text-sm text-gray-400">
@@ -167,13 +167,13 @@
         <p class="text-sm text-gray-500 mb-4">Controls: {{ current_power_device.name }}</p>
         {% endif %}
         <div class="flex gap-3">
-            <form method="post" action="{{ root_path }}/devices/{{ device.id }}/power/on">
+            <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/power/on">
                 <button type="submit"
                         class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow text-sm font-medium">
                     Power On
                 </button>
             </form>
-            <form method="post" action="{{ root_path }}/devices/{{ device.id }}/power/off">
+            <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/power/off">
                 <button type="submit"
                         class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow text-sm font-medium">
                     Power Off
@@ -187,7 +187,7 @@
     {% if device.device_type.value == "camera" %}
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">PTZ</h2>
-        <form method="post" action="{{ root_path }}/devices/{{ device.id }}/ptz-settings" class="space-y-4">
+        <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/ptz-settings" class="space-y-4">
             <label class="flex items-center gap-2 text-sm text-gray-700 font-medium">
                 <input type="checkbox" name="has_ptz" id="has_ptz"
                        {% if device.has_ptz %}checked{% endif %}
@@ -227,7 +227,7 @@
                         </div>
                     </div>
                     <button type="button"
-                            hx-post="{{ root_path }}/devices/{{ device.id }}/query-ptz-presets"
+                            hx-post="{{ request.root_path }}/devices/{{ device.id }}/query-ptz-presets"
                             hx-target="#ptz_preset_selects"
                             hx-swap="innerHTML"
                             class="mt-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
@@ -255,7 +255,7 @@
             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium"
                   style="{{ hex_color_style(tag.color) }}">
                 {{ tag.name }}
-                <form method="post" action="{{ root_path }}/devices/{{ device.id }}/tags/{{ tag.id }}/remove" class="inline">
+                <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/tags/{{ tag.id }}/remove" class="inline">
                     <button type="submit" class="ml-1 opacity-60 hover:opacity-100" title="Remove tag">&times;</button>
                 </form>
             </span>
@@ -266,7 +266,7 @@
         {% endif %}
 
         {% if available_tags %}
-        <form method="post" action="{{ root_path }}/devices/{{ device.id }}/tags/add" class="flex items-center gap-2">
+        <form method="post" action="{{ request.root_path }}/devices/{{ device.id }}/tags/add" class="flex items-center gap-2">
             <select name="tag_id" class="rounded border-gray-300 shadow-sm text-sm">
                 {% for tag in available_tags %}
                 <option value="{{ tag.id }}">{{ tag.name }}</option>

@@ -6,7 +6,7 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">Command History</h1>
-        <a href="{{ root_path }}/commands/execute"
+        <a href="{{ request.root_path }}/commands/execute"
            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
             Execute Command
         </a>
@@ -28,7 +28,7 @@
                 {% for cmd in commands %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm">
-                        <a href="{{ root_path }}/commands/{{ cmd.id }}" class="text-blue-600 hover:underline">#{{ cmd.id }}</a>
+                        <a href="{{ request.root_path }}/commands/{{ cmd.id }}" class="text-blue-600 hover:underline">#{{ cmd.id }}</a>
                     </td>
                     <td class="px-4 py-3 font-mono text-sm">{{ cmd.command_type }}</td>
                     <td class="px-4 py-3">
@@ -50,7 +50,7 @@
                     </td>
                     <td class="px-4 py-3 text-right text-sm">
                         {% if cmd.status.value in ('pending', 'queued') %}
-                        <form action="{{ root_path }}/commands/{{ cmd.id }}/cancel" method="post" class="inline"
+                        <form action="{{ request.root_path }}/commands/{{ cmd.id }}/cancel" method="post" class="inline"
                               hx-confirm="Cancel this command?">
                             <button type="submit" class="text-red-600 hover:underline">Cancel</button>
                         </form>
@@ -69,12 +69,12 @@
     <!-- Pagination -->
     <div class="flex justify-between">
         {% if page > 1 %}
-        <a href="{{ root_path }}/commands?page={{ page - 1 }}" class="text-blue-600 hover:underline">Previous</a>
+        <a href="{{ request.root_path }}/commands?page={{ page - 1 }}" class="text-blue-600 hover:underline">Previous</a>
         {% else %}
         <span></span>
         {% endif %}
         {% if has_next %}
-        <a href="{{ root_path }}/commands?page={{ page + 1 }}" class="text-blue-600 hover:underline">Next</a>
+        <a href="{{ request.root_path }}/commands?page={{ page + 1 }}" class="text-blue-600 hover:underline">Next</a>
         {% endif %}
     </div>
 </div>

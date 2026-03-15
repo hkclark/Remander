@@ -14,7 +14,7 @@
         <div class="px-4 py-3 rounded-lg bg-red-50 text-red-800 text-sm">{{ error }}</div>
         {% endif %}
 
-        <form method="post" action="{{ root_path }}/login" class="space-y-4">
+        <form method="post" action="{{ request.root_path }}/login" class="space-y-4">
             <input type="hidden" name="next" value="{{ next }}">
 
             <div>
@@ -36,7 +36,7 @@
         </form>
 
         <div class="text-center">
-            <a href="{{ root_path }}/forgot-password" class="text-sm text-blue-600 hover:underline">Forgot your password?</a>
+            <a href="{{ request.root_path }}/forgot-password" class="text-sm text-blue-600 hover:underline">Forgot your password?</a>
         </div>
     </div>
 </div>
