@@ -12,6 +12,12 @@
 </head>
 <body class="bg-gray-50 {% if use_horiz %}overflow-hidden{% else %}min-h-screen{% endif %}">
 
+{# ── Screen-lock overlay: shown instantly on button submit, cleared by page reload ── #}
+<style>@keyframes _spin{to{transform:rotate(360deg)}}</style>
+<div id="screen-lock" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center">
+    <div style="width:52px;height:52px;border-radius:50%;border:5px solid rgba(255,255,255,0.25);border-top-color:#fff;animation:_spin .75s linear infinite"></div>
+</div>
+
 {% if use_horiz %}
 {# ══════════════════════════════════════════════════════════════════════════════
    Horizontal / landscape layout
@@ -109,6 +115,12 @@
         {% for widget in plugin_widgets %}
         {% include widget.template_name %}
         {% endfor %}
+        <div class="flex justify-center mt-1">
+            <button type="button" onclick="location.reload()"
+                    class="px-8 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-200 rounded-full shadow-sm active:bg-gray-100">
+                ↺ Reload
+            </button>
+        </div>
         {% endif %}
 
     </div>{# /right column #}
@@ -215,6 +227,12 @@
     {% for widget in plugin_widgets %}
     {% include widget.template_name %}
     {% endfor %}
+    <div class="flex justify-center mt-2">
+        <button type="button" onclick="location.reload()"
+                class="px-10 py-3 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-full shadow-sm active:bg-gray-100">
+            ↺ Reload
+        </button>
+    </div>
     {% endif %}
 
 </main>
@@ -277,5 +295,30 @@ document.addEventListener('DOMContentLoaded', function() { showToast('Command se
 }());
 </script>
 {% endif %}
+<script>
+(function () {
+    var lock = document.getElementById('screen-lock');
+
+    // Full-page button forms: lock on submit, page reload clears it naturally
+    var forms = document.querySelectorAll('form:not([hx-post]):not([hx-get])');
+    for (var i = 0; i < forms.length; i++) {
+        forms[i].addEventListener('submit', function () { lock.style.display = 'flex'; });
+    }
+
+    // HTMX plugin forms (e.g. hot water start/cancel): lock before request, unlock after
+    // DOM settles (which is also when the OOB toast swap lands).
+    // tagName check distinguishes form submits from background div polling (hx-trigger="every Ns").
+    document.addEventListener('htmx:beforeRequest', function (e) {
+        if (e.detail.elt && e.detail.elt.tagName === 'FORM') {
+            lock.style.display = 'flex';
+        }
+    });
+    document.addEventListener('htmx:afterSettle', function (e) {
+        if (e.detail.elt && e.detail.elt.tagName === 'FORM') {
+            lock.style.display = 'none';
+        }
+    });
+}());
+</script>
 </body>
 </html>
