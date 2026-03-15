@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Remander{% endblock %}</title>
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="manifest" href="/static/manifest_maindboard.json">
+    <link rel="icon" type="image/png" href="{{ root_path }}/static/favicon.png">
+    <link rel="manifest" href="{{ root_path }}/static/manifest_maindboard.json">
     <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
@@ -15,21 +15,21 @@
     <nav class="bg-gray-800 text-white">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-14">
-                <a href="/maindboard" class="text-lg font-bold tracking-wide">Remander</a>
+                <a href="{{ root_path }}/maindboard" class="text-lg font-bold tracking-wide">Remander</a>
 
                 {# Desktop nav #}
                 <div class="hidden md:flex items-center space-x-4 text-sm">
-                    <a href="/maindboard" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
-                    <a href="/devices" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_devices %}{% endblock %}">Devices</a>
-                    <a href="/bitmasks" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_bitmasks %}{% endblock %}">Bitmasks</a>
-                    <a href="/tags" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_tags %}{% endblock %}">Tags</a>
-                    <a href="/commands" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_commands %}{% endblock %}">Commands</a>
-                    <a href="/activity" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_activity %}{% endblock %}">Activity</a>
-                    <a href="/admin" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_admin %}{% endblock %}">Admin</a>
+                    <a href="{{ root_path }}/maindboard" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_dashboard %}{% endblock %}">Dashboard</a>
+                    <a href="{{ root_path }}/devices" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_devices %}{% endblock %}">Devices</a>
+                    <a href="{{ root_path }}/bitmasks" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_bitmasks %}{% endblock %}">Bitmasks</a>
+                    <a href="{{ root_path }}/tags" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_tags %}{% endblock %}">Tags</a>
+                    <a href="{{ root_path }}/commands" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_commands %}{% endblock %}">Commands</a>
+                    <a href="{{ root_path }}/activity" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_activity %}{% endblock %}">Activity</a>
+                    <a href="{{ root_path }}/admin" class="hover:text-gray-300 px-2 py-1 rounded {% block nav_admin %}{% endblock %}">Admin</a>
                     {% if request.state.current_user %}
                     <span class="text-gray-500">|</span>
                     <span class="text-gray-300 text-xs">{{ request.state.current_user.display_name or request.state.current_user.email }}</span>
-                    <a href="/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
+                    <a href="{{ root_path }}/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
                     {% endif %}
                 </div>
 
@@ -49,17 +49,17 @@
         {# Mobile dropdown menu #}
         <div id="nav-menu" class="hidden md:hidden border-t border-gray-700">
             <div class="px-4 py-3 space-y-1 text-sm">
-                <a href="/maindboard" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_dashboard() }}">Dashboard</a>
-                <a href="/devices" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_devices() }}">Devices</a>
-                <a href="/bitmasks" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_bitmasks() }}">Bitmasks</a>
-                <a href="/tags" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_tags() }}">Tags</a>
-                <a href="/commands" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_commands() }}">Commands</a>
-                <a href="/activity" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_activity() }}">Activity</a>
-                <a href="/admin" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_admin() }}">Admin</a>
+                <a href="{{ root_path }}/maindboard" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_dashboard() }}">Dashboard</a>
+                <a href="{{ root_path }}/devices" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_devices() }}">Devices</a>
+                <a href="{{ root_path }}/bitmasks" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_bitmasks() }}">Bitmasks</a>
+                <a href="{{ root_path }}/tags" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_tags() }}">Tags</a>
+                <a href="{{ root_path }}/commands" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_commands() }}">Commands</a>
+                <a href="{{ root_path }}/activity" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_activity() }}">Activity</a>
+                <a href="{{ root_path }}/admin" class="block px-3 py-2 rounded hover:bg-gray-700 {{ self.nav_admin() }}">Admin</a>
                 {% if request.state.current_user %}
                 <div class="pt-2 border-t border-gray-700 flex items-center justify-between">
                     <span class="text-gray-400 text-xs">{{ request.state.current_user.display_name or request.state.current_user.email }}</span>
-                    <a href="/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
+                    <a href="{{ root_path }}/logout" class="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-500 text-gray-100">Log Out</a>
                 </div>
                 {% endif %}
             </div>

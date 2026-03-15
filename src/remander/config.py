@@ -75,6 +75,17 @@ class Settings(BaseSettings):
     password_reset_expiry_seconds: int = 3600
     invitation_expiry_seconds: int = 604800
 
+    # Reverse proxy support
+    # PROXY_PATH_PREFIX  — path prefix the proxy prepends (e.g. "/abcdefghijklmnop")
+    # PROXY_SCHEME       — scheme to report in generated URLs (e.g. "https")
+    # PROXY_X_FORWARDED_TOKEN — secret the proxy inserts as X-Forwarded-Token; required to
+    #                           activate prefix-stripping behavior
+    # FORWARDED_ALLOW_IPS — comma-separated IPs uvicorn should trust for X-Forwarded-* headers
+    proxy_path_prefix: str = ""
+    proxy_scheme: str = ""
+    proxy_x_forwarded_token: str = ""
+    forwarded_allow_ips: str = ""
+
 
 _cached_settings: Settings | None = None
 

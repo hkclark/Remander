@@ -72,7 +72,7 @@ async def device_create(
     kwargs["is_enabled"] = is_enabled == "on"
 
     await create_device(**kwargs)
-    return RedirectResponse(url="/devices", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices", status_code=303)
 
 
 @router.get("/{device_id}", response_class=HTMLResponse)
@@ -117,7 +117,7 @@ async def device_detail(request: Request, device_id: int) -> HTMLResponse:
 
 @router.get("/{device_id}/edit", response_class=HTMLResponse)
 async def device_edit_form(request: Request, device_id: int) -> RedirectResponse:
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=301)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=301)
 
 
 @router.post("/{device_id}/edit")
@@ -151,7 +151,7 @@ async def device_edit(
             device_id, int(power_device_id) if power_device_id else None
         )
 
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/{device_id}/zone-masks", response_model=None)
@@ -212,7 +212,7 @@ async def device_set_zone_masks(
     device.zone_mask_away = zone_mask_away if enabled else None
     device.zone_mask_home = zone_mask_home if enabled else None
     await device.save()
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/{device_id}/detection-types")
@@ -223,7 +223,7 @@ async def device_set_detection_types(
 ) -> RedirectResponse:
     valid = [DetectionType(dt) for dt in detection_types if dt in DetectionType._value2member_map_]
     await set_detection_types(device_id, valid)
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 async def _toggle_power(device_id: int, action: str) -> None:
@@ -308,13 +308,13 @@ async def device_power_status(request: Request, device_id: int) -> HTMLResponse:
 @router.post("/{device_id}/power/on")
 async def device_power_on(request: Request, device_id: int) -> RedirectResponse:
     await _toggle_power(device_id, "on")
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/{device_id}/power/off")
 async def device_power_off(request: Request, device_id: int) -> RedirectResponse:
     await _toggle_power(device_id, "off")
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/{device_id}/ptz-settings")
@@ -344,7 +344,7 @@ async def device_ptz_settings(
         device.ptz_home_preset = None
         device.ptz_speed = None
     await device.save()
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/{device_id}/query-ptz-presets", response_class=HTMLResponse)
@@ -394,4 +394,4 @@ async def device_query_ptz_presets(request: Request, device_id: int) -> HTMLResp
 @router.post("/{device_id}/delete")
 async def device_delete(request: Request, device_id: int) -> RedirectResponse:
     await delete_device(device_id)
-    return RedirectResponse(url="/devices", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices", status_code=303)

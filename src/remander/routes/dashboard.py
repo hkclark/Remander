@@ -16,8 +16,9 @@ router = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
-async def root_redirect() -> RedirectResponse:
-    return RedirectResponse(url="/d", status_code=302)
+async def root_redirect(request: Request) -> RedirectResponse:
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/d", status_code=302)
 
 
 @router.get("/maindboard", response_class=HTMLResponse)

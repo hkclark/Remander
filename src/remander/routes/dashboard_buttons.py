@@ -230,7 +230,7 @@ async def button_create(
     if color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)
-    return RedirectResponse(url="/dashboard-buttons", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/dashboard-buttons", status_code=303)
 
 
 @router.get("/{button_id}/edit", response_class=HTMLResponse)
@@ -381,10 +381,10 @@ async def button_edit(
     if color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)
-    return RedirectResponse(url="/dashboard-buttons", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/dashboard-buttons", status_code=303)
 
 
 @router.post("/{button_id}/delete")
 async def button_delete(request: Request, button_id: int) -> RedirectResponse:
     await delete_dashboard_button(button_id)
-    return RedirectResponse(url="/dashboard-buttons", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/dashboard-buttons", status_code=303)

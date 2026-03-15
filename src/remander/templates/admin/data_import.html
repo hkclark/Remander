@@ -13,7 +13,7 @@
             Download all application data as a JSON file — devices, tags, schedules,
             settings, and users.  Suitable for backup or migrating to a new install.
         </p>
-        <a href="/admin/export"
+        <a href="{{ root_path }}/admin/export"
            class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
             Download backup
         </a>
@@ -31,7 +31,7 @@
             Export first if you want a safety copy.
         </div>
 
-        <form hx-post="/admin/import/preview"
+        <form hx-post="{{ root_path }}/admin/import/preview"
               hx-target="#import-result"
               hx-swap="innerHTML"
               hx-encoding="multipart/form-data"

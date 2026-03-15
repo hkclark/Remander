@@ -49,12 +49,13 @@ def _invite_expiry() -> int:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/maindboard", message: str = "") -> HTMLResponse:
+    prefix = request.scope.get("root_path", "")
     # Fresh install with no users — redirect to setup
     if await _no_users_exist():
-        return RedirectResponse(url="/setup", status_code=302)
+        return RedirectResponse(url=f"{prefix}/setup", status_code=302)
     user = await get_current_user_optional(request)
     if user is not None:
-        return RedirectResponse(url=next, status_code=302)
+        return RedirectResponse(url=f"{prefix}{next}", status_code=302)
     return _templates().TemplateResponse(
         request, "auth/login.html", {"next": next, "message": message, "error": ""}
     )
@@ -82,13 +83,15 @@ async def login_submit(
     request.session["user_id"] = user.id
     ip = request.client.host if request.client else None
     await log_access(user, ip, method="password", path=next)
-    return RedirectResponse(url=next or "/maindboard", status_code=303)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}{next or '/maindboard'}", status_code=303)
 
 
 @router.get("/logout")
 async def logout(request: Request) -> RedirectResponse:
     request.session.clear()
-    return RedirectResponse(url="/login", status_code=302)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/login", status_code=302)
 
 
 # ── Forgot / Reset password ───────────────────────────────────────────────────
@@ -104,7 +107,7 @@ async def forgot_password_submit(request: Request, email: str = Form(...)) -> HT
     user = await get_user_by_email(email)
     if user is not None:
         token = make_token(user.email, salt="password-reset", secret=_secret())
-        base_url = str(request.base_url).rstrip("/")
+        base_url = str(request.base_url).rstrip("/") + request.scope.get("root_path", "")
         reset_url = f"{base_url}/reset-password?token={token}"
         await send_auth_email(
             to=user.email,
@@ -165,7 +168,8 @@ async def reset_password_submit(
     await set_password(user, password)
     ip = request.client.host if request.client else None
     await log_access(user, ip, method="password_reset", path="/reset-password")
-    return RedirectResponse(url="/login?message=Password+updated+successfully", status_code=303)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/login?message=Password+updated+successfully", status_code=303)
 
 
 # ── Invitation / Set initial password ────────────────────────────────────────
@@ -222,8 +226,9 @@ async def set_password_submit(
     await set_password(user, password)
     ip = request.client.host if request.client else None
     await log_access(user, ip, method="invitation", path="/set-password")
+    prefix = request.scope.get("root_path", "")
     return RedirectResponse(
-        url="/login?message=Account+activated.+You+can+now+log+in.", status_code=303
+        url=f"{prefix}/login?message=Account+activated.+You+can+now+log+in.", status_code=303
     )
 
 
@@ -279,4 +284,5 @@ async def setup_submit(
     await set_password(user, password)
     ip = request.client.host if request.client else None
     await log_access(user, ip, method="invitation", path="/setup")
-    return RedirectResponse(url="/login?message=Admin+account+created.+Please+sign+in.", status_code=303)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/login?message=Admin+account+created.+Please+sign+in.", status_code=303)

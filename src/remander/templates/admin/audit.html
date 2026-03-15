@@ -6,7 +6,7 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">Audit Trail</h1>
-        <a href="/admin" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+        <a href="{{ root_path }}/admin" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
             Back
         </a>
     </div>
@@ -28,7 +28,7 @@
                 {% for cmd in commands %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm">
-                        <a href="/commands/{{ cmd.id }}" class="text-blue-600 hover:underline">#{{ cmd.id }}</a>
+                        <a href="{{ root_path }}/commands/{{ cmd.id }}" class="text-blue-600 hover:underline">#{{ cmd.id }}</a>
                     </td>
                     <td class="px-4 py-3 font-mono text-sm">{{ cmd.command_type }}</td>
                     <td class="px-4 py-3">

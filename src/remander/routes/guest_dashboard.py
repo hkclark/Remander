@@ -95,7 +95,7 @@ async def guest_execute_button(
     if button.operation_type == ButtonOperationType.HOME:
         settings = get_settings()
         if pin != settings.guest_dashboard_pin:
-            return RedirectResponse(url="/d?pin_error=1", status_code=303)
+            return RedirectResponse(url=f"{request.scope.get('root_path', '')}/d?pin_error=1", status_code=303)
 
     match button.operation_type:
         case ButtonOperationType.AWAY:
@@ -112,4 +112,4 @@ async def guest_execute_button(
         initiated_by_ip=request.client.host if request.client else None,
     )
     await enqueue_command(cmd.id)
-    return RedirectResponse(url="/d?submitted=1", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/d?submitted=1", status_code=303)

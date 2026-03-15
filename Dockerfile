@@ -35,4 +35,5 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "remander.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use shell form so we can conditionally pass --forwarded-allow-ips from FORWARDED_ALLOW_IPS env var
+CMD uv run uvicorn remander.main:app --host 0.0.0.0 --port 8000 ${FORWARDED_ALLOW_IPS:+--forwarded-allow-ips "$FORWARDED_ALLOW_IPS" --proxy-headers}

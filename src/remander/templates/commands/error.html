@@ -15,7 +15,7 @@
             {% for device in problem_devices %}
             <li class="flex items-center gap-2">
                 <span class="text-red-500">&#x26A0;</span>
-                <a href="/devices/{{ device.id }}"
+                <a href="{{ root_path }}/devices/{{ device.id }}"
                    class="text-blue-600 hover:underline font-medium">
                     {{ device.name }}
                 </a>
@@ -30,11 +30,11 @@
     </div>
 
     <div class="flex space-x-3">
-        <a href="/maindboard"
+        <a href="{{ root_path }}/maindboard"
            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
             Dashboard
         </a>
-        <a href="/commands/execute"
+        <a href="{{ root_path }}/commands/execute"
            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
             Execute Command
         </a>

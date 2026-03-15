@@ -27,7 +27,8 @@ async def requires_login_handler(request: Request, exc: RequiresLoginException) 
     For HTMX partial requests, use the HX-Redirect response header so HTMX
     performs a full-page navigation instead of swapping a redirect response.
     """
-    login_url = f"/login?next={request.url.path}"
+    prefix = request.scope.get("root_path", "")
+    login_url = f"{prefix}/login?next={request.url.path}"
     if request.headers.get("HX-Request"):
         from fastapi.responses import Response
 

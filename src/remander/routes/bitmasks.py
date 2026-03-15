@@ -150,7 +150,7 @@ async def hour_bitmask_create(
         kwargs["fill_value"] = fill_value or "1"
 
     await create_hour_bitmask(**kwargs)
-    return RedirectResponse(url="/bitmasks", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/bitmasks", status_code=303)
 
 
 @router.get("/hour/{bitmask_id}", response_class=HTMLResponse)
@@ -209,13 +209,13 @@ async def hour_bitmask_edit(
         kwargs["fill_value"] = fill_value or "1"
 
     await update_hour_bitmask(bitmask_id, **kwargs)
-    return RedirectResponse(url=f"/bitmasks/hour/{bitmask_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/bitmasks/hour/{bitmask_id}", status_code=303)
 
 
 @router.post("/hour/{bitmask_id}/delete")
 async def hour_bitmask_delete(request: Request, bitmask_id: int) -> RedirectResponse:
     await delete_hour_bitmask(bitmask_id)
-    return RedirectResponse(url="/bitmasks", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/bitmasks", status_code=303)
 
 
 # --- Zone Mask routes ---
@@ -239,7 +239,7 @@ async def zone_mask_create(
     mask_value: str = Form(...),
 ) -> RedirectResponse:
     await create_zone_mask(name=name, mask_value=mask_value)
-    return RedirectResponse(url="/bitmasks", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/bitmasks", status_code=303)
 
 
 @router.get("/zone/{mask_id}", response_class=HTMLResponse)
@@ -260,4 +260,4 @@ async def zone_mask_detail(request: Request, mask_id: int) -> HTMLResponse:
 @router.post("/zone/{mask_id}/delete")
 async def zone_mask_delete(request: Request, mask_id: int) -> RedirectResponse:
     await delete_zone_mask(mask_id)
-    return RedirectResponse(url="/bitmasks", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/bitmasks", status_code=303)

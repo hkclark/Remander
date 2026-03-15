@@ -60,7 +60,7 @@ async def tag_create(
     if color and color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)
-    return RedirectResponse(url="/tags", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/tags", status_code=303)
 
 
 @router.get("/tags/{tag_id}/edit", response_class=HTMLResponse)
@@ -99,7 +99,7 @@ async def tag_edit(
     if color and color not in PALETTE:
         from remander.services.app_config import add_custom_color
         await add_custom_color(color)
-    return RedirectResponse(url="/tags", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/tags", status_code=303)
 
 
 @router.get("/tags/{tag_id}/delete-confirm", response_class=HTMLResponse)
@@ -125,7 +125,7 @@ async def tag_row(request: Request, tag_id: int) -> HTMLResponse:
 @router.post("/tags/{tag_id}/delete")
 async def tag_delete(request: Request, tag_id: int) -> RedirectResponse:
     await delete_tag(tag_id)
-    return RedirectResponse(url="/tags", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/tags", status_code=303)
 
 
 @router.post("/tags/{tag_id}/toggle-dashboard")
@@ -134,7 +134,7 @@ async def tag_toggle_dashboard(request: Request, tag_id: int) -> RedirectRespons
     if tag:
         tag.show_on_dashboard = not tag.show_on_dashboard
         await tag.save()
-    return RedirectResponse(url="/tags", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/tags", status_code=303)
 
 
 @router.post("/tags/bulk-preview", response_class=HTMLResponse)
@@ -210,7 +210,7 @@ async def device_add_tag(
     tag_id: str = Form(...),
 ) -> RedirectResponse:
     await add_tag_to_device(device_id, int(tag_id))
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)
 
 
 @router.post("/devices/{device_id}/tags/{tag_id}/remove")
@@ -220,4 +220,4 @@ async def device_remove_tag(
     tag_id: int,
 ) -> RedirectResponse:
     await remove_tag_from_device(device_id, tag_id)
-    return RedirectResponse(url=f"/devices/{device_id}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/devices/{device_id}", status_code=303)

@@ -40,7 +40,7 @@
         </tbody>
     </table>
     <div class="px-4 py-3 bg-gray-50 border-t flex items-center gap-3">
-        <form hx-post="/admin/import/apply"
+        <form hx-post="{{ root_path }}/admin/import/apply"
               hx-target="#import-result"
               hx-swap="innerHTML">
             <input type="hidden" name="export_json" value="{{ export_json | e }}">

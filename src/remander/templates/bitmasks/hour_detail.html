@@ -7,11 +7,11 @@
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">{{ bitmask.name }}</h1>
         <div class="flex space-x-3">
-            <a href="/bitmasks/hour/{{ bitmask.id }}/edit"
+            <a href="{{ root_path }}/bitmasks/hour/{{ bitmask.id }}/edit"
                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow text-sm font-medium">
                 Edit
             </a>
-            <a href="/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
+            <a href="{{ root_path }}/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
                 Back
             </a>
         </div>

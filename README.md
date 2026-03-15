@@ -177,6 +177,38 @@ Used to calculate sunrise/sunset times for dynamic hour bitmasks.
 
 ---
 
+## Public Proxy Support
+
+★ Insight ─────────────────────────────────────
+- The middleware uses a copy-on-write pattern (scope = dict(scope)) — ASGI scopes are shared dicts, so mutating them in-place would affect other middlewares that have a reference to the original. Creating a copy before modification is the correct ASGI pattern.
+- Setting scope["root_path"] is the ASGI standard way to communicate path prefixes. Starlette's Request.root_path reads directly from this field, so every layer of the stack (route handlers, request.url_for(), templates via the global) benefits automatically.
+- The FORWARDED_ALLOW_IPS setting affects uvicorn's trust of X-Forwarded-For headers (for real client IP logging), which is independent of our prefix middleware. It's passed via the Dockerfile CMD's shell form using ${VAR:+--flag "$VAR"} — a standard shell conditional expansion that only adds the
+flag if the var is non-empty.
+─────────────────────────────────────────────────
+
+What was built:
+
+New .env settings:
+PROXY_PATH_PREFIX=/abcdefghijklmnop
+PROXY_SCHEME=https
+PROXY_X_FORWARDED_TOKEN=your-secret-token
+FORWARDED_ALLOW_IPS=192.168.1.1
+
+New src/remander/proxy.py — ProxyPrefixMiddleware strips the prefix from incoming paths, sets root_path in the ASGI scope, and optionally rewrites the scheme.
+
+main.py — wires up the middleware, adds root_path as a Jinja2 global so all templates can use {{ root_path }}/path.
+
+All route handlers — every RedirectResponse(url="/path") now prepends request.scope.get("root_path", "") so HTTP redirects include the prefix.
+
+All templates (including plugin templates) — every href=, action=, hx-post=, hx-get= etc. now uses {{ root_path }}/path.
+
+Dockerfile — CMD changed to shell form to conditionally pass --forwarded-allow-ips and --proxy-headers to uvicorn when FORWARDED_ALLOW_IPS is set.
+
+Zero breakage when unconfigured — all four settings default to empty strings, making ProxyPrefixMiddleware a transparent no-op and {{ root_path }} renders as an empty string.
+
+
+---
+
 ## Workflow Error Handling
 
 When a command runs (Away, Home, Pause, etc.), each step in the workflow is either **best-effort** or a **full failure**.

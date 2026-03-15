@@ -12,7 +12,7 @@
     <div class="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-sm text-amber-800">
         <strong>Timezone not configured.</strong>
         Dynamic bitmask hours are computed in UTC, which may not match your local day/night.
-        Go to <a href="/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
+        Go to <a href="{{ root_path }}/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
         and set the <strong>Timezone</strong> field (e.g. <code>America/New_York</code>, <code>Europe/London</code>).
     </div>
     {% endif %}
@@ -21,7 +21,7 @@
     <div>
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-gray-800">Hour Bitmasks</h2>
-            <a href="/bitmasks/hour/create"
+            <a href="{{ root_path }}/bitmasks/hour/create"
                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium">
                 Add Hour Bitmask
             </a>
@@ -40,7 +40,7 @@
                     {% for bm in hour_bitmasks %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3">
-                            <a href="/bitmasks/hour/{{ bm.id }}" class="text-blue-600 hover:underline font-medium">
+                            <a href="{{ root_path }}/bitmasks/hour/{{ bm.id }}" class="text-blue-600 hover:underline font-medium">
                                 {{ bm.name }}
                             </a>
                         </td>
@@ -54,8 +54,8 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-right text-sm">
-                            <a href="/bitmasks/hour/{{ bm.id }}/edit" class="text-blue-600 hover:underline mr-3">Edit</a>
-                            <form action="/bitmasks/hour/{{ bm.id }}/delete" method="post" class="inline"
+                            <a href="{{ root_path }}/bitmasks/hour/{{ bm.id }}/edit" class="text-blue-600 hover:underline mr-3">Edit</a>
+                            <form action="{{ root_path }}/bitmasks/hour/{{ bm.id }}/delete" method="post" class="inline"
                                   hx-confirm="Delete {{ bm.name }}?">
                                 <button type="submit" class="text-red-600 hover:underline">Delete</button>
                             </form>
@@ -78,7 +78,7 @@
         &mdash; today's sunrise <strong>{{ location_sunrise }}</strong>,
         sunset <strong>{{ location_sunset }}</strong>.
         If these times look wrong, check your
-        <a href="/admin/settings" class="underline font-medium">location settings</a>
+        <a href="{{ root_path }}/admin/settings" class="underline font-medium">location settings</a>
         (west of prime meridian needs a negative longitude, e.g. New York = -74.01).
     </div>
     {% endif %}
@@ -87,7 +87,7 @@
     <div>
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-gray-800">Zone Masks</h2>
-            <a href="/bitmasks/zone/create"
+            <a href="{{ root_path }}/bitmasks/zone/create"
                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium">
                 Add Zone Mask
             </a>
@@ -104,12 +104,12 @@
                     {% for zm in zone_masks %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3">
-                            <a href="/bitmasks/zone/{{ zm.id }}" class="text-blue-600 hover:underline font-medium">
+                            <a href="{{ root_path }}/bitmasks/zone/{{ zm.id }}" class="text-blue-600 hover:underline font-medium">
                                 {{ zm.name }}
                             </a>
                         </td>
                         <td class="px-4 py-3 text-right text-sm">
-                            <form action="/bitmasks/zone/{{ zm.id }}/delete" method="post" class="inline"
+                            <form action="{{ root_path }}/bitmasks/zone/{{ zm.id }}/delete" method="post" class="inline"
                                   hx-confirm="Delete {{ zm.name }}?">
                                 <button type="submit" class="text-red-600 hover:underline">Delete</button>
                             </form>

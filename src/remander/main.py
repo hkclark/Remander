@@ -21,6 +21,7 @@ from remander.auth import (
 )
 from remander.config import get_settings
 from remander.db import get_tortoise_config
+from remander.proxy import ProxyPrefixMiddleware
 from remander.logging import setup_logging
 from remander.plugins.registry import PluginRegistry, set_registry
 from remander.services.app_config import load_core_config, load_plugin_config
@@ -122,6 +123,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Remander stopped")
 
 
+_settings = get_settings()
 app = FastAPI(title="Remander", version="0.1.0", lifespan=lifespan)
 
 
@@ -134,11 +136,21 @@ async def inject_current_user(request: Request, call_next):
     return await call_next(request)
 
 
+# Reverse proxy middleware — strips PROXY_PATH_PREFIX from incoming paths and sets root_path.
+# Added after SessionMiddleware so it wraps it; SessionMiddleware only reads the cookie header
+# and doesn't care about path, so the relative order between them doesn't affect correctness.
+app.add_middleware(
+    ProxyPrefixMiddleware,
+    prefix=_settings.proxy_path_prefix,
+    token=_settings.proxy_x_forwarded_token,
+    scheme=_settings.proxy_scheme,
+)
+
 # Session middleware — must be added before routers are included
 # Secret key is validated in lifespan; use a placeholder here for pre-lifespan imports
 app.add_middleware(
     SessionMiddleware,
-    secret_key=get_settings().session_secret_key or "placeholder-replaced-at-startup",
+    secret_key=_settings.session_secret_key or "placeholder-replaced-at-startup",
     session_cookie="remander_session",
     https_only=False,
 )
@@ -154,6 +166,7 @@ from remander.app_colors import PALETTE, hex_color_style  # noqa: E402
 
 templates.env.globals["hex_color_style"] = hex_color_style
 templates.env.globals["COLOR_PALETTE"] = PALETTE
+templates.env.globals["root_path"] = _settings.proxy_path_prefix
 
 # Register routers
 from remander.routes.activity import router as activity_router  # noqa: E402

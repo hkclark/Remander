@@ -108,13 +108,13 @@
                     &mdash; today's sunrise <strong>{{ location_sunrise }}</strong>,
                     sunset <strong>{{ location_sunset }}</strong>.
                     If these times look wrong, check your
-                    <a href="/admin/settings" class="underline font-medium">location settings</a>
+                    <a href="{{ root_path }}/admin/settings" class="underline font-medium">location settings</a>
                     (west of prime meridian needs a negative longitude, e.g. New York = -74.01).
                 </div>
                 {% else %}
                 <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
                     Location not configured &mdash; go to
-                    <a href="/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
+                    <a href="{{ root_path }}/admin/settings" class="underline font-medium">Admin → Settings → Location</a>
                     to set latitude, longitude, and timezone before using dynamic bitmasks.
                 </div>
                 {% endif %}
@@ -185,7 +185,7 @@
             </script>
 
             <div class="flex justify-end space-x-3">
-                <a href="/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
+                <a href="{{ root_path }}/bitmasks" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm">
                     Cancel
                 </a>
                 <button type="submit"

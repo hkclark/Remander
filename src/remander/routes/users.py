@@ -72,8 +72,9 @@ async def user_create(
     is_admin: str = Form("false"),
 ) -> Response:
     email = email.strip().lower()
+    prefix = request.scope.get("root_path", "")
     if not email:
-        return RedirectResponse(url="/admin/users", status_code=303)
+        return RedirectResponse(url=f"{prefix}/admin/users", status_code=303)
 
     existing = await User.get_or_none(email=email)
     if existing is not None:
@@ -90,9 +91,9 @@ async def user_create(
         display_name=display_name.strip() or None,
         is_admin=is_admin.lower() in ("true", "1", "on", "yes"),
     )
-    base_url = str(request.base_url).rstrip("/")
+    base_url = str(request.base_url).rstrip("/") + prefix
     await _send_invite(user, base_url)
-    return RedirectResponse(url="/admin/users", status_code=303)
+    return RedirectResponse(url=f"{prefix}/admin/users", status_code=303)
 
 
 @router.post("/{user_id}/toggle-active", response_class=Response)
@@ -101,7 +102,8 @@ async def user_toggle_active(request: Request, user_id: int) -> Response:
     if user:
         user.is_active = not user.is_active
         await user.save(update_fields=["is_active", "updated_at"])
-    return RedirectResponse(url="/admin/users", status_code=303)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/admin/users", status_code=303)
 
 
 @router.post("/{user_id}/toggle-admin", response_class=Response)
@@ -110,16 +112,18 @@ async def user_toggle_admin(request: Request, user_id: int) -> Response:
     if user:
         user.is_admin = not user.is_admin
         await user.save(update_fields=["is_admin", "updated_at"])
-    return RedirectResponse(url="/admin/users", status_code=303)
+    prefix = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{prefix}/admin/users", status_code=303)
 
 
 @router.post("/{user_id}/resend-invite", response_class=Response)
 async def user_resend_invite(request: Request, user_id: int) -> Response:
     user = await User.get_or_none(id=user_id)
+    prefix = request.scope.get("root_path", "")
     if user and user.password_hash is None:
-        base_url = str(request.base_url).rstrip("/")
+        base_url = str(request.base_url).rstrip("/") + prefix
         await _send_invite(user, base_url)
-    return RedirectResponse(url="/admin/users", status_code=303)
+    return RedirectResponse(url=f"{prefix}/admin/users", status_code=303)
 
 
 @router.get("/{user_id}/history", response_class=HTMLResponse)
