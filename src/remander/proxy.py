@@ -14,14 +14,15 @@ class ProxyPrefixMiddleware:
     instead of ``/login``), which the browser then routes back through the proxy.
 
     Behaviour:
-    1. Validates the ``X-Forwarded-Token`` header to confirm the request came from
-       the configured trusted proxy (when ``token`` is non-empty; skip check if empty).
-    2. Sets ``scope["root_path"]`` to ``prefix`` on authenticated requests.
-    3. Optionally overwrites ``scope["scheme"]`` with ``scheme`` (e.g. ``"https"``) so
+    1. Both ``prefix`` and ``token`` must be non-empty, otherwise the middleware is a
+       transparent no-op (local access without proxy config is unaffected).
+    2. Validates the ``X-Forwarded-Token`` header — only injects ``root_path`` when the
+       header value exactly matches ``token``.
+    3. Sets ``scope["root_path"]`` to ``prefix`` on authenticated proxy requests.
+    4. Optionally overwrites ``scope["scheme"]`` with ``scheme`` (e.g. ``"https"``) so
        ``request.url`` and email link generation reflect the public-facing scheme.
 
     The path in ``scope["path"]`` is **not modified** — the proxy already stripped it.
-    If ``prefix`` is empty the middleware is a transparent no-op.
     """
 
     def __init__(self, app: ASGIApp, prefix: str, token: str, scheme: str = "") -> None:
@@ -30,23 +31,17 @@ class ProxyPrefixMiddleware:
         self.token = token
         self.scheme = scheme
         # Force to be absolute path
-        if not self.prefix.startswith("/"):
+        if self.prefix and not self.prefix.startswith("/"):
             self.prefix = "/" + self.prefix
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] in ("http", "websocket") and self.prefix:
-            # Check token if one is configured; skip proxy injection if token mismatch
-            if self.token:
-                headers = dict(scope.get("headers", []))
-                request_token = headers.get(b"x-forwarded-token", b"").decode()
-                if request_token != self.token:
-                    await self.app(scope, receive, send)
-                    return
-
-            scope = dict(scope)
-            scope["root_path"] = self.prefix
-
-            if self.scheme:
-                scope["scheme"] = self.scheme
+        if scope["type"] in ("http", "websocket") and self.prefix and self.token:
+            headers = dict(scope.get("headers", []))
+            request_token = headers.get(b"x-forwarded-token", b"").decode()
+            if request_token == self.token:
+                scope = dict(scope)
+                scope["root_path"] = self.prefix
+                if self.scheme:
+                    scope["scheme"] = self.scheme
 
         await self.app(scope, receive, send)
