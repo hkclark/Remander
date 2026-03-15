@@ -76,11 +76,13 @@ class Settings(BaseSettings):
     invitation_expiry_seconds: int = 604800
 
     # Reverse proxy support
-    # PROXY_PATH_PREFIX  — path prefix the proxy prepends (e.g. "/abcdefghijklmnop")
-    # PROXY_SCHEME       — scheme to report in generated URLs (e.g. "https")
-    # PROXY_X_FORWARDED_TOKEN — secret the proxy inserts as X-Forwarded-Token; required to
-    #                           activate prefix-stripping behavior
-    # FORWARDED_ALLOW_IPS — comma-separated IPs uvicorn should trust for X-Forwarded-* headers
+    # The expected proxy setup: proxy exposes /PREFIX/... publicly, strips /PREFIX before
+    # forwarding to the app, and adds X-Forwarded-Token so the app knows to inject root_path.
+    #
+    # PROXY_PATH_PREFIX       — prefix the proxy puts in front of all public URLs (e.g. "/abcdefghijklmnop")
+    # PROXY_SCHEME            — public-facing scheme (e.g. "https") for redirects and email links
+    # PROXY_X_FORWARDED_TOKEN — secret the proxy inserts as X-Forwarded-Token to authenticate itself
+    # FORWARDED_ALLOW_IPS     — comma-separated IPs uvicorn trusts for X-Forwarded-* headers
     proxy_path_prefix: str = ""
     proxy_scheme: str = ""
     proxy_x_forwarded_token: str = ""
