@@ -307,14 +307,18 @@ document.addEventListener('DOMContentLoaded', function() { showToast('Command se
 
     // HTMX plugin forms (e.g. hot water start/cancel): lock before request, unlock after
     // DOM settles (which is also when the OOB toast swap lands).
-    // tagName check distinguishes form submits from background div polling (hx-trigger="every Ns").
+    // beforeRequest fires on the triggering element (FORM), so tagName check works there.
+    // afterSettle fires on the swap target (a div), so we use a flag instead.
+    var htmxFormPending = false;
     document.addEventListener('htmx:beforeRequest', function (e) {
         if (e.detail.elt && e.detail.elt.tagName === 'FORM') {
+            htmxFormPending = true;
             lock.style.display = 'flex';
         }
     });
-    document.addEventListener('htmx:afterSettle', function (e) {
-        if (e.detail.elt && e.detail.elt.tagName === 'FORM') {
+    document.addEventListener('htmx:afterSettle', function () {
+        if (htmxFormPending) {
+            htmxFormPending = false;
             lock.style.display = 'none';
         }
     });
